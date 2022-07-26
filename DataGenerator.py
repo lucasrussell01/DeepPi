@@ -3,6 +3,10 @@ import pyarrow
 import pandas as pd
 import numpy as np
 import ROOT as R
+import os
+import tensorflow as tf
+
+os.environ["CUDA_VISIBLE_DEVICES"]="-1"
 
 file = "/afs/cern.ch/user/l/lrussell/HTauTau/Images/test.parquet.0"
 
