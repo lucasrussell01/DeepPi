@@ -1,0 +1,4 @@
+Setup:
+    n_tau           :   100
+    n_batches       :   100
+    n_batches_val   :   0
