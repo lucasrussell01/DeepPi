@@ -27,48 +27,20 @@ class DataLoader:
         n_batches = self.n_batches if primary_set else self.n_batches_val
 
         def _generator():
-            
-            if show_progress and n_batches>0:
-                pbar = tqdm(total = n_batches)
-            
-            df = pd.read_pickle(_files[0])[:1000]
-            # print(len(df["DM"])/n_tau)
-            for i in range(len(df)): # try not batching 
-                x = (df["Tracks"][i], df["ECAL"][i], df["HCAL"][i])
-                print(type(x))
-                y = (df["DM"][i])
-                yield(x,y)
+            df = pd.read_pickle(_files[0])
+            for i in range(len(df)):
+                Tracks = df["Tracks"][i]
+                ECAL = df["ECAL"][i]
+                HCAL = df["HCAL"][i]
+                x = (Tracks, ECAL, HCAL)
+                DM = df["DM"][i]
+                if DM == 0 or DM == 10:
+                    y = 0
+                elif DM ==1 or DM ==1:
+                    y = 1
+                elif DM == 2:
+                    y = 2
+                yield (x,y)
    
         return _generator
 
-    # def gen_test(self):
-
-    #     _files = self.train_files 
-    #     df = pd.read_pickle(_files[0])
-    #     df = pd.read_pickle(_files[0])
-    #     # print(len(df["DM"])/n_tau)
-    #     for i in range(len(df)): # try not batching 
-    #         x = (df["Tracks"][i], df["ECAL"][i], df["HCAL"][i])
-    #         print(type(x))
-    #         y = (df["DM"][i])
-    #         break
-
-
-        # for batch in np.array_split(df, len(df["DM"])/n_tau): # divide into batches
-
-source_dir = "/home/hep/lcr119/Datasets/"
-sample = "GluGluHToTauTau_M125"
-n_tau = 100
-n_batches = 200
-load = DataLoader(source_dir, sample, 100, 200, 0)
-
-#separte for testing
-gen = load.get_generator()
-
-print("Generator created")
-ds = tf.data.Dataset.from_generator(gen)
-print("TF dataset")
-
-
-# print(load.get_generator())
-# print(files)
