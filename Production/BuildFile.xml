@@ -1,0 +1,11 @@
+<flags CXXFLAGS="-g"/>
+<use name="DataFormats/Common"/>
+<use name="CommonTools/BaseParticlePropagator"/>
+<use name="CommonTools/"/>
+<use name="FWCore/Utilities"/>
+<use name="DataFormats/HepMCCandidate"/>
+<use name="DataFormats/ParticleFlowReco"/>
+<use name="root"/>
+<export>
+  <lib name="1"/>
+</export>
