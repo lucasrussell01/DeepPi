@@ -35,11 +35,11 @@ class DataLoader:
                 x = (Tracks, ECAL, HCAL)
                 DM = df["DM"][i]
                 if DM == 0 or DM == 10:
-                    y = 0
+                    y = 0 # no pi0
                 elif DM ==1 or DM ==1:
-                    y = 1
+                    y = 1 # one pi0
                 elif DM == 2:
-                    y = 2
+                    y = 2 # two pi0
                 yield (x,y)
    
         return _generator
