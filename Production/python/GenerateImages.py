@@ -34,7 +34,7 @@ plot = False
 
 
 shard = 0 # number of file if split into several required
-save_folder = args.save_path + "/" + sample
+save_folder = args.save_path + sample
 savepath = save_folder + "/" + sample + "_" + str(shard) + ".pkl"
 # check if directory exists
 if not os.path.exists(save_folder):
@@ -151,15 +151,17 @@ for event in range(nEvts):
             if n_selected>=n_tau_target:
                 complete = True
                 break
-            if (n_selected%1000)==0: # save in multiple files for safety
+            if (n_selected%10000)==0: # save in multiple files for safety
                 df = pd.DataFrame()
                 df["Tracks"] = Tracks_list
                 df["ECAL"] = ECAL_list
                 df["HCAL"] = HCAL_list
                 df["DM"] = DM_list
-                print "Saving dataframe at: ", savepath
+                print("Saving dataframe at: ", savepath)
+                df.to_pickle(savepath)
                 shard+=1 # new shard
                 savepath = save_folder + "/" + sample + "_" + str(shard) + ".pkl"
+                print("After event: ", event)
                 Tracks_list = []
                 ECAL_list = []
                 HCAL_list = []
