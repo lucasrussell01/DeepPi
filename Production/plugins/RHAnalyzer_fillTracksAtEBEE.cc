@@ -14,34 +14,19 @@ std::vector<float> vTracksPt_EE_[nEE];
 std::vector<float> vTracksQPt_EE_[nEE];
 std::vector<float> vTracks_EE_[nEE];
 
-std::vector<float> vTracksPt_PV_EE_[nEE];
-std::vector<float> vTracksQPt_PV_EE_[nEE];
-std::vector<float> vTracksd0_PV_EE_[nEE];
-std::vector<float> vTracksz0_PV_EE_[nEE];
-std::vector<float> vTracksd0sig_PV_EE_[nEE];
-std::vector<float> vTracksz0sig_PV_EE_[nEE];
-
-std::vector<float> vTracksPt_nPV_EE_[nEE];
-std::vector<float> vTracksQPt_nPV_EE_[nEE];
 
 std::vector<float> vTracksPt_EB_;
 std::vector<float> vTracksE_EB_;
 std::vector<float> vTracksQPt_EB_;
 std::vector<float> vTracks_EB_;
 
-std::vector<float> vTracksPt_PV_EB_;
-std::vector<float> vTracksQPt_PV_EB_;
-std::vector<float> vTracksd0_PV_EB_;
-std::vector<float> vTracksz0_PV_EB_;
-std::vector<float> vTracksd0sig_PV_EB_;
-std::vector<float> vTracksz0sig_PV_EB_;
 
-std::vector<float> vTracksPt_nPV_EB_;
-std::vector<float> vTracksQPt_nPV_EB_;
-
-// HCAL info:
+// HCAL PF info:
 std::vector<float> vPF_HCAL_EB_;
 std::vector<float> vPF_HCAL_EB_raw_;
+// ECAL PF info
+std::vector<float> vPF_ECAL_EB_;
+std::vector<float> vPF_ECAL_EB_raw_;
 
 // Initialize branches ____________________________________________________________//
 void RecHitAnalyzer::branchesTracksAtEBEE ( TTree* tree, edm::Service<TFileService> &fs ) {
@@ -52,18 +37,10 @@ void RecHitAnalyzer::branchesTracksAtEBEE ( TTree* tree, edm::Service<TFileServi
   tree->Branch("TracksE_EB",  &vTracksE_EB_);
   tree->Branch("TracksQPt_EB", &vTracksQPt_EB_);
 
-  tree->Branch("TracksPt_PV_EB",     &vTracksPt_PV_EB_);
-  tree->Branch("TracksQPt_PV_EB",    &vTracksQPt_PV_EB_);
-  tree->Branch("Tracksd0_PV_EB",     &vTracksd0_PV_EB_);
-  tree->Branch("Tracksz0_PV_EB",     &vTracksz0_PV_EB_);
-  tree->Branch("Tracksd0sig_PV_EB",  &vTracksd0sig_PV_EB_);
-  tree->Branch("Tracksz0sig_PV_EB",  &vTracksz0sig_PV_EB_);
-
-  tree->Branch("TracksPt_nPV_EB",     &vTracksPt_nPV_EB_);
-  tree->Branch("TracksQPt_nPV_EB",    &vTracksQPt_nPV_EB_);
-
   tree->Branch("PF_HCAL_EB",     &vPF_HCAL_EB_);
   tree->Branch("PF_HCAL_EB_raw", &vPF_HCAL_EB_raw_);
+  tree->Branch("PF_ECAL_EB",     &vPF_ECAL_EB_);
+  tree->Branch("PF_ECAL_EB_raw", &vPF_ECAL_EB_raw_);
 
   // Histograms for monitoring
   hTracks_EB = fs->make<TH2F>("Tracks_EB", "N(i#phi,i#eta);i#phi;i#eta",
@@ -85,24 +62,6 @@ void RecHitAnalyzer::branchesTracksAtEBEE ( TTree* tree, edm::Service<TFileServi
     sprintf(hname, "TracksQPt_EE%s",zside);
     tree->Branch(hname,        &vTracksQPt_EE_[iz]);
 
-    sprintf(hname, "TracksPt_PV_EE%s",zside);
-    tree->Branch(hname,        &vTracksPt_PV_EE_[iz]);
-    sprintf(hname, "TracksQPt_PV_EE%s",zside);
-    tree->Branch(hname,        &vTracksQPt_PV_EE_[iz]);
-    sprintf(hname, "Tracksd0_PV_EE%s",zside);
-    tree->Branch(hname,        &vTracksd0_PV_EE_[iz]);
-    sprintf(hname, "Tracksz0_PV_EE%s",zside);
-    tree->Branch(hname,        &vTracksz0_PV_EE_[iz]);
-    sprintf(hname, "Tracksd0sig_PV_EE%s",zside);
-    tree->Branch(hname,        &vTracksd0sig_PV_EE_[iz]);
-    sprintf(hname, "Tracksz0sig_PV_EE%s",zside);
-    tree->Branch(hname,        &vTracksz0sig_PV_EE_[iz]);
-
-    sprintf(hname, "TracksPt_nPV_EE%s",zside);
-    tree->Branch(hname,        &vTracksPt_nPV_EE_[iz]);
-    sprintf(hname, "TracksQPt_nPV_EE%s",zside);
-    tree->Branch(hname,        &vTracksQPt_nPV_EE_[iz]);
-
     // Histograms for monitoring
     sprintf(hname, "Tracks_EE%s",zside);
     sprintf(htitle,"N(ix,iy);ix;iy");
@@ -123,7 +82,7 @@ void RecHitAnalyzer::fillTracksAtEBEE ( const edm::Event& iEvent, const edm::Eve
 
   int ix_, iy_, iz_;
   int iphi_, ieta_, idx_; // rows:ieta, cols:iphi
-  float eta, phi, pt, qpt, d0, z0, d0sig, z0sig, energy;
+  float eta, phi, pt, qpt, dxy, dz, energy;
   GlobalPoint pos;
 
   vTracks_EB_.assign( EBDetId::kSizeForDenseIndexing, 0. );
@@ -131,34 +90,17 @@ void RecHitAnalyzer::fillTracksAtEBEE ( const edm::Event& iEvent, const edm::Eve
   vTracksE_EB_.assign( EBDetId::kSizeForDenseIndexing, 0. );
   vTracksQPt_EB_.assign( EBDetId::kSizeForDenseIndexing, 0. );
 
-  vTracksPt_PV_EB_.assign( EBDetId::kSizeForDenseIndexing, 0. );
-  vTracksQPt_PV_EB_.assign( EBDetId::kSizeForDenseIndexing, 0. );
-  vTracksd0_PV_EB_.assign( EBDetId::kSizeForDenseIndexing, 0. );
-  vTracksz0_PV_EB_.assign( EBDetId::kSizeForDenseIndexing, 0. );
-  vTracksd0sig_PV_EB_.assign( EBDetId::kSizeForDenseIndexing, 0. );
-  vTracksz0sig_PV_EB_.assign( EBDetId::kSizeForDenseIndexing, 0. );
 
-  vTracksPt_nPV_EB_.assign( EBDetId::kSizeForDenseIndexing, 0. );
-  vTracksQPt_nPV_EB_.assign( EBDetId::kSizeForDenseIndexing, 0. );
-
-  // HCAL on same grid resolution
+  // energy deposits on same grid resolution
   vPF_HCAL_EB_.assign( EBDetId::kSizeForDenseIndexing, 0. );
   vPF_HCAL_EB_raw_.assign( EBDetId::kSizeForDenseIndexing, 0. );
+  vPF_ECAL_EB_.assign( EBDetId::kSizeForDenseIndexing, 0. );
+  vPF_ECAL_EB_raw_.assign( EBDetId::kSizeForDenseIndexing, 0. );
 
   for ( int iz(0); iz < nEE; iz++ ) {
     vTracks_EE_[iz].assign( EE_NC_PER_ZSIDE, 0. );
     vTracksPt_EE_[iz].assign( EE_NC_PER_ZSIDE, 0. );
     vTracksQPt_EE_[iz].assign( EE_NC_PER_ZSIDE, 0. );
-
-    vTracksPt_PV_EE_[iz].assign( EE_NC_PER_ZSIDE, 0. );
-    vTracksQPt_PV_EE_[iz].assign( EE_NC_PER_ZSIDE, 0. );
-    vTracksd0_PV_EE_[iz].assign( EE_NC_PER_ZSIDE, 0. );
-    vTracksz0_PV_EE_[iz].assign( EE_NC_PER_ZSIDE, 0. );
-    vTracksd0sig_PV_EE_[iz].assign( EE_NC_PER_ZSIDE, 0. );
-    vTracksz0sig_PV_EE_[iz].assign( EE_NC_PER_ZSIDE, 0. );
-
-    vTracksPt_nPV_EE_[iz].assign( EE_NC_PER_ZSIDE, 0. );
-    vTracksQPt_nPV_EE_[iz].assign( EE_NC_PER_ZSIDE, 0. );
 
   }
 
@@ -176,6 +118,8 @@ void RecHitAnalyzer::fillTracksAtEBEE ( const edm::Event& iEvent, const edm::Eve
   iEvent.getByToken(vertexCollectionT_, vertexInfo);
   const reco::VertexCollection& vtxs = *vertexInfo;
 
+  // std::cout << "PV: " << vtxs[0].position() << std::endl;
+
   reco::Track::TrackQuality tkQt_ = reco::Track::qualityByName("highPurity");
 
   edm::ESHandle<MagneticField> magfield;
@@ -185,47 +129,30 @@ void RecHitAnalyzer::fillTracksAtEBEE ( const edm::Event& iEvent, const edm::Eve
   edm::Handle<reco::PFJetCollection> jets;
   iEvent.getByToken(jetCollectionT_, jets);
 
-
-  for(int thisJetIdx : vJetIdxs){
-    reco::PFJetRef thisJet( jets, thisJetIdx );
-    // std::cout << "Filling track image for PF jet" << std::endl;
-
-    std::vector<reco::PFCandidatePtr> pfCands = thisJet->getPFConstituents();
-
-    for (const auto &pfC : pfCands){
-
-    // check if charged/avoid null reference
-    if (pfC->charge() == 0 || !pfC->trackRef().isNonnull()) { 
-      continue; 
-      } 
+  for ( reco::TrackCollection::const_iterator iTk = tracksH_->begin();
+        iTk != tracksH_->end(); ++iTk ) {
     
-    reco::TrackRef iTk = pfC->trackRef();
-      // if ( !(iTk->quality(tkQt_)) ) continue;
+    energy = iTk->p(); // energy is roughly the same as p()
+    pt    = iTk->pt();
+    dxy = ( !vtxs.empty() ? iTk->dxy(vtxs[0].position()) : iTk->dxy() ); // 1st entry=PV
+    dz = ( !vtxs.empty() ? iTk->dz(vtxs[0].position())  : iTk->dz() );
+    qpt   = (iTk->charge()*pt);
 
-      energy = iTk->p(); // energy is roughly the same as p()
-      pt    = iTk->pt();
-      qpt   = (iTk->charge()*pt);
-      d0    =  ( !vtxs.empty() ? iTk->dxy(vtxs[0].position()) : iTk->dxy() );
-      z0    =  ( !vtxs.empty() ? iTk->dz(vtxs[0].position())  : iTk->dz() );
-      d0sig = d0/iTk->dxyError();
-      z0sig = z0/iTk->dzError();
+    if (pt<0.5 || iTk->numberOfValidHits()<3 || dz>0.4 || dxy>0.1){ // tau reco like selection
+      continue;
+    }
+    // get B field
+    double magneticField = (magfield.product() ? magfield.product()->inTesla(GlobalPoint(0., 0., 0.)).z() : 0.0);
+    math::XYZTLorentzVector  track_p4(iTk->px(),iTk->py(),iTk->pz(),sqrt(pow(iTk->p(),2)+0.14*0.14)); //setup 4-vector assuming mass is mass of charged pion
+    BaseParticlePropagator propagator = BaseParticlePropagator(
+        RawParticle(track_p4, math::XYZTLorentzVector(iTk->vx(), iTk->vy(), iTk->vz(), 0.),  iTk->charge()),
+        0., 0., magneticField);
+    propagator.propagateToEcalEntrance(false); // propogate to ECAL entrance
+    auto position = propagator.particle().vertex().Vect();
 
-      // get B field
-      double magneticField = (magfield.product() ? magfield.product()->inTesla(GlobalPoint(0., 0., 0.)).z() : 0.0);
-      math::XYZTLorentzVector  track_p4(iTk->px(),iTk->py(),iTk->pz(),sqrt(pow(iTk->p(),2)+0.14*0.14)); //setup 4-vector assuming mass is mass of charged pion
-      BaseParticlePropagator propagator = BaseParticlePropagator(
-          RawParticle(track_p4,
-                      math::XYZTLorentzVector(iTk->vx(), iTk->vy(), iTk->vz(), 0.),
-                      iTk->charge()),
-          0.,
-          0.,
-          magneticField);
-      propagator.propagateToEcalEntrance(false); // propogate to ECAL entrance
-      auto position = propagator.particle().vertex().Vect();
+    if ( std::abs(position.eta()) > 3. ) continue;
 
-      if ( std::abs(position.eta()) > 3. ) continue;
- 
-      DetId id( spr::findDetIdECAL( caloGeom, position.eta(), position.phi(), false ) );
+    DetId id( spr::findDetIdECAL( caloGeom, position.eta(), position.phi(), false ) );
       if ( id.subdetId() == EcalBarrel ) {
         EBDetId ebId( id );
         iphi_ = ebId.iphi() - 1;
@@ -240,26 +167,6 @@ void RecHitAnalyzer::fillTracksAtEBEE ( const edm::Event& iEvent, const edm::Eve
         vTracksPt_EB_[idx_] += pt;
         vTracksE_EB_[idx_] += energy;
         vTracksQPt_EB_[idx_] += qpt;
-
-        // store HCAL energies
-        vPF_HCAL_EB_[idx_] += pfC->hcalEnergy();
-        vPF_HCAL_EB_raw_[idx_] += pfC->rawHcalEnergy();
-
-
-        if(fabs(z0) < z0PVCut_){
-    vTracksPt_PV_EB_[idx_] += pt;
-    vTracksQPt_PV_EB_[idx_] += qpt;
-
-    vTracksd0_PV_EB_[idx_] += d0;
-    vTracksz0_PV_EB_[idx_] += z0;
-    vTracksd0sig_PV_EB_[idx_] += d0sig;
-    vTracksz0sig_PV_EB_[idx_] += z0sig;
-        }else{
-    vTracksPt_nPV_EB_[idx_] += pt;
-    vTracksQPt_nPV_EB_[idx_] += qpt;
-        }
-
-
       } else if ( id.subdetId() == EcalEndcap ) {
         EEDetId eeId( id );
         ix_ = eeId.ix() - 1;
@@ -274,20 +181,52 @@ void RecHitAnalyzer::fillTracksAtEBEE ( const edm::Event& iEvent, const edm::Eve
         vTracks_EE_   [iz_][idx_] += 1.;
         vTracksPt_EE_ [iz_][idx_] += pt;
         vTracksQPt_EE_[iz_][idx_] += qpt;
+      }
+      
+    }
 
-        if(fabs(z0) < z0PVCut_){
-    vTracksPt_PV_EE_ [iz_][idx_] += pt;
-    vTracksQPt_PV_EE_[iz_][idx_] += qpt;
+  for(int thisJetIdx : vJetIdxs){
+    reco::PFJetRef thisJet( jets, thisJetIdx );
 
-    vTracksd0_PV_EE_   [iz_][idx_] += d0;
-    vTracksz0_PV_EE_   [iz_][idx_] += z0;
-    vTracksd0sig_PV_EE_[iz_][idx_] += d0sig;
-    vTracksz0sig_PV_EE_[iz_][idx_] += z0sig;
-        }else{
-    vTracksPt_nPV_EE_ [iz_][idx_] += pt;
-    vTracksQPt_nPV_EE_[iz_][idx_] += qpt;
-        }
+    std::vector<reco::PFCandidatePtr> pfCands = thisJet->getPFConstituents();
 
+    for (const auto &pfC : pfCands){
+
+    // check if charged/avoid null reference
+    if (pfC->charge() == 0 || !pfC->trackRef().isNonnull()) { 
+      continue; 
+      } 
+    
+    reco::TrackRef iTk = pfC->trackRef();
+
+      energy = iTk->p(); // energy is roughly the same as p()
+      pt    = iTk->pt();
+      qpt   = (iTk->charge()*pt);
+
+      // get B field
+      double magneticField = (magfield.product() ? magfield.product()->inTesla(GlobalPoint(0., 0., 0.)).z() : 0.0);
+      math::XYZTLorentzVector  track_p4(iTk->px(),iTk->py(),iTk->pz(),sqrt(pow(iTk->p(),2)+0.14*0.14)); //setup 4-vector assuming mass is mass of charged pion
+      BaseParticlePropagator propagator = BaseParticlePropagator(
+          RawParticle(track_p4, math::XYZTLorentzVector(iTk->vx(), iTk->vy(), iTk->vz(), 0.),  iTk->charge()),
+          0., 0., magneticField);
+      propagator.propagateToEcalEntrance(false); // propogate to ECAL entrance
+      auto position = propagator.particle().vertex().Vect();
+
+      if ( std::abs(position.eta()) > 3. ) continue;
+ 
+      DetId id( spr::findDetIdECAL( caloGeom, position.eta(), position.phi(), false ) );
+      if ( id.subdetId() == EcalBarrel ) {
+        EBDetId ebId( id );
+        iphi_ = ebId.iphi() - 1;
+        ieta_ = ebId.ieta() > 0 ? ebId.ieta()-1 : ebId.ieta();
+
+        idx_ = ebId.hashedIndex();
+        // store HCAL energies
+        vPF_HCAL_EB_[idx_] += pfC->hcalEnergy();
+        vPF_HCAL_EB_raw_[idx_] += pfC->rawHcalEnergy();
+        // store ECAL energies
+        vPF_ECAL_EB_[idx_] += pfC->ecalEnergy();
+        vPF_ECAL_EB_raw_[idx_] += pfC->rawEcalEnergy();
 
       } 
     }
