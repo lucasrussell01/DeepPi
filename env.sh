@@ -78,7 +78,7 @@ if [[ $MODE = "prod2018" || $MODE = "phase2" || $MODE = "phase2_113X" || $MODE =
 elif [[ $MODE = "conda" ]]; then
     CONDA=$(which conda 2>/dev/null)
     if [[ $CONDA = "" || $CONDA = "/usr/bin/conda" ]]; then
-        PRIVATE_CONDA_INSTALL_DEFAULT="$BASE_PATH/soft/conda"
+        PRIVATE_CONDA_INSTALL_DEFAULT="/home/hep/lcr119/conda"
         PRIVATE_CONDA_INSTALL="$PRIVATE_CONDA_INSTALL_DEFAULT"
         if [ -f "$PRIVATE_CONDA_INSTALL_DEFAULT.ref" ]; then
             PRIVATE_CONDA_INSTALL=$(cat "$PRIVATE_CONDA_INSTALL.ref")
