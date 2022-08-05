@@ -83,6 +83,7 @@ void RecHitAnalyzer::fillTracksAtEBEE ( const edm::Event& iEvent, const edm::Eve
   int ix_, iy_, iz_;
   int iphi_, ieta_, idx_; // rows:ieta, cols:iphi
   float eta, phi, pt, qpt, dxy, dz, energy;
+  math::XYZVector position; //vector for propagating pfC
   GlobalPoint pos;
 
   vTracks_EB_.assign( EBDetId::kSizeForDenseIndexing, 0. );
@@ -138,7 +139,7 @@ void RecHitAnalyzer::fillTracksAtEBEE ( const edm::Event& iEvent, const edm::Eve
     dz = ( !vtxs.empty() ? iTk->dz(vtxs[0].position())  : iTk->dz() );
     qpt   = (iTk->charge()*pt);
 
-    if (pt<0.5 || iTk->numberOfValidHits()<3 || dz>0.4 || dxy>0.1){ // tau reco like selection
+    if (pt<0.5 || iTk->numberOfValidHits()<3 || std::abs(dz)>0.4 || std::abs(dxy)>0.1){ // tau reco like selection
       continue;
     }
     // get B field
@@ -148,11 +149,11 @@ void RecHitAnalyzer::fillTracksAtEBEE ( const edm::Event& iEvent, const edm::Eve
         RawParticle(track_p4, math::XYZTLorentzVector(iTk->vx(), iTk->vy(), iTk->vz(), 0.),  iTk->charge()),
         0., 0., magneticField);
     propagator.propagateToEcalEntrance(false); // propogate to ECAL entrance
-    auto position = propagator.particle().vertex().Vect();
+    auto track_position = propagator.particle().vertex().Vect();
 
-    if ( std::abs(position.eta()) > 3. ) continue;
+    if ( std::abs(track_position.eta()) > 3. ) continue;
 
-    DetId id( spr::findDetIdECAL( caloGeom, position.eta(), position.phi(), false ) );
+    DetId id( spr::findDetIdECAL( caloGeom, track_position.eta(), track_position.phi(), false ) );
       if ( id.subdetId() == EcalBarrel ) {
         EBDetId ebId( id );
         iphi_ = ebId.iphi() - 1;
@@ -194,24 +195,43 @@ void RecHitAnalyzer::fillTracksAtEBEE ( const edm::Event& iEvent, const edm::Eve
 
     // check if charged/avoid null reference
     if (pfC->charge() == 0 || !pfC->trackRef().isNonnull()) { 
-      continue; 
-      } 
-    
-    reco::TrackRef iTk = pfC->trackRef();
+      // if not track propagate the pfC p4
+      energy = pfC->p();
+      pt = pfC->p4().pt();
+      qpt = 0; // =0 since charge zero
+
+      // get B field
+      double magneticField = (magfield.product() ? magfield.product()->inTesla(GlobalPoint(0., 0., 0.)).z() : 0.0);
+      math::XYZTLorentzVector  track_p4(pfC->p4().px(),pfC->p4().py(),pfC->p4().pz(),sqrt(pow(pfC->p(),2)+pfC->mass()*pfC->mass())); //setup 4-vector 
+      BaseParticlePropagator propagator = BaseParticlePropagator(
+          RawParticle(track_p4, math::XYZTLorentzVector(pfC->vx(), pfC->vy(), pfC->vz(), 0.),  pfC->charge()),
+          0., 0., magneticField);
+      propagator.propagateToEcalEntrance(false); // propogate to ECAL entrance
+      position = propagator.particle().vertex().Vect();
+
+    } else{
+      // if track propagate the track ref p4
+      reco::TrackRef iTk = pfC->trackRef();
 
       energy = iTk->p(); // energy is roughly the same as p()
       pt    = iTk->pt();
       qpt   = (iTk->charge()*pt);
+      dxy = ( !vtxs.empty() ? iTk->dxy(vtxs[0].position()) : iTk->dxy() ); // 1st entry=PV
+      dz = ( !vtxs.empty() ? iTk->dz(vtxs[0].position())  : iTk->dz() );
 
+      if (pt<0.5 || iTk->numberOfValidHits()<3 || std::abs(dz)>0.4 || std::abs(dxy)>0.1){ // tau reco like selection
+      continue;
+      }
       // get B field
       double magneticField = (magfield.product() ? magfield.product()->inTesla(GlobalPoint(0., 0., 0.)).z() : 0.0);
-      math::XYZTLorentzVector  track_p4(iTk->px(),iTk->py(),iTk->pz(),sqrt(pow(iTk->p(),2)+0.14*0.14)); //setup 4-vector assuming mass is mass of charged pion
+      math::XYZTLorentzVector  track_p4(iTk->px(),iTk->py(),iTk->pz(),sqrt(pow(iTk->p(),2)+pfC->mass()*pfC->mass())); //setup 4-vector assuming mass is mass of charged pion
       BaseParticlePropagator propagator = BaseParticlePropagator(
           RawParticle(track_p4, math::XYZTLorentzVector(iTk->vx(), iTk->vy(), iTk->vz(), 0.),  iTk->charge()),
           0., 0., magneticField);
       propagator.propagateToEcalEntrance(false); // propogate to ECAL entrance
-      auto position = propagator.particle().vertex().Vect();
-
+      position = propagator.particle().vertex().Vect();
+    }
+    
       if ( std::abs(position.eta()) > 3. ) continue;
  
       DetId id( spr::findDetIdECAL( caloGeom, position.eta(), position.phi(), false ) );
