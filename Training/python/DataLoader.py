@@ -12,6 +12,7 @@ class DataLoader:
         self.n_batches_val = n_batches_val # number of batches for validation
         self.n_tau = n_tau # number of taus/batch
         self.file_path = source_dir + sample
+        print(self.file_path)
         self.files = glob.glob(self.file_path + "/*.pkl")
         self.train_files = self.files # add validation files later
         self.val_files = []
@@ -27,20 +28,21 @@ class DataLoader:
         n_batches = self.n_batches if primary_set else self.n_batches_val
 
         def _generator():
-            df = pd.read_pickle(_files[0])
-            for i in range(len(df)):
-                Tracks = df["Tracks"][i]
-                ECAL = df["ECAL"][i]
-                HCAL = df["HCAL"][i]
-                x = (Tracks, ECAL, HCAL)
-                DM = df["DM"][i]
-                if DM == 0 or DM == 10:
-                    y = 0 # no pi0
-                elif DM ==1 or DM ==1:
-                    y = 1 # one pi0
-                elif DM == 2:
-                    y = 2 # two pi0
-                yield (x,y)
-   
+            for j in range(len(_files)):
+                df = pd.read_pickle(_files[j])
+                for i in range(len(df)):
+                    Tracks = df["Tracks"][i]
+                    ECAL = df["ECAL"][i]
+                    HCAL = df["HCAL"][i]
+                    x = (np.stack([Tracks, ECAL, HCAL], axis=-1))
+                    DM = df["DM"][i]
+                    if DM == 0 or DM == 10:
+                        y = 0 # no pi0
+                    elif DM ==1 or DM ==1:
+                        y = 1 # one pi0
+                    elif DM == 2:
+                        y = 2 # two pi0
+                    yield (x,y)
+
         return _generator
 
