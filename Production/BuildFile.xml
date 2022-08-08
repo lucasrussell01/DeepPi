@@ -1,7 +1,6 @@
 <flags CXXFLAGS="-g"/>
 <use name="DataFormats/Common"/>
 <use name="CommonTools/BaseParticlePropagator"/>
-<use name="CommonTools/"/>
 <use name="FWCore/Utilities"/>
 <use name="DataFormats/HepMCCandidate"/>
 <use name="DataFormats/ParticleFlowReco"/>

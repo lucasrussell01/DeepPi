@@ -1,6 +1,11 @@
 import FWCore.ParameterSet.Config as cms
 process = cms.Process("MAIN")
 import sys
+# lost tracks imports:
+import FWCore.ParameterSet.Config as cms
+
+from PhysicsTools.PatAlgos.slimming.primaryVertexAssociation_cfi import primaryVertexAssociation
+from PhysicsTools.PatAlgos.slimming.packedPFCandidates_cfi import packedPFCandidates
 
 ################################################################
 # Read Options
@@ -43,7 +48,7 @@ process.TFileService = cms.Service("TFileService",
 # Message Logging, summary, and number of events
 ################################################################
 process.maxEvents = cms.untracked.PSet(
-    input = cms.untracked.int32(100)
+    input = cms.untracked.int32(1000)
 )
 
 process.MessageLogger.cerr.FwkReport.reportEvery = 50
@@ -96,6 +101,7 @@ process.recHitAnalyzer = cms.EDAnalyzer('RecHitAnalyzer'
     )
 
 process.recHitAnalyzerSequence = cms.Sequence(process.recHitAnalyzer)
+
 
 process.p = cms.Path(
     process.recHitAnalyzerSequence
