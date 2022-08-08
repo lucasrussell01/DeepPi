@@ -42,6 +42,7 @@ RecHitAnalyzer::RecHitAnalyzer(const edm::ParameterSet& iConfig)
   
   PFEBRecHitCollectionT_    = consumes<std::vector<reco::PFRecHit>>(iConfig.getParameter<edm::InputTag>("PFEBRecHitCollection"));
   PFHBHERecHitCollectionT_    = consumes<std::vector<reco::PFRecHit>>(iConfig.getParameter<edm::InputTag>("PFHBHERecHitCollection"));
+  gsfTracksCollectionT_    = consumes<std::vector<reco::GsfTrack>>(iConfig.getParameter<edm::InputTag>("gsfTracksCollection"));
 
   //johnda add configuration
   mode_      = iConfig.getParameter<std::string>("mode");
@@ -93,7 +94,7 @@ RecHitAnalyzer::RecHitAnalyzer(const edm::ParameterSet& iConfig)
   branchesPFCandsAtECALstitched( RHTree, fs);
   branchesJetInfoAtECALstitched( RHTree, fs);
   branchesPFEB           ( RHTree, fs );
-
+  branchesGsfTracksAtEBEE ( RHTree, fs );
 
 } // constructor
 //
@@ -150,6 +151,7 @@ RecHitAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
   fillJetInfoAtECALstitched( iEvent, iSetup );
   fillPFEB( iEvent, iSetup );
   //fillPFHBHE( iEvent, iSetup );
+  fillGsfTracksAtEBEE( iEvent, iSetup );
 
   ////////////// 4-Momenta //////////
   //fillFC( iEvent, iSetup );

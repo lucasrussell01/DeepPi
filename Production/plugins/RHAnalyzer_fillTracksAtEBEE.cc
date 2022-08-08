@@ -20,6 +20,11 @@ std::vector<float> vTracksE_EB_;
 std::vector<float> vTracksQPt_EB_;
 std::vector<float> vTracks_EB_;
 
+std::vector<float> vFailedTracksPt_EB_;
+std::vector<float> vFailedTracksE_EB_;
+std::vector<float> vFailedTracksQPt_EB_;
+std::vector<float> vFailedTracks_EB_;
+
 
 // HCAL PF info:
 std::vector<float> vPF_HCAL_EB_;
@@ -36,6 +41,12 @@ void RecHitAnalyzer::branchesTracksAtEBEE ( TTree* tree, edm::Service<TFileServi
   tree->Branch("TracksPt_EB",  &vTracksPt_EB_);
   tree->Branch("TracksE_EB",  &vTracksE_EB_);
   tree->Branch("TracksQPt_EB", &vTracksQPt_EB_);
+
+  // contains all tracks that have failed vtx association
+  tree->Branch("FailedTracks_EB",    &vFailedTracks_EB_);
+  tree->Branch("FailedTracksPt_EB",  &vFailedTracksPt_EB_);
+  tree->Branch("FailedTracksE_EB",  &vFailedTracksE_EB_);
+  tree->Branch("FailedTracksQPt_EB", &vFailedTracksQPt_EB_);
 
   tree->Branch("PF_HCAL_EB",     &vPF_HCAL_EB_);
   tree->Branch("PF_HCAL_EB_raw", &vPF_HCAL_EB_raw_);
@@ -91,6 +102,10 @@ void RecHitAnalyzer::fillTracksAtEBEE ( const edm::Event& iEvent, const edm::Eve
   vTracksE_EB_.assign( EBDetId::kSizeForDenseIndexing, 0. );
   vTracksQPt_EB_.assign( EBDetId::kSizeForDenseIndexing, 0. );
 
+  vFailedTracks_EB_.assign( EBDetId::kSizeForDenseIndexing, 0. );
+  vFailedTracksPt_EB_.assign( EBDetId::kSizeForDenseIndexing, 0. );
+  vFailedTracksE_EB_.assign( EBDetId::kSizeForDenseIndexing, 0. );
+  vFailedTracksQPt_EB_.assign( EBDetId::kSizeForDenseIndexing, 0. );
 
   // energy deposits on same grid resolution
   vPF_HCAL_EB_.assign( EBDetId::kSizeForDenseIndexing, 0. );
@@ -139,9 +154,10 @@ void RecHitAnalyzer::fillTracksAtEBEE ( const edm::Event& iEvent, const edm::Eve
     dz = ( !vtxs.empty() ? iTk->dz(vtxs[0].position())  : iTk->dz() );
     qpt   = (iTk->charge()*pt);
 
-    if (pt<0.5 || iTk->numberOfValidHits()<3 || std::abs(dz)>0.4 || std::abs(dxy)>0.1){ // tau reco like selection
-      continue;
-    }
+    //if (pt<0.5 || iTk->numberOfValidHits()<3 /*|| std::fabs(dz)>0.4 || std::fabs(dxy)>0.1*/){ // tau reco like selection - vtx cuts now applied further down
+    //if (pt<0.5 /*|| iTk->numberOfValidHits()<3 || std::fabs(dz)>0.4 || std::fabs(dxy)>0.1*/){ // tau reco like selection - vtx cuts now applied further down
+    //  continue;
+    //}
     // get B field
     double magneticField = (magfield.product() ? magfield.product()->inTesla(GlobalPoint(0., 0., 0.)).z() : 0.0);
     math::XYZTLorentzVector  track_p4(iTk->px(),iTk->py(),iTk->pz(),sqrt(pow(iTk->p(),2)+0.14*0.14)); //setup 4-vector assuming mass is mass of charged pion
@@ -151,23 +167,30 @@ void RecHitAnalyzer::fillTracksAtEBEE ( const edm::Event& iEvent, const edm::Eve
     propagator.propagateToEcalEntrance(false); // propogate to ECAL entrance
     auto track_position = propagator.particle().vertex().Vect();
 
-    if ( std::abs(track_position.eta()) > 3. ) continue;
+    if ( std::fabs(track_position.eta()) > 3. ) continue;
 
     DetId id( spr::findDetIdECAL( caloGeom, track_position.eta(), track_position.phi(), false ) );
       if ( id.subdetId() == EcalBarrel ) {
         EBDetId ebId( id );
         iphi_ = ebId.iphi() - 1;
         ieta_ = ebId.ieta() > 0 ? ebId.ieta()-1 : ebId.ieta();
-
-        // Fill histograms for monitoring
-        hTracks_EB->Fill( iphi_, ieta_ );
-        hTracksPt_EB->Fill( iphi_, ieta_, pt );
         idx_ = ebId.hashedIndex(); // (ieta_+EB_IETA_MAX)*EB_IPHI_MAX + iphi_
-        // Fill vectors for images
-        vTracks_EB_[idx_] += 1.;
-        vTracksPt_EB_[idx_] += pt;
-        vTracksE_EB_[idx_] += energy;
-        vTracksQPt_EB_[idx_] += qpt;
+
+        if(pt<0.5 || iTk->numberOfValidHits()<3 || std::fabs(dz)>0.4 || std::fabs(dxy)>0.1) {
+          vFailedTracks_EB_[idx_] += 1.;
+          vFailedTracksPt_EB_[idx_] += pt;
+          vFailedTracksE_EB_[idx_] += energy;
+          vFailedTracksQPt_EB_[idx_] += qpt;
+        } else {
+          // Fill histograms for monitoring
+          hTracks_EB->Fill( iphi_, ieta_ );
+          hTracksPt_EB->Fill( iphi_, ieta_, pt );
+          // Fill vectors for images
+          vTracks_EB_[idx_] += 1.;
+          vTracksPt_EB_[idx_] += pt;
+          vTracksE_EB_[idx_] += energy;
+          vTracksQPt_EB_[idx_] += qpt;
+        }
       } else if ( id.subdetId() == EcalEndcap ) {
         EEDetId eeId( id );
         ix_ = eeId.ix() - 1;
@@ -219,7 +242,7 @@ void RecHitAnalyzer::fillTracksAtEBEE ( const edm::Event& iEvent, const edm::Eve
       dxy = ( !vtxs.empty() ? iTk->dxy(vtxs[0].position()) : iTk->dxy() ); // 1st entry=PV
       dz = ( !vtxs.empty() ? iTk->dz(vtxs[0].position())  : iTk->dz() );
 
-      if (pt<0.5 || iTk->numberOfValidHits()<3 || std::abs(dz)>0.4 || std::abs(dxy)>0.1){ // tau reco like selection
+      if (pt<0.5 || iTk->numberOfValidHits()<3 || std::fabs(dz)>0.4 || std::fabs(dxy)>0.1){ // tau reco like selection
       continue;
       }
       // get B field
@@ -232,7 +255,7 @@ void RecHitAnalyzer::fillTracksAtEBEE ( const edm::Event& iEvent, const edm::Eve
       position = propagator.particle().vertex().Vect();
     }
     
-      if ( std::abs(position.eta()) > 3. ) continue;
+      if ( std::fabs(position.eta()) > 3. ) continue;
  
       DetId id( spr::findDetIdECAL( caloGeom, position.eta(), position.phi(), false ) );
       if ( id.subdetId() == EcalBarrel ) {

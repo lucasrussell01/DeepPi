@@ -132,6 +132,7 @@ class RecHitAnalyzer : public edm::one::EDAnalyzer<edm::one::SharedResources>  {
     edm::EDGetTokenT<std::vector<reco::CandIPTagInfo> >    ipTagInfoCollectionT_;
     edm::EDGetTokenT<std::vector<reco::PFRecHit>> PFEBRecHitCollectionT_;
     edm::EDGetTokenT<std::vector<reco::PFRecHit>> PFHBHERecHitCollectionT_;
+    edm::EDGetTokenT<std::vector<reco::GsfTrack>> gsfTracksCollectionT_;
     
     typedef std::vector<reco::PFCandidate>  PFCollection;
     edm::EDGetTokenT<PFCollection> pfCollectionT_;
@@ -172,6 +173,7 @@ class RecHitAnalyzer : public edm::one::EDAnalyzer<edm::one::SharedResources>  {
     void branchesJetInfoAtECALstitched   ( TTree*, edm::Service<TFileService>& );
     void branchesPFEB             ( TTree*, edm::Service<TFileService>& );
     void branchesPFHBHE           ( TTree*, edm::Service<TFileService>& );
+    void branchesGsfTracksAtEBEE           ( TTree*, edm::Service<TFileService>& );
 
     bool runEvtSel          ( const edm::Event&, const edm::EventSetup& );
     bool runEvtSel_jet      ( const edm::Event&, const edm::EventSetup& );
@@ -194,6 +196,7 @@ class RecHitAnalyzer : public edm::one::EDAnalyzer<edm::one::SharedResources>  {
     void fillJetInfoAtECALstitched   ( const edm::Event&, const edm::EventSetup& );
     void fillPFEB             ( const edm::Event&, const edm::EventSetup& );
     void fillPFHBHE           ( const edm::Event&, const edm::EventSetup& );
+    void fillGsfTracksAtEBEE  ( const edm::Event&, const edm::EventSetup& );
     void TrackMatching ( const edm::Event& iEvent, const edm::EventSetup& iSetup );
 
     const reco::PFCandidate* getPFCand(edm::Handle<PFCollection> pfCands, float eta, float phi, float& minDr, bool debug = false);
