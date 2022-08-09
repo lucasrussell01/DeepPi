@@ -19,7 +19,7 @@ with open("../configs/training.yaml") as file:
 load = DataLoader(training_cfg)
 
 #separte for testing
-gen = load.get_generator()
+gen = load.get_generator(primary_set=True)
 # print(next(gen))
 
 

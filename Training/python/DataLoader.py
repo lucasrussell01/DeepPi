@@ -13,18 +13,18 @@ class DataLoader:
         self.n_tau = self.config["Setup"]["n_tau"] # number of taus/batch
         self.n_batches = self.config["Setup"]["n_batches"] # number of batches for training
         self.n_batches_val = self.config["Setup"]["n_batches_val"] # number of batches for validation
-        self.n_epochs         = self.config["Setup"]["n_epochs"] # number of epochs
-        self.epoch         = self.config["Setup"]["epoch"] # starting epoch
-        self.model_name       = self.config["Setup"]["model_name"]
-        self.file_path = self.config["Setup"]["input_dir"] + self.config["Setup"]["sample"]
+        self.n_epochs = self.config["Setup"]["n_epochs"] # number of epochs
+        self.epoch = self.config["Setup"]["epoch"] # starting epoch
+        self.val_split = self.config["Setup"]["val_split"] 
+        self.model_name = self.config["Setup"]["model_name"]
+        self.file_path = self.config["Setup"]["input_dir"]
         print(self.file_path)
-        self.files = glob.glob(self.file_path + "/*.pkl")
-        self.train_files = [self.files[0]] # rudimentary split for now, will tidy with later config
-        self.val_files = [self.files[1]]
+        files = glob.glob(self.file_path + "/*.pkl")
+        self.train_files, self.val_files = np.split(files, [int(len(files)*(1-self.val_split))])
         print("Files for training:", len(self.train_files))
         print("Files for validation:", len(self.val_files))
 
-    def get_generator(self, primary_set = True, return_truth = True, show_progress = False):
+    def get_generator(self, primary_set = True, show_progress = False):
 
         _files = self.train_files if primary_set else self.val_files
         print(("Training" if primary_set else "Validation") + " file list loaded" )

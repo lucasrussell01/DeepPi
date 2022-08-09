@@ -1,9 +1,9 @@
 Setup:
     n_tau           :   50 # N taus/batch
-    n_batches       :   100 # N batches train
-    n_batches_val   :   0 # N batches val
-    input_dir       :   "/home/hep/lcr119/ImageData/"
-    sample          :   "GluGluHToTauTau_M125"
-    n_epochs        :   1
+    n_batches       :   1000 # N batches train
+    n_batches_val   :   100 # N batches val
+    input_dir       :   "/vols/cms/lcr119/Images/09082022/"
+    val_split       :   0.2 # proportion of files to be used for validation
+    n_epochs        :   20
     epoch           :   0 # starting epoch
     model_name      :   "DeepPi_v1"
