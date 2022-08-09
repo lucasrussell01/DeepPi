@@ -17,10 +17,11 @@ from hydra.utils import to_absolute_path
 from omegaconf import DictConfig, OmegaConf
 import json
 import os
+from glob import glob
 
-def conv_layer(prev_layer, filters, kernel_size=3, n=1):
-    conv = Conv2D(filters, kernel_size, name="conv_{}".format(n),
-                  kernel_initializer='he_uniform')(prev_layer) # kernel_regularizer=None (no reg for now)
+def conv_layer(prev_layer, channels, kernel_size=3, n=1):
+    conv = Conv2D(channels, kernel_size, name="conv_{}".format(n),
+                  activation='relu', kernel_initializer='he_uniform')(prev_layer) # kernel_regularizer=None (no reg for now)
     return conv
 
 def pool_layer(prev_layer, n=1):
@@ -34,18 +35,19 @@ def dropout(prev_layer, n=1):
 
 def create_model(model_name):
 
-    input_layer = Input(name="input_image", shape=(33, 33, 3))
+    channels = 3
+    input_layer = Input(name="input_image", shape=(33, 33, channels))
     # four convolutional layers:
-    conv1 = conv_layer(input_layer, 31, n=1)
-    conv2 = conv_layer(conv1, 29, n=2)
-    conv3 = conv_layer(conv2, 27, n=3) # reduce to 27x27
+    conv1 = conv_layer(input_layer, channels, n=1)
+    conv2 = conv_layer(conv1, channels, n=2)
+    conv3 = conv_layer(conv2, channels, n=3) # reduce to 27x27
     # max pooling layer
     pool = pool_layer(conv3, 1) # reduce to 9x9
     # further convolutions
-    conv4 = conv_layer(pool, 7, n=4)
-    conv5 = conv_layer(conv4, 5, n=5)
-    conv6 = conv_layer(conv5, 3, n=6)
-    conv7 = conv_layer(conv6, 1, n=7) # reduce to 1x1
+    conv4 = conv_layer(pool, channels, n=4)
+    conv5 = conv_layer(conv4, channels, n=5)
+    conv6 = conv_layer(conv5, channels, n=6)
+    conv7 = conv_layer(conv6, channels, n=7) # reduce to 1x1
     # flatten output
     flat = Flatten(name="flatten")(conv7) # reshape to 3 
     # dense layers
@@ -78,10 +80,10 @@ def run_training(model, data_loader):
     input_types = (tf.float32, tf.float32)
     data_train = tf.data.Dataset.from_generator(
         gen_train, output_types = input_types, output_shapes = input_shape
-        ).prefetch(tf.data.AUTOTUNE).batch(data_loader.n_tau)
+        ).prefetch(tf.data.AUTOTUNE).batch(data_loader.n_tau).take(data_loader.n_batches)
     data_val = tf.data.Dataset.from_generator(
         gen_val, output_types = input_types, output_shapes = input_shape
-        ).prefetch(tf.data.AUTOTUNE).batch(data_loader.n_tau)
+        ).prefetch(tf.data.AUTOTUNE).batch(data_loader.n_tau).take(data_loader.n_batches_val)
 
     # logs/callbacks
     model_name = data_loader.model_name
@@ -137,8 +139,6 @@ def main(cfg: DictConfig) -> None:
         fit = run_training(model, dataloader)
 
         # log NN params
-        for net_type in ['tau_net', 'comp_net', 'comp_merge_net', 'conv_2d_net', 'dense_net']:
-            mlflow.log_params({f'{net_type}_{k}': v for k,v in cfg.training_cfg.SetupNN[net_type].items()})
         with open(to_absolute_path(f'{cfg.path_to_mlflow}/{run_kwargs["experiment_id"]}/{run_id}/artifacts/model_summary.txt')) as f:
             for l in f:
                 if (s:='Trainable params: ') in l:
@@ -146,27 +146,17 @@ def main(cfg: DictConfig) -> None:
 
         # log training related files
         mlflow.log_dict(training_cfg, 'input_cfg/training_cfg.yaml')
-        mlflow.log_artifact(scaling_cfg, 'input_cfg')
-        mlflow.log_artifact(to_absolute_path("Training_NN.py"), 'input_cfg')
+        mlflow.log_artifact(to_absolute_path("TrainingNN.py"), 'input_cfg')
 
         # log hydra files
         mlflow.log_artifacts('.hydra', 'input_cfg/hydra')
-        mlflow.log_artifact('Training_NN.log', 'input_cfg/hydra')
+        mlflow.log_artifact('TrainingNN.log', 'input_cfg/hydra')
 
         # log misc. info
         mlflow.log_param('run_id', run_id)
-        mlflow.log_param('git_commit', _get_git_commit(to_absolute_path('.')))
         print(f'\nTraining has finished! Corresponding MLflow experiment name (ID): {cfg.experiment_name}({run_kwargs["experiment_id"]}), and run ID: {run_id}\n')
         mlflow.end_run()
 
-        # Temporary workaround to kill additional subprocesses that have not exited correctly
-        # try:
-        #     current_process = psutil.Process()
-        #     children = current_process.children(recursive=True)
-        #     for child in children:
-        #         child.kill()
-        # except:
-        #     pass
 
 if __name__ == '__main__':
     main()

@@ -16,8 +16,8 @@ import argparse
 parser = argparse.ArgumentParser(description='Generate images from RHTree ROOT files')
 parser.add_argument('--n_tau', required=True, type=int, help="Number of taus to select")
 parser.add_argument('--sample', required=True, type=str, help="Sample Name")
-parser.add_argument('--save_path', required=False, default="/home/hep/lcr119/Datasets/", type=str, help="Save path")
-parser.add_argument('--max_events', required=False, default=1000000, type=int, help="Max events to process")
+parser.add_argument('--save_path', required=False, default="/home/hep/lcr119/Images/", type=str, help="Save path")
+parser.add_argument('--max_events', required=False, default=10000000, type=int, help="Max events to process")
 args = parser.parse_args()
 
 
@@ -25,6 +25,10 @@ args = parser.parse_args()
 rhTree = R.TChain("recHitAnalyzer/RHTree")
 
 sample = args.sample #"GluGluHToTauTau_M125", "DYJetsToLL-LO"
+if sample == "GluGluHToTauTau_M125":
+    alias = "ggHTT"
+else:
+    alias = "unkwn"
 path_to_filelist = "/home/hep/lcr119/HiggsTauTau/CMSSW_10_6_19/src/FileLocations/MonthDay_Year_MC_106X_" + sample + ".dat"
 
 
@@ -34,8 +38,8 @@ plot = False
 
 
 shard = 0 # number of file if split into several required
-save_folder = args.save_path + sample
-savepath = save_folder + "/" + sample + "_" + str(shard) + ".pkl"
+save_folder = args.save_path + "09082022"
+savepath = save_folder + "/" + alias + "_" + str(shard) + ".pkl"
 # check if directory exists
 if not os.path.exists(save_folder):
     os.makedirs(save_folder)
@@ -111,6 +115,9 @@ n_selected = 0 # Number of taus selected
 pbar = tqdm(total = n_tau_target)
 complete = False # flag to say when all taus selected
 
+
+os.system('~/scripts/t-notify.sh Begining image creation')
+
 for event in range(nEvts):
     rhTree.GetEntry(event)
     # Load truth values
@@ -160,7 +167,8 @@ for event in range(nEvts):
                 print("Saving dataframe at: ", savepath)
                 df.to_pickle(savepath)
                 shard+=1 # new shard
-                savepath = save_folder + "/" + sample + "_" + str(shard) + ".pkl"
+                savepath = save_folder + "/" + alias + "_" + str(shard) + ".pkl"
+                os.system('~/scripts/t-notify.sh shard saved')
                 print("After event: ", event)
                 Tracks_list = []
                 ECAL_list = []

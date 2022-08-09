@@ -35,21 +35,24 @@ class DataLoader:
         n_batches = self.n_batches if primary_set else self.n_batches_val
 
         def _generator():
-            for j in range(len(_files)):
-                df = pd.read_pickle(_files[j])
-                for i in range(len(df)):
-                    Tracks = df["Tracks"][i]
-                    ECAL = df["ECAL"][i]
-                    HCAL = df["HCAL"][i]
-                    x = (np.stack([Tracks, ECAL, HCAL], axis=-1))
-                    DM = df["DM"][i]
-                    if DM == 0 or DM == 10:
-                        y = tf.one_hot(0, 3) # no pi0
-                    elif DM ==1 or DM ==1:
-                        y = tf.one_hot(1, 3) # one pi0
-                    elif DM == 2:
-                        y = tf.one_hot(2, 3) # two pi0
-                    yield (x,y)
+            counter = 0
+            while counter<n_batches:
+                for j in range(len(_files)):
+                    df = pd.read_pickle(_files[j])
+                    for i in range(len(df)):
+                        Tracks = df["Tracks"][i]
+                        ECAL = df["ECAL"][i]
+                        HCAL = df["HCAL"][i]
+                        x = (np.stack([Tracks, ECAL, HCAL], axis=-1))
+                        DM = df["DM"][i]
+                        if DM == 0 or DM == 10:
+                            y = tf.one_hot(0, 3) # no pi0
+                        elif DM ==1 or DM ==1:
+                            y = tf.one_hot(1, 3) # one pi0
+                        elif DM == 2:
+                            y = tf.one_hot(2, 3) # two pi0
+                        counter += 1
+                        yield (x,y)
 
         return _generator
 

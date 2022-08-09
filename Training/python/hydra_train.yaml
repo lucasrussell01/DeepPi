@@ -11,7 +11,7 @@ experiment_name: ???
 
 # setup
 gpu_cfg:
-  gpu_mem  : 7 # in Gb
+  gpu_mem  : 6.5 # in Gb
   gpu_index: 0
   
   
