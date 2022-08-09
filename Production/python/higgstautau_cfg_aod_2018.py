@@ -81,7 +81,7 @@ process.recHitAnalyzer = cms.EDAnalyzer('RecHitAnalyzer'
     , genParticleCollection = cms.InputTag('genParticles')
     , genJetCollection = cms.InputTag('ak4GenJetsNoNu')
     , gedPhotonCollection = cms.InputTag('gedPhotons')
-    , ak4PFJetCollection = cms.InputTag('ak4PFJetsCHS')
+    , ak4PFJetCollection = cms.InputTag('ak4PFJets')
     , trackRecHitCollection = cms.InputTag('generalTracks')
     , trackCollection = cms.InputTag("generalTracks")
     , vertexCollection = cms.InputTag("offlinePrimaryVertices")
@@ -92,6 +92,7 @@ process.recHitAnalyzer = cms.EDAnalyzer('RecHitAnalyzer'
     , mode = cms.string("JetLevel")
     , PFEBRecHitCollection = cms.InputTag('particleFlowRecHitECAL:Cleaned')
     , PFHBHERecHitCollection = cms.InputTag('particleFlowRecHitHBHE:Cleaned')
+    , gsfTracksCollection = cms.InputTag('electronGsfTracks')
 
     # Jet level cfg
     , nJets = cms.int32(-1)

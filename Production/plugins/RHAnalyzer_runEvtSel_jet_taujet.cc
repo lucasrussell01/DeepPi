@@ -42,6 +42,13 @@ vector<vector<float>> vTaujet_jet_neutral_indv_releta_crystal_;
 vector<vector<float>> vTaujet_jet_charged_indv_relphi_crystal_;
 vector<vector<float>> vTaujet_jet_neutral_indv_relphi_crystal_;
 
+vector<float> vTaujet_jet_neutral_relphi_crystal_;
+vector<float> vTaujet_jet_neutral_releta_crystal_;
+vector<float> vTaujet_jet_neutral_relphi_;
+vector<float> vTaujet_jet_neutral_releta_;
+vector<float> vTaujet_jet_neutral_relp_;
+vector<float> vTaujet_jet_neutral_relmass_;
+
 // for centering:
 vector<float> vTaujet_jet_leading_eta_;
 vector<float> vTaujet_jet_leading_phi_;
@@ -103,6 +110,14 @@ void RecHitAnalyzer::branchesEvtSel_jet_taujet( TTree* tree, edm::Service<TFileS
   tree->Branch("jet_neutral_indv_releta_crystal", &vTaujet_jet_neutral_indv_releta_crystal_);
   tree->Branch("jet_charged_indv_relphi_crystal", &vTaujet_jet_charged_indv_relphi_crystal_);
   tree->Branch("jet_neutral_indv_relphi_crystal", &vTaujet_jet_neutral_indv_relphi_crystal_);
+
+  tree->Branch("jet_neutral_relphi_crystal", &vTaujet_jet_neutral_relphi_crystal_);
+  tree->Branch("jet_neutral_releta_crystal", &vTaujet_jet_neutral_releta_crystal_);
+  tree->Branch("jet_neutral_relphi", &vTaujet_jet_neutral_relphi_);
+  tree->Branch("jet_neutral_releta", &vTaujet_jet_neutral_releta_);
+  tree->Branch("jet_neutral_relp", &vTaujet_jet_neutral_relp_);
+  tree->Branch("jet_neutral_relmass", &vTaujet_jet_neutral_relmass_);
+
 
   tree->Branch("leading_eta", &vTaujet_jet_leading_eta_);
   tree->Branch("leading_phi", &vTaujet_jet_leading_phi_);
@@ -181,6 +196,12 @@ bool RecHitAnalyzer::runEvtSel_jet_taujet( const edm::Event& iEvent, const edm::
   vTaujet_jet_neutral_indv_releta_crystal_.clear();
   vTaujet_jet_charged_indv_relphi_crystal_.clear();
   vTaujet_jet_neutral_indv_relphi_crystal_.clear();
+  vTaujet_jet_neutral_relphi_crystal_.clear();
+  vTaujet_jet_neutral_releta_crystal_.clear();
+  vTaujet_jet_neutral_relphi_.clear();
+  vTaujet_jet_neutral_releta_.clear();
+  vTaujet_jet_neutral_relp_.clear();
+  vTaujet_jet_neutral_relmass_.clear();
 
   int nJet = 0;
   // Loop over jets
@@ -423,7 +444,59 @@ void RecHitAnalyzer::fillEvtSel_jet_taujet( const edm::Event& iEvent, const edm:
     vector<float> charge_relphi_crystal_indv;
     vector<float> neutral_relphi_crystal_indv;
 
+    if(match.second->neutral_p4().mass()>0) {
+      vTaujet_jet_neutral_relmass_.push_back(match.second->neutral_p4().mass());
+      vTaujet_jet_neutral_relp_.push_back(match.second->neutral_p4().P());
+
+      double magneticField = (magfield.product() ? magfield.product()->inTesla(GlobalPoint(0., 0., 0.)).z() : 0.0);
+      math::XYZTLorentzVector  prop_p4(match.second->neutral_p4().px(),match.second->neutral_p4().py(),match.second->neutral_p4().pz(),match.second->neutral_p4().energy()); //setup 4-vector 
+      BaseParticlePropagator propagator = BaseParticlePropagator(
+          RawParticle(prop_p4, math::XYZTLorentzVector(match.second->vx(), match.second->vy(), match.second->vz(), 0.),
+                      0.),0.,0.,magneticField);
+      propagator.propagateToEcalEntrance(false); // propogate to ECAL entrance
+      auto neutral_position = propagator.particle().vertex().Vect();
+
+      double eta = neutral_position.eta();
+      double phi = neutral_position.phi();
+      double releta = eta-jet_sum_eta2_;
+      double relphi = phi-jet_sum_phi2_;
+      relphi = TVector2::Phi_mpi_pi(relphi);
+      vTaujet_jet_neutral_relphi_.push_back(relphi);
+      vTaujet_jet_neutral_releta_.push_back(releta);
+
+      // also store in crystal units:
+      DetId id( spr::findDetIdECAL( caloGeom, eta, phi, false ) );
+      EBDetId ebId( id );
+
+      // get index of the crystal
+      float iphi = ebId.iphi() -1;
+      float ieta = ebId.ieta() > 0 ? ebId.ieta()-1 : ebId.ieta();
+
+      // now work out how far along the crystal the particle overlapped to get a continuous number
+      const auto repCorners = caloGeom->getGeometry(ebId)->getCornersREP();
+      float minEta_ = repCorners[2].eta();
+      float maxEta_ = repCorners[0].eta();
+      float minPhi_ = repCorners[2].phi();
+      float maxPhi_ = repCorners[0].phi();
+
+      float ieta_cont = ieta+(eta-minEta_)/(maxEta_-minEta_);
+      float iphi_cont = iphi+(phi-minPhi_)/(maxPhi_-minPhi_);
+
+      vTaujet_jet_neutral_releta_crystal_.push_back(ieta_cont);
+      vTaujet_jet_neutral_relphi_crystal_.push_back(iphi_cont);
+
+    } else {
+      // when there is no pi0's set the 4-vector size to 0 and direction to centre of image
+      vTaujet_jet_neutral_relmass_.push_back(0.);
+      vTaujet_jet_neutral_relp_.push_back(0.);
+      vTaujet_jet_neutral_relphi_.push_back(0.);
+      vTaujet_jet_neutral_releta_.push_back(0.);
+      vTaujet_jet_neutral_relphi_crystal_.push_back(jet_sum_iphi2_);
+      vTaujet_jet_neutral_releta_crystal_.push_back(jet_sum_ieta2_);
+    }
+
     if (abs(truthLabel)==15) {
+
       truthDM = match.second->decay_mode();
       neutral_pT = match.second->neutral_p4().pt();
       neutral_M = match.second->neutral_p4().mass();
