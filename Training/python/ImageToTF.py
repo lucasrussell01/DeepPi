@@ -1,15 +1,22 @@
 import tensorflow as tf
 from DataLoader import DataLoader
 import os
+import yaml
+
 os.environ["CUDA_VISIBLE_DEVICES"]="-1" # don't need to use GPU
 
 
-source_dir = "/home/hep/lcr119/ImageData/" 
-sample = "GluGluHToTauTau_M125"
+with open("../configs/training.yaml") as file:
+    training_cfg = yaml.full_load(file)
+    print("Training Config Loaded")
 
-n_tau = 100
-n_batches = 200
-load = DataLoader(source_dir, sample, 100, 200, 0)
+# source_dir = "/home/hep/lcr119/ImageData/" 
+# sample = "GluGluHToTauTau_M125"
+
+# n_tau = 100
+# n_batches = 200
+
+load = DataLoader(training_cfg)
 
 #separte for testing
 gen = load.get_generator()

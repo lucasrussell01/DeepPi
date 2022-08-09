@@ -1,0 +1,17 @@
+hydra:
+  run:
+    dir: outputs/${experiment_name}/DeepPi_v1/${now:%Y-%m-%d_%H-%M-%S}
+defaults:
+  - ../configs@_global_.training_cfg: training
+  - _self_
+
+# mlflow
+path_to_mlflow: mlruns
+experiment_name: ???
+
+# setup
+gpu_cfg:
+  gpu_mem  : 7 # in Gb
+  gpu_index: 0
+  
+  

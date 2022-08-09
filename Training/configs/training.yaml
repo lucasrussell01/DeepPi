@@ -1,4 +1,9 @@
 Setup:
-    n_tau           :   100
-    n_batches       :   100
-    n_batches_val   :   0
+    n_tau           :   50 # N taus/batch
+    n_batches       :   100 # N batches train
+    n_batches_val   :   10 # N batches val
+    input_dir       :   "/home/hep/lcr119/ImageData/"
+    sample          :   "GluGluHToTauTau_M125"
+    n_epochs        :   1
+    epoch           :   0 # starting epoch
+    model_name      :   "DeepPi_v1"
