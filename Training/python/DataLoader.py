@@ -16,6 +16,10 @@ class DataLoader:
         self.n_epochs = self.config["Setup"]["n_epochs"] # number of epochs
         self.epoch = self.config["Setup"]["epoch"] # starting epoch
         self.val_split = self.config["Setup"]["val_split"] 
+        self.dropout_rate = self.config["Setup"]["dropout"]
+        self.activation = self.config["Setup"]["activation"]
+        self.optimiser = self.config["Setup"]["optimiser"]
+        self.learning_rate = self.config["Setup"]["learning_rate"]
         self.model_name = self.config["Setup"]["model_name"]
         self.file_path = self.config["Setup"]["input_dir"]
         print(self.file_path)
@@ -47,10 +51,12 @@ class DataLoader:
                         DM = df["DM"][i]
                         if DM == 0 or DM == 10:
                             y = tf.one_hot(0, 3) # no pi0
-                        elif DM ==1 or DM ==1:
+                        elif DM ==1 or DM ==11:
                             y = tf.one_hot(1, 3) # one pi0
                         elif DM == 2:
                             y = tf.one_hot(2, 3) # two pi0
+                        else: 
+                            raise RuntimeError(f"Unknown DM {DM}")
                         counter += 1
                         yield (x,y)
 

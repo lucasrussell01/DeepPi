@@ -19,40 +19,52 @@ import json
 import os
 from glob import glob
 
-def conv_layer(prev_layer, channels, kernel_size=3, n=1):
+def layer_ending(layer, n, dim2d = True): #, activation, dropout_rate # add these from cfg later
+    norm_layer = BatchNormalization(name="norm_{}".format(n))(layer)
+    if dim2d: # if conv or pooling
+        activation_layer = PReLU(shared_axes=[1, 2], name='activation_{}'.format(n))(norm_layer) # share image dims
+    else:
+        activation_layer = PReLU(name='activation_{}'.format(n))(norm_layer)
+    final = Dropout(0.2, name="dropout_{}".format(n))(activation_layer)
+    return final
+
+def conv_block(prev_layer, channels, kernel_size=3, n=1):
     conv = Conv2D(channels, kernel_size, name="conv_{}".format(n),
                   activation='relu', kernel_initializer='he_uniform')(prev_layer) # kernel_regularizer=None (no reg for now)
-    return conv
+    out = layer_ending(conv, n)
+    return out
 
-def pool_layer(prev_layer, n=1):
+def pool_block(prev_layer, n=1):
     poolsize = 3
     pool = MaxPooling2D(pool_size = poolsize, strides=poolsize, name="maxpooling_{}".format(n))(prev_layer)
-    return pool
+    out = layer_ending(pool, n)
+    return out
 
-def dropout(prev_layer, n=1):
-    drop = Dropout(0.2)(prev_layer) # add noise shape/dims
-    return drop
+def dense_block(prev_layer, size, n=1):
+    dense = Dense(size, name="dense_{}".format(n), kernel_initializer='he_uniform')(prev_layer)
+    out = layer_ending(dense, n, dim2d=False)
+    return out
 
 def create_model(model_name):
 
     channels = 3
     input_layer = Input(name="input_image", shape=(33, 33, channels))
     # four convolutional layers:
-    conv1 = conv_layer(input_layer, channels, n=1)
-    conv2 = conv_layer(conv1, channels, n=2)
-    conv3 = conv_layer(conv2, channels, n=3) # reduce to 27x27
+    conv1 = conv_block(input_layer, channels, n=1)
+    conv2 = conv_block(conv1, channels, n=2)
+    conv3 = conv_block(conv2, channels, n=3) # reduce to 27x27
     # max pooling layer
-    pool = pool_layer(conv3, 1) # reduce to 9x9
+    pool = pool_block(conv3, 4) # reduce to 9x9
     # further convolutions
-    conv4 = conv_layer(pool, channels, n=4)
-    conv5 = conv_layer(conv4, channels, n=5)
-    conv6 = conv_layer(conv5, channels, n=6)
-    conv7 = conv_layer(conv6, channels, n=7) # reduce to 1x1
+    conv4 = conv_block(pool, channels, n=5)
+    conv5 = conv_block(conv4, channels, n=6)
+    conv6 = conv_block(conv5, channels, n=7)
+    conv7 = conv_block(conv6, channels, n=8) # reduce to 1x1
     # flatten output
     flat = Flatten(name="flatten")(conv7) # reshape to 3 
     # dense layers
-    dense1 = Dense(3, name="dense1", kernel_initializer='he_uniform')(flat)
-    dense2 = Dense(3, name="dense2", kernel_initializer='he_uniform')(dense1)
+    dense1 = dense_block(flat, 3, n=9)
+    dense2 = dense_block(dense1, 3, n=10)
     # softmax output
     output = Activation("softmax", name="output")(dense2)
 
@@ -65,9 +77,20 @@ def compile_model(model):
 
     opt = tf.keras.optimizers.Nadam(learning_rate=1e-4)
     accuracy = tf.keras.metrics.CategoricalAccuracy(name='categorical_accuracy', dtype=None)
-    model.compile(loss=TauLosses.xentropyloss, optimizer=opt, metrics=accuracy)
+
+    strmetrics = ["TauLosses.xentropyloss"]#["accuracy", "TauLosses.xentropyloss"]
+    metrics = [accuracy]
+    for m in strmetrics:
+        if "TauLosses" in m:
+            m = eval(m)
+        metrics.append(m)
+    print(metrics)
+
+    model.compile(loss=TauLosses.xentropyloss, optimizer=opt, metrics=metrics)
     # mlflow log
-    mlflow.log_dict("accuracy", 'input_cfg/metric_names.json')
+    metrics = {'categorical_accuracy': '', 'xentropyloss': ''}
+    print(metrics)
+    mlflow.log_dict(metrics, 'input_cfg/metric_names.json')
 
 def run_training(model, data_loader):
 
