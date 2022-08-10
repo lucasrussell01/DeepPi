@@ -275,15 +275,17 @@ class image_plotter:
                 ax[1][1].set_ylim(0, 33)
                 ax[1][0].set_xlim(0, 33)
                 ax[1][0].set_ylim(0, 33)
+                ax[2][0].set_xlim(0, 33)
+                ax[2][0].set_ylim(0, 33)
                 
                 
                 pad = 16 # need to add pad to index
                 if truthDM[i]==1 or truthDM[i]==2 or truthDM[i]==11:
-                    rel_total_neutral_ieta = np.array(gen_total_neutral_ieta[i]) - centre_eta + pad + shift
+                    rel_total_neutral_ieta = np.array(gen_total_neutral_ieta[i]) - centre_eta + pad #+ shift # images look better without shift
                     rel_total_neutral_iphi = np.array(gen_total_neutral_iphi[i]) - centre_phi + pad
                     
                     
-                    rel_neutral_ieta = np.array(gen_neutral_ieta[i]) - centre_eta + pad + shift
+                    rel_neutral_ieta = np.array(gen_neutral_ieta[i]) - centre_eta + pad #+ shift
                     rel_neutral_iphi = np.array(gen_neutral_iphi[i]) - centre_phi + pad
                     for n in range(len(rel_neutral_iphi)):
                         if rel_neutral_iphi[n]<0:
@@ -303,7 +305,7 @@ class image_plotter:
                     ax[2][0].plot(rel_total_neutral_iphi, rel_total_neutral_ieta, linestyle="", marker = "x", label = "total neutral", markersize=12, color='black')
                 
                 if truthDM[i]!=-1:
-                    rel_charged_ieta = np.array(gen_charged_ieta[i]) - centre_eta + pad + shift
+                    rel_charged_ieta = np.array(gen_charged_ieta[i]) - centre_eta + pad #+ shift
                     rel_charged_iphi = np.array(gen_charged_iphi[i]) - centre_phi + pad
                     for n in range(len(rel_charged_iphi)):
                         if rel_charged_iphi[n]<0:
