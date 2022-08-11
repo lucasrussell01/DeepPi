@@ -1,9 +1,13 @@
 Setup:
     n_tau           :   50 # N taus/batch
-    n_batches       :   1000 # N batches train
-    n_batches_val   :   100 # N batches val
-    input_dir       :   "/vols/cms/lcr119/Images/09082022/"
-    val_split       :   0.2 # proportion of files to be used for validation
-    n_epochs        :   20
+    n_batches       :   11000 # N batches train
+    n_batches_val   :   4000 # N batches val
+    input_dir       :   "/vols/cms/lcr119/Images/09082022/Training"
+    val_split       :   0.26 # proportion of files to be used for validation
+    n_epochs        :   10
     epoch           :   0 # starting epoch
     model_name      :   "DeepPi_v1"
+    dropout         :   0.2
+    activation      :   "PReLu"
+    optimiser       :   "NAdam"
+    learning_rate   :   0.001

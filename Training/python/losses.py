@@ -7,3 +7,4 @@ class TauLosses:
     def xentropyloss(target, output):
         loss = tf.keras.losses.categorical_crossentropy(target, output)
         return loss
+
