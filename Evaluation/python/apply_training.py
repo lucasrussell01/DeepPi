@@ -15,6 +15,7 @@ import argparse
 parser = argparse.ArgumentParser(description='Generate predictions for DeepPi training')
 parser.add_argument('--expID', required=True, type=str, help="Experiment ID")
 parser.add_argument('--runID', required=True, type=str, help="Run ID")
+parser.add_argument('--n_tau', required=False, default = 50000, type=int, help="n_tau")
 
 args = parser.parse_args()
 
@@ -36,7 +37,7 @@ with open(f'{path_to_artifacts}/input_cfg/training_cfg.yaml') as file:
     training_cfg = yaml.full_load(file)
     print("Training Config Loaded")
 training_cfg["Setup"]["input_dir"] = '/vols/cms/lcr119/Images/09082022/Evaluation'
-training_cfg["Setup"]["n_batches"] = 75000 # 250k is full because batch size 1
+training_cfg["Setup"]["n_batches"] = args.n_tau # 250k is full because batch size 1
 training_cfg["Setup"]["n_batches_val"] = 0
 training_cfg["Setup"]["val_split"] = 0
 
