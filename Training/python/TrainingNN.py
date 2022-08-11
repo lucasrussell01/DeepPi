@@ -25,8 +25,9 @@ def layer_ending(layer, n, dim2d = True): #, activation, dropout_rate # add thes
         activation_layer = PReLU(shared_axes=[1, 2], name='activation_{}'.format(n))(norm_layer) # share image dims
     else:
         activation_layer = PReLU(name='activation_{}'.format(n))(norm_layer)
-    final = Dropout(0.2, name="dropout_{}".format(n))(activation_layer)
-    return final
+    return activation_layer
+    # final = Dropout(0.2, name="dropout_{}".format(n))(activation_layer)
+    # return final
 
 def conv_block(prev_layer, channels, kernel_size=3, n=1):
     conv = Conv2D(channels, kernel_size, name="conv_{}".format(n),
@@ -59,14 +60,19 @@ def create_model(model_name):
     conv4 = conv_block(pool, channels, n=5)
     conv5 = conv_block(conv4, channels, n=6)
     conv6 = conv_block(conv5, channels, n=7)
-    conv7 = conv_block(conv6, channels, n=8) # reduce to 1x1
+    # conv7 = conv_block(conv6, channels, n=8) # reduce to 1x1
     # flatten output
-    flat = Flatten(name="flatten")(conv7) # reshape to 3 
+    # flat = Flatten(name="flatten")(conv7) # reshape to 3 
+    flat = Flatten(name="flatten")(conv6)
     # dense layers
-    dense1 = dense_block(flat, 3, n=9)
-    dense2 = dense_block(dense1, 3, n=10)
+    # dense1 = dense_block(flat, 3, n=9)
+    # dense2 = dense_block(dense1, 3, n=10)
+    dense1 = dense_block(flat, 27, n=9)
+    dense2 = dense_block(dense1, 27, n=10)
+    dense3 = dense_block(dense2, 27, n=11)
+    dense4 = dense_block(dense3, 3, n=12)
     # softmax output
-    output = Activation("softmax", name="output")(dense2)
+    output = Activation("softmax", name="output")(dense4)
 
     # create model
     model = Model(input_layer, output, name=model_name)
@@ -84,12 +90,10 @@ def compile_model(model):
         if "TauLosses" in m:
             m = eval(m)
         metrics.append(m)
-    print(metrics)
 
     model.compile(loss=TauLosses.xentropyloss, optimizer=opt, metrics=metrics)
     # mlflow log
     metrics = {'categorical_accuracy': '', 'xentropyloss': ''}
-    print(metrics)
     mlflow.log_dict(metrics, 'input_cfg/metric_names.json')
 
 def run_training(model, data_loader):

@@ -28,7 +28,7 @@ class DataLoader:
         print("Files for training:", len(self.train_files))
         print("Files for validation:", len(self.val_files))
 
-    def get_generator(self, primary_set = True, show_progress = False):
+    def get_generator(self, primary_set = True, show_progress = False, evaluation = False):
 
         _files = self.train_files if primary_set else self.val_files
         print(("Training" if primary_set else "Validation") + " file list loaded" )
@@ -49,14 +49,17 @@ class DataLoader:
                         HCAL = df["HCAL"][i]
                         x = (np.stack([Tracks, ECAL, HCAL], axis=-1))
                         DM = df["DM"][i]
-                        if DM == 0 or DM == 10:
-                            y = tf.one_hot(0, 3) # no pi0
-                        elif DM ==1 or DM ==11:
-                            y = tf.one_hot(1, 3) # one pi0
-                        elif DM == 2:
-                            y = tf.one_hot(2, 3) # two pi0
-                        else: 
-                            raise RuntimeError(f"Unknown DM {DM}")
+                        if evaluation:
+                            y = DM
+                        else:
+                            if DM == 0 or DM == 10:
+                                y = tf.one_hot(0, 3) # no pi0
+                            elif DM ==1 or DM ==11:
+                                y = tf.one_hot(1, 3) # one pi0
+                            elif DM == 2:
+                                y = tf.one_hot(2, 3) # two pi0
+                            else: 
+                                raise RuntimeError(f"Unknown DM {DM}")
                         counter += 1
                         yield (x,y)
 
