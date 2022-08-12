@@ -322,7 +322,6 @@ void RecHitAnalyzer::fillEvtSel_jet_taujet( const edm::Event& iEvent, const edm:
     double eta_sum2 = 0; //sum of E_i*eta_i for all i
     double phi_sum2 = 0;
 
-
     for (const auto &pfC : pfCands){
       
       
@@ -417,6 +416,7 @@ void RecHitAnalyzer::fillEvtSel_jet_taujet( const edm::Event& iEvent, const edm:
     double jet_sum_eta2_ = centre_pos.eta();
 
     std::pair<int, reco::GenTau*> match = getTruthLabelForTauJets(thisJet, genParticles, genJets, magneticField, 0.4, false);
+
     int truthLabel = match.first;
     vTaujet_jet_truthLabel_      .push_back(truthLabel);
 
@@ -472,16 +472,20 @@ void RecHitAnalyzer::fillEvtSel_jet_taujet( const edm::Event& iEvent, const edm:
       float iphi = ebId.iphi() -1;
       float ieta = ebId.ieta() > 0 ? ebId.ieta()-1 : ebId.ieta();
 
-      // now work out how far along the crystal the particle overlapped to get a continuous number
-      const auto repCorners = caloGeom->getGeometry(ebId)->getCornersREP();
-      float minEta_ = repCorners[2].eta();
-      float maxEta_ = repCorners[0].eta();
-      float minPhi_ = repCorners[2].phi();
-      float maxPhi_ = repCorners[0].phi();
+      float ieta_cont = -10000;
+      float iphi_cont = -10000;
 
-      float ieta_cont = ieta+(eta-minEta_)/(maxEta_-minEta_);
-      float iphi_cont = iphi+(phi-minPhi_)/(maxPhi_-minPhi_);
+      if (nullptr != caloGeom->getGeometry(ebId)) {
+        // now work out how far along the crystal the particle overlapped to get a continuous number
+        const auto repCorners = caloGeom->getGeometry(ebId)->getCornersREP();
+        float minEta_ = repCorners[2].eta();
+        float maxEta_ = repCorners[0].eta();
+        float minPhi_ = repCorners[2].phi();
+        float maxPhi_ = repCorners[0].phi();
 
+        ieta_cont = ieta+(eta-minEta_)/(maxEta_-minEta_);
+        iphi_cont = iphi+(phi-minPhi_)/(maxPhi_-minPhi_);
+      }
       vTaujet_jet_neutral_releta_crystal_.push_back(ieta_cont);
       vTaujet_jet_neutral_relphi_crystal_.push_back(iphi_cont);
 
@@ -494,9 +498,7 @@ void RecHitAnalyzer::fillEvtSel_jet_taujet( const edm::Event& iEvent, const edm:
       vTaujet_jet_neutral_relphi_crystal_.push_back(jet_sum_iphi2_);
       vTaujet_jet_neutral_releta_crystal_.push_back(jet_sum_ieta2_);
     }
-
     if (abs(truthLabel)==15) {
-
       truthDM = match.second->decay_mode();
       neutral_pT = match.second->neutral_p4().pt();
       neutral_M = match.second->neutral_p4().mass();
@@ -514,7 +516,7 @@ void RecHitAnalyzer::fillEvtSel_jet_taujet( const edm::Event& iEvent, const edm:
           charge_p_indv.push_back(charged.energy());
           charge_eta_indv.push_back(charged_ieta_);
           charge_phi_indv.push_back(charged_iphi_);
-      } 
+      }
       for (auto x : match.second->pis_at_ecal()){
           double p = x.second;
           double eta = x.first.eta();
@@ -534,16 +536,19 @@ void RecHitAnalyzer::fillEvtSel_jet_taujet( const edm::Event& iEvent, const edm:
           float iphi = ebId.iphi() -1;
           float ieta = ebId.ieta() > 0 ? ebId.ieta()-1 : ebId.ieta(); 
 
-          // now work out how far along the crystal the particle overlapped to get a continuous number
-          const auto repCorners = caloGeom->getGeometry(ebId)->getCornersREP();
-          float minEta_ = repCorners[2].eta();
-          float maxEta_ = repCorners[0].eta();
-          float minPhi_ = repCorners[2].phi();
-          float maxPhi_ = repCorners[0].phi();
+          float ieta_cont = -10000;
+          float iphi_cont = -10000;
 
-          float ieta_cont = ieta+(eta-minEta_)/(maxEta_-minEta_);
-          float iphi_cont = iphi+(phi-minPhi_)/(maxPhi_-minPhi_);  
-
+          if (nullptr != caloGeom->getGeometry(ebId)) {     
+            // now work out how far along the crystal the particle overlapped to get a continuous number
+            const auto repCorners = caloGeom->getGeometry(ebId)->getCornersREP();
+            float minEta_ = repCorners[2].eta();
+            float maxEta_ = repCorners[0].eta();
+            float minPhi_ = repCorners[2].phi();
+            float maxPhi_ = repCorners[0].phi();
+            ieta_cont = ieta+(eta-minEta_)/(maxEta_-minEta_);
+            iphi_cont = iphi+(phi-minPhi_)/(maxPhi_-minPhi_);  
+          }
           charge_releta_crystal_indv.push_back(ieta_cont);
           charge_relphi_crystal_indv.push_back(iphi_cont);
         }
@@ -585,16 +590,20 @@ void RecHitAnalyzer::fillEvtSel_jet_taujet( const edm::Event& iEvent, const edm:
             float iphi = ebId.iphi() -1;
             float ieta = ebId.ieta() > 0 ? ebId.ieta()-1 : ebId.ieta(); 
       
-            // now work out how far along the crystal the particle overlapped to get a continuous number
-            const auto repCorners = caloGeom->getGeometry(ebId)->getCornersREP();
-            float minEta_ = repCorners[2].eta();
-            float maxEta_ = repCorners[0].eta();
-            float minPhi_ = repCorners[2].phi();
-            float maxPhi_ = repCorners[0].phi();
+            float ieta_cont = -10000;
+            float iphi_cont = -10000;
 
-            float ieta_cont = ieta+(eta-minEta_)/(maxEta_-minEta_);
-            float iphi_cont = iphi+(phi-minPhi_)/(maxPhi_-minPhi_); 
+            if (nullptr != caloGeom->getGeometry(ebId)) {
+              // now work out how far along the crystal the particle overlapped to get a continuous number
+              const auto repCorners = caloGeom->getGeometry(ebId)->getCornersREP();
+              float minEta_ = repCorners[2].eta();
+              float maxEta_ = repCorners[0].eta();
+              float minPhi_ = repCorners[2].phi();
+              float maxPhi_ = repCorners[0].phi();
 
+              ieta_cont = ieta+(eta-minEta_)/(maxEta_-minEta_);
+              iphi_cont = iphi+(phi-minPhi_)/(maxPhi_-minPhi_); 
+            }
             neutral_releta_crystal_indv.push_back(ieta_cont);
             neutral_relphi_crystal_indv.push_back(iphi_cont);
 
@@ -607,7 +616,6 @@ void RecHitAnalyzer::fillEvtSel_jet_taujet( const edm::Event& iEvent, const edm:
         neutral_releta_indv.push_back(0.);
         neutral_relphi_indv.push_back(0.);
       }
-      
     } else{
       charge_p_indv.push_back(-1);
       neutral_p_indv.push_back(-1);
