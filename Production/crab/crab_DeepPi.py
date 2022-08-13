@@ -51,7 +51,7 @@ for dm in dml:
     config.JobType.psetName = cfg[yr]
     config.JobType.pluginName = 'Analysis'
     config.JobType.outputFiles = ['EventTree.root']
-    config.JobType.maxMemoryMB = 4000
+    config.JobType.maxMemoryMB = 5000
     cfgParams = ['globalTag={}'.format(gt[dm][yr])]
     if dm == "Data": 
       cfgParams.append('isData=1')
@@ -121,7 +121,7 @@ for dm in dml:
     
             config.Data.userInputFiles = None
             config.Data.splitting = 'EventAwareLumiBased'
-            config.Data.unitsPerJob = 50000
+            config.Data.unitsPerJob = 20000
 
             if args.recovery: config.Data.unitsPerJob = 10000
 
