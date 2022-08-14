@@ -33,7 +33,7 @@ else:
 path_to_filelist = "/home/hep/lcr119/DeepPi/Analysis/scripts/1308_2022_MC_106X_" + sample + ".dat"
 
 
-nEvts = args.max_events # Max number of events to process #int(rhTree.GetEntries())
+# Max number of events to process #int(rhTree.GetEntries())
 n_tau_target = args.n_tau # Max number of taus to select
 plot = False
 
@@ -60,6 +60,8 @@ with open(path_to_filelist) as f:
         lines = lines[375:500]
     elif args.split == "E":
         lines = lines[500:]
+    else: 
+        raise Exception("Split not recognised")
     for i in lines:
         file = "root://gfe02.grid.hep.ph.ic.ac.uk:1097/store/user/lrussell/DetectorImages_1308_MC_106X_2018/" + i
         rhTree.Add(file)
@@ -117,18 +119,24 @@ PF_ECAL_list = []
 addTracks_list = []
 DM_list = []
 
-n_selected = 0 # Number of taus selected
-pbar = tqdm(total = n_tau_target)
-complete = False # flag to say when all taus selected
 
+
+nEvts = int(rhTree.GetEntries())
+
+n_selected = 0 # Number of taus selected
+if args.n_tau != -1:
+    pbar = tqdm(total = n_tau_target)
+complete = False # flag to say when all taus selected
 
 os.system('~/scripts/t-notify.sh Beginning image creation')
 
-for event in range(nEvts):
+ 
+
+for event in tqdm(range(nEvts)):
     rhTree.GetEntry(event)
     # Load truth values
     truthDM = np.array(rhTree.jet_truthDM)
-    # Load the three detector images
+    # Load the detector images
     ECAL_barrel = np.reshape(np.array(rhTree.EB_energy), (170, 360))
     Tracks_barrel = np.reshape(np.array(rhTree.TracksE_EB), (170, 360))
     PF_HCAL_barrel = np.reshape(np.array(rhTree.PF_HCAL_EB), (170, 360))
@@ -162,12 +170,13 @@ for event in range(nEvts):
             addTracks_list.append(image[4])
             DM_list.append(truthDM[i])
             n_selected += 1
-            if n_selected%10 == 0:
-                pbar.update(10)
-            # print(n_selected)
-            if n_selected>=n_tau_target:
-                complete = True
-                break
+            if args.n_tau != -1:
+                if n_selected%10 == 0:
+                    pbar.update(10)
+                # print(n_selected)
+                if n_selected>=n_tau_target:
+                    complete = True
+                    break
             if (n_selected%10000)==0: # save in multiple files for safety
                 df = pd.DataFrame()
                 df["Tracks"] = Tracks_list
@@ -201,7 +210,7 @@ for event in range(nEvts):
 
             # print("Image produced")
 
-
+savepath = save_folder + "/" + alias + "_" + str(shard) + "_end.pkl"
 df = pd.DataFrame()
 df["Tracks"] = Tracks_list
 df["ECAL"] = ECAL_list
@@ -210,5 +219,7 @@ df["PF_ECAL"] = PF_ECAL_list
 df["addTracks"] = addTracks_list
 print("Saving dataframe at ", savepath)
 df.to_pickle(savepath)
+
+os.system('~/scripts/t-notify.sh Finished')
 
 
