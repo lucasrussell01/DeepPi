@@ -36,7 +36,7 @@ def test(data, model):
 with open(f'{path_to_artifacts}/input_cfg/training_cfg.yaml') as file:
     training_cfg = yaml.full_load(file)
     print("Training Config Loaded")
-training_cfg["Setup"]["input_dir"] = '/vols/cms/lcr119/Images/09082022/Evaluation'
+training_cfg["Setup"]["input_dir"] = '/vols/cms/lcr119/Images/13082022/Evaluation'
 training_cfg["Setup"]["n_batches"] = args.n_tau # 250k is full because batch size 1
 training_cfg["Setup"]["n_batches_val"] = 0
 training_cfg["Setup"]["val_split"] = 0
@@ -46,7 +46,7 @@ print(training_cfg)
 # Load evaluation dataset
 dataloader = DataLoader(training_cfg)
 gen_eval = dataloader.get_generator(primary_set = True, evaluation=True)
-input_shape = ((33, 33, 3), None)
+input_shape = ((33, 33, 5), None)
 input_types = (tf.float32, tf.float32)
 data_eval = tf.data.Dataset.from_generator(
     gen_eval, output_types = input_types, output_shapes = input_shape

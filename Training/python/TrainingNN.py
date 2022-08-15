@@ -54,11 +54,64 @@ def create_model(model_name):
 
 
     # # No pooling model:
-    # channels = 9
-    input_layer = Input(name="input_image", shape=(33, 33, 3))
+    channels = 9
+    input_layer = Input(name="input_image", shape=(33, 33, 5))
     # # convolutional layers:
-    # conv0 = conv_block(input_layer, 24, kernel_size=1, n=0) #31
-    # conv1 = conv_block(conv0, 15, kernel_size=3, n=1) #31
+    conv0 = conv_block(input_layer, 24, kernel_size=1, n=0) #31
+    conv1 = conv_block(conv0, 15, kernel_size=3, n=1) #31
+    conv2 = conv_block(conv1, channels, n=2) #29 
+    conv3 = conv_block(conv2, channels, n=3) #27
+    conv4 = conv_block(conv3, channels, n=4) #25
+    conv5 = conv_block(conv4, channels, n=5) #23
+    conv6 = conv_block(conv5, channels, n=6) #21
+    conv7 = conv_block(conv6, channels, n=7) #19
+    conv8 = conv_block(conv7, channels, n=8) #17
+    conv9 = conv_block(conv8, channels, n=9) #15
+    conv10 = conv_block(conv9, channels, n=10) #13
+    conv11 = conv_block(conv10, channels, n=11) #11
+    conv12 = conv_block(conv11, channels, n=12) #9
+    conv13 = conv_block(conv12, channels, n=13) #7
+    conv14 = conv_block(conv13, channels, n=14) #5
+
+    flat = Flatten(name="flatten")(conv14) # 75 
+    flat_size = channels * 25
+    dense1 = dense_block(flat, flat_size, n=15)
+    dense2 = dense_block(dense1, flat_size, n=16)
+    dense3 = dense_block(dense2, flat_size, n=17)
+    dense4 = dense_block(dense3, 100, n=18)
+    dense5 = dense_block(dense4, 3, n=19)
+    # softmax output
+    output = Activation("softmax", name="output")(dense5)
+
+    # new archi with pooling: 
+
+        # try new:
+    # conv0 = conv_block(input_layer, 24, dropout=0.2, kernel_size=1, n=0) #31
+    # conv1 = conv_block(conv0, 24, dropout=0.2, kernel_size=1, n=1) #31
+    # conv2 = conv_block(conv1, 16, kernel_size=5,  dropout=0.2, n=2) #31
+    # conv3 = conv_block(conv2, 16, kernel_size=1,  dropout=0.2, n=3) # 27
+    # conv4 = conv_block(conv3, 16, kernel_size=1, dropout=0.2, n=4) # 27
+    # conv5 = conv_block(conv4, 12,  kernel_size=5,  dropout=0.2, n=5) # 27
+    # conv6 = conv_block(conv5, 12,  kernel_size=1,  dropout=0.2, n=6) # 23
+    # conv7 = conv_block(conv6, 12,  kernel_size=3,  dropout=0.2, n=7) # 21
+    # conv8 = conv_block(conv7, 12,  kernel_size=3,  dropout=0.2, n=8) # 19
+    # conv9 = conv_block(conv8, 12,  kernel_size=3,  dropout=0.2, n=9) # 17
+    # conv10 = conv_block(conv9, 12,  kernel_size=3,  dropout=0.2, n=10) # 15
+    # conv11 = conv_block(conv10, 9,  dropout=0.2, n=11) #11
+    # conv12 = conv_block(conv11, 9,  dropout=0.2, n=12) #9
+    # conv13 = conv_block(conv12, 9,  dropout=0.2, n=13) #7
+    # conv14 = conv_block(conv13, 9,  dropout=0.2, n=14) #5
+    # flat = Flatten(name="flatten")(conv14) # 75 
+    # flat_size = 25 * 9
+    # dense1 = dense_block(flat, flat_size, n=15)
+    # dense2 = dense_block(dense1, flat_size, n=16)
+    # dense3 = dense_block(dense2, flat_size, n=17)
+    # dense4 = dense_block(dense3, 100, n=18)
+    # dense5 = dense_block(dense4, 3, n=19)
+
+    # old non overtrained:
+    # convolutional layers:
+    # conv1 = conv_block(input_layer, channels, n=1) #31
     # conv2 = conv_block(conv1, channels, n=2) #29 
     # conv3 = conv_block(conv2, channels, n=3) #27
     # conv4 = conv_block(conv3, channels, n=4) #25
@@ -74,41 +127,13 @@ def create_model(model_name):
     # conv14 = conv_block(conv13, channels, n=14) #5
 
     # flat = Flatten(name="flatten")(conv14) # 75 
-    # flat_size = channels * 25
-    # dense1 = dense_block(flat, flat_size, n=15)
-    # dense2 = dense_block(dense1, flat_size, n=16)
-    # dense3 = dense_block(dense2, flat_size, n=17)
-    # dense4 = dense_block(dense3, 100, n=18)
+    # dense1 = dense_block(flat, 75, n=15)
+    # dense2 = dense_block(dense1, 75, n=16)
+    # dense3 = dense_block(dense2, 75, n=17)
+    # dense4 = dense_block(dense3, 75, n=18)
     # dense5 = dense_block(dense4, 3, n=19)
-    # softmax output
+
     # output = Activation("softmax", name="output")(dense5)
-
-    # new archi with pooling: 
-
-        # try new:
-    conv0 = conv_block(input_layer, 24, dropout=0.2, kernel_size=1, n=0) #31
-    conv1 = conv_block(conv0, 24, dropout=0.2, kernel_size=1, n=1) #31
-    conv2 = conv_block(conv1, 16, kernel_size=5,  dropout=0.2, n=2) #31
-    conv3 = conv_block(conv2, 16, kernel_size=1,  dropout=0.2, n=3) # 27
-    conv4 = conv_block(conv3, 16, kernel_size=1, dropout=0.2, n=4) # 27
-    conv5 = conv_block(conv4, 12,  kernel_size=5,  dropout=0.2, n=5) # 27
-    conv6 = conv_block(conv5, 12,  kernel_size=1,  dropout=0.2, n=6) # 23
-    conv7 = conv_block(conv6, 12,  kernel_size=3,  dropout=0.2, n=7) # 21
-    conv8 = conv_block(conv7, 12,  kernel_size=3,  dropout=0.2, n=8) # 19
-    conv9 = conv_block(conv8, 12,  kernel_size=3,  dropout=0.2, n=9) # 17
-    conv10 = conv_block(conv9, 12,  kernel_size=3,  dropout=0.2, n=10) # 15
-    conv11 = conv_block(conv10, 9,  dropout=0.2, n=11) #11
-    conv12 = conv_block(conv11, 9,  dropout=0.2, n=12) #9
-    conv13 = conv_block(conv12, 9,  dropout=0.2, n=13) #7
-    conv14 = conv_block(conv13, 9,  dropout=0.2, n=14) #5
-    flat = Flatten(name="flatten")(conv14) # 75 
-    flat_size = 25 * 9
-    dense1 = dense_block(flat, flat_size, n=15)
-    dense2 = dense_block(dense1, flat_size, n=16)
-    dense3 = dense_block(dense2, flat_size, n=17)
-    dense4 = dense_block(dense3, 100, n=18)
-    dense5 = dense_block(dense4, 3, n=19)
-    output = Activation("softmax", name="output")(dense5)
     
 
     # create model
@@ -140,7 +165,7 @@ def run_training(model, data_loader):
     gen_val = data_loader.get_generator(primary_set = False)
 
     # datasets from generators
-    input_shape = ((33, 33, 3), None)
+    input_shape = ((33, 33, 5), None)
     input_types = (tf.float32, tf.float32)
     data_train = tf.data.Dataset.from_generator(
         gen_train, output_types = input_types, output_shapes = input_shape
