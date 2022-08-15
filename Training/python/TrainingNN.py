@@ -207,6 +207,8 @@ def main(cfg: DictConfig) -> None:
     experiment = mlflow.get_experiment_by_name(cfg.experiment_name)
     if experiment is not None:
         run_kwargs = {'experiment_id': experiment.experiment_id}
+        if cfg["pretrained"] is not None: # initialise with pretrained run, otherwise create a new run
+            run_kwargs['run_id'] = cfg["pretrained"]["run_id"]
     else: # create new experiment
         experiment_id = mlflow.create_experiment(cfg.experiment_name)
         run_kwargs = {'experiment_id': experiment_id}
@@ -214,6 +216,9 @@ def main(cfg: DictConfig) -> None:
 
     # run the training with mlflow tracking
     with mlflow.start_run(**run_kwargs) as main_run:
+
+        if cfg["pretrained"] is not None:
+            mlflow.start_run(experiment_id=run_kwargs['experiment_id'], nested=True)
         active_run = mlflow.active_run()
         run_id = active_run.info.run_id
         
@@ -224,6 +229,26 @@ def main(cfg: DictConfig) -> None:
 
         # main training
         model = create_model(dataloader.model_name)
+
+        if cfg.pretrained is None:
+            print("Warning: no pretrained NN -> training will be started from scratch")
+        else:
+            print("Warning: training will be started from pretrained model.")
+            print(f"Model: run_id={cfg.pretrained.run_id}, experiment_id={cfg.pretrained.experiment_id}, model={cfg.pretrained.starting_model}")
+
+            path_to_pretrain = to_absolute_path(f'{cfg.path_to_mlflow}/{cfg.pretrained.experiment_id}/{cfg.pretrained.run_id}/artifacts/')
+            old_model = load_model(path_to_pretrain+f"/model_checkpoints/{cfg.pretrained.starting_model}",
+                compile=False, custom_objects = None)
+            for layer in model.layers:
+                weights_found = False
+                for old_layer in old_model.layers:
+                    if layer.name == old_layer.name:
+                        layer.set_weights(old_layer.get_weights())
+                        weights_found = True
+                        break
+                if not weights_found:
+                    print(f"Weights for layer '{layer.name}' not found.")
+
         compile_model(model)
         fit = run_training(model, dataloader)
 

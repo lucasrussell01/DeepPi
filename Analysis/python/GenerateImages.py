@@ -189,7 +189,7 @@ for event in tqdm(range(nEvts)):
                 df.to_pickle(savepath)
                 shard+=1 # new shard
                 savepath = save_folder + "/" + alias + "_" + str(shard) + ".pkl"
-                os.system('~/scripts/t-notify.sh shard saved')
+                # os.system('~/scripts/t-notify.sh shard saved')
                 print("After event: ", event)
                 Tracks_list = []
                 ECAL_list = []

@@ -100,11 +100,11 @@ void RecHitAnalyzer::branchesEvtSel_jet_taujet( TTree* tree, edm::Service<TFileS
   tree->Branch("jet_neutral_indv_iphi", &vTaujet_jet_neutral_indv_phi_);
 
   tree->Branch("jet_charged_indv_relp", &vTaujet_jet_charged_indv_relp_);
-  tree->Branch("jet_neutral_indv_relp", &vTaujet_jet_neutral_indv_relp_);
-  tree->Branch("jet_charged_indv_releta", &vTaujet_jet_charged_indv_releta_);
-  tree->Branch("jet_neutral_indv_releta", &vTaujet_jet_neutral_indv_releta_);
+  tree->Branch("jet_neutral_indv_relp", &vTaujet_jet_neutral_indv_relp_); // THIS
+  tree->Branch("jet_charged_indv_releta", &vTaujet_jet_charged_indv_releta_); 
+  tree->Branch("jet_neutral_indv_releta", &vTaujet_jet_neutral_indv_releta_); // THIS 
   tree->Branch("jet_charged_indv_relphi", &vTaujet_jet_charged_indv_relphi_);
-  tree->Branch("jet_neutral_indv_relphi", &vTaujet_jet_neutral_indv_relphi_);
+  tree->Branch("jet_neutral_indv_relphi", &vTaujet_jet_neutral_indv_relphi_); // THIS
 
   tree->Branch("jet_charged_indv_releta_crystal", &vTaujet_jet_charged_indv_releta_crystal_);
   tree->Branch("jet_neutral_indv_releta_crystal", &vTaujet_jet_neutral_indv_releta_crystal_);
@@ -113,9 +113,9 @@ void RecHitAnalyzer::branchesEvtSel_jet_taujet( TTree* tree, edm::Service<TFileS
 
   tree->Branch("jet_neutral_relphi_crystal", &vTaujet_jet_neutral_relphi_crystal_);
   tree->Branch("jet_neutral_releta_crystal", &vTaujet_jet_neutral_releta_crystal_);
-  tree->Branch("jet_neutral_relphi", &vTaujet_jet_neutral_relphi_);
+  tree->Branch("jet_neutral_relphi", &vTaujet_jet_neutral_relphi_); 
   tree->Branch("jet_neutral_releta", &vTaujet_jet_neutral_releta_);
-  tree->Branch("jet_neutral_relp", &vTaujet_jet_neutral_relp_);
+  tree->Branch("jet_neutral_relp", &vTaujet_jet_neutral_relp_); // this
   tree->Branch("jet_neutral_relmass", &vTaujet_jet_neutral_relmass_);
 
 
