@@ -5,7 +5,7 @@ class TauLosses:
 
     @staticmethod
     @tf.function
-    def xentropyloss(target, output):
+    def DecayMode_loss(target, output):
         loss = tf.keras.losses.categorical_crossentropy(target, output)
         return loss
 
