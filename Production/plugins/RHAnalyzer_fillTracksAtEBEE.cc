@@ -19,12 +19,17 @@ std::vector<float> vTracksPt_EB_;
 std::vector<float> vTracksE_EB_;
 std::vector<float> vTracksQPt_EB_;
 std::vector<float> vTracks_EB_;
+// 3 momenta of tracks
+std::vector<float> vTracksPx_EB_;
+std::vector<float> vTracksPy_EB_;
+std::vector<float> vTracksPz_EB_;
 
 std::vector<float> vFailedTracksPt_EB_;
 std::vector<float> vFailedTracksE_EB_;
 std::vector<float> vFailedTracksQPt_EB_;
 std::vector<float> vFailedTracks_EB_;
 
+std::vector<float> vPrimaryVertex_;
 
 // HCAL PF info:
 std::vector<float> vPF_HCAL_EB_;
@@ -41,6 +46,9 @@ void RecHitAnalyzer::branchesTracksAtEBEE ( TTree* tree, edm::Service<TFileServi
   tree->Branch("TracksPt_EB",  &vTracksPt_EB_);
   tree->Branch("TracksE_EB",  &vTracksE_EB_);
   tree->Branch("TracksQPt_EB", &vTracksQPt_EB_);
+  tree->Branch("TracksPx_EB",  &vTracksPx_EB_);
+  tree->Branch("TracksPy_EB",  &vTracksPy_EB_);
+  tree->Branch("TracksPz_EB",  &vTracksPz_EB_);
 
   // contains all tracks that have failed vtx association
   tree->Branch("FailedTracks_EB",    &vFailedTracks_EB_);
@@ -52,6 +60,8 @@ void RecHitAnalyzer::branchesTracksAtEBEE ( TTree* tree, edm::Service<TFileServi
   tree->Branch("PF_HCAL_EB_raw", &vPF_HCAL_EB_raw_);
   tree->Branch("PF_ECAL_EB",     &vPF_ECAL_EB_);
   tree->Branch("PF_ECAL_EB_raw", &vPF_ECAL_EB_raw_);
+
+  tree->Branch("PrimaryVertex", &vPrimaryVertex_);
 
   // Histograms for monitoring
   hTracks_EB = fs->make<TH2F>("Tracks_EB", "N(i#phi,i#eta);i#phi;i#eta",
@@ -101,6 +111,9 @@ void RecHitAnalyzer::fillTracksAtEBEE ( const edm::Event& iEvent, const edm::Eve
   vTracksPt_EB_.assign( EBDetId::kSizeForDenseIndexing, 0. );
   vTracksE_EB_.assign( EBDetId::kSizeForDenseIndexing, 0. );
   vTracksQPt_EB_.assign( EBDetId::kSizeForDenseIndexing, 0. );
+  vTracksPx_EB_.assign( EBDetId::kSizeForDenseIndexing, 0. );
+  vTracksPy_EB_.assign( EBDetId::kSizeForDenseIndexing, 0. );
+  vTracksPz_EB_.assign( EBDetId::kSizeForDenseIndexing, 0. );
 
   vFailedTracks_EB_.assign( EBDetId::kSizeForDenseIndexing, 0. );
   vFailedTracksPt_EB_.assign( EBDetId::kSizeForDenseIndexing, 0. );
@@ -133,6 +146,11 @@ void RecHitAnalyzer::fillTracksAtEBEE ( const edm::Event& iEvent, const edm::Eve
   edm::Handle<reco::VertexCollection> vertexInfo;
   iEvent.getByToken(vertexCollectionT_, vertexInfo);
   const reco::VertexCollection& vtxs = *vertexInfo;
+
+  // store position of primary vertex:
+  vPrimaryVertex_.push_back(vtxs[0].position().x());
+  vPrimaryVertex_.push_back(vtxs[0].position().y());
+  vPrimaryVertex_.push_back(vtxs[0].position().z());
 
   // std::cout << "PV: " << vtxs[0].position() << std::endl;
 
@@ -190,6 +208,9 @@ void RecHitAnalyzer::fillTracksAtEBEE ( const edm::Event& iEvent, const edm::Eve
           vTracksPt_EB_[idx_] += pt;
           vTracksE_EB_[idx_] += energy;
           vTracksQPt_EB_[idx_] += qpt;
+          vTracksPx_EB_[idx_] += iTk->px();
+          vTracksPy_EB_[idx_] += iTk->py();
+          vTracksPz_EB_[idx_] += iTk->pz();
         }
       } else if ( id.subdetId() == EcalEndcap ) {
         EEDetId eeId( id );
