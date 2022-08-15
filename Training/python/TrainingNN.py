@@ -1,7 +1,7 @@
 # mlflow logging inspired by DeepTau
 from DataLoader import DataLoader
 from setup_gpu import setup_gpu
-from losses import TauLosses
+from losses import TauLosses, EpochCheckpoint
 import tensorflow as tf
 from tensorflow import keras
 import tensorflow.keras.backend as K
@@ -173,7 +173,7 @@ def run_training(model, data_loader):
     data_val = tf.data.Dataset.from_generator(
         gen_val, output_types = input_types, output_shapes = input_shape
         ).prefetch(tf.data.AUTOTUNE).batch(data_loader.n_tau).take(data_loader.n_batches_val)
-
+    
     # logs/callbacks
     model_name = data_loader.model_name
     log_name = f"{model_name}_step"
@@ -182,8 +182,8 @@ def run_training(model, data_loader):
         close_file(csv_log_file)
         os.remove(csv_log_file)
     csv_log = CSVLogger(csv_log_file, append=True)
-    # time_checkpoint = TimeCheckpoint(12*60*60, log_name)
-    callbacks = [csv_log] # [time_checkpoint, csv_log]
+    epoch_checkpoint = EpochCheckpoint(log_name)
+    callbacks = [epoch_checkpoint, csv_log]
 
     # Run training
     fit = model.fit(data_train, validation_data = data_val, epochs = data_loader.n_epochs, 
