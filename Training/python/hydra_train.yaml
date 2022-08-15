@@ -9,6 +9,12 @@ defaults:
 path_to_mlflow: mlruns
 experiment_name: ???
 
+# pretrained: null
+pretrained:
+  run_id : 5aee19d636a841aaabe0496c3dd67d1f 
+  experiment_id: 4
+  starting_model: DeepPi_v1_step_final.tf
+
 # setup
 gpu_cfg:
   gpu_mem  : 6.5 # in Gb

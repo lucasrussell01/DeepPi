@@ -46,8 +46,10 @@ class DataLoader:
                     for i in range(len(df)):
                         Tracks = df["Tracks"][i]
                         ECAL = df["ECAL"][i]
-                        HCAL = df["HCAL"][i]
-                        x = (np.stack([Tracks, ECAL, HCAL], axis=-1))
+                        PF_HCAL = df["PF_HCAL"][i]
+                        PF_ECAL = df["PF_ECAL"][i]
+                        addTracks = df["addTracks"][i]
+                        x = (np.stack([Tracks, ECAL, PF_HCAL, PF_ECAL, addTracks], axis=-1))
                         DM = df["DM"][i]
                         if evaluation:
                             y = DM

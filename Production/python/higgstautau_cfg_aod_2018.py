@@ -7,6 +7,7 @@ import FWCore.ParameterSet.Config as cms
 from PhysicsTools.PatAlgos.slimming.primaryVertexAssociation_cfi import primaryVertexAssociation
 from PhysicsTools.PatAlgos.slimming.packedPFCandidates_cfi import packedPFCandidates
 
+
 ################################################################
 # Read Options
 ################################################################

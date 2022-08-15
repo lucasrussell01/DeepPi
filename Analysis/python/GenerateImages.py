@@ -16,7 +16,8 @@ import argparse
 parser = argparse.ArgumentParser(description='Generate images from RHTree ROOT files')
 parser.add_argument('--n_tau', required=True, type=int, help="Number of taus to select")
 parser.add_argument('--sample', required=True, type=str, help="Sample Name")
-parser.add_argument('--save_path', required=False, default="/home/hep/lcr119/Images/", type=str, help="Save path")
+parser.add_argument('--split', required=True, type=str, help="Sample section")
+parser.add_argument('--save_path', required=False, default="/vols/cms/lcr119/Images/", type=str, help="Save path")
 parser.add_argument('--max_events', required=False, default=10000000, type=int, help="Max events to process")
 args = parser.parse_args()
 
@@ -26,36 +27,47 @@ rhTree = R.TChain("recHitAnalyzer/RHTree")
 
 sample = args.sample #"GluGluHToTauTau_M125", "DYJetsToLL-LO"
 if sample == "GluGluHToTauTau_M125":
-    alias = "ggHTT"
+    alias = "ggHTT_" + args.split
 else:
     alias = "unkwn"
-path_to_filelist = "/home/hep/lcr119/HiggsTauTau/CMSSW_10_6_19/src/FileLocations/MonthDay_Year_MC_106X_" + sample + ".dat"
+path_to_filelist = "/home/hep/lcr119/DeepPi/Analysis/scripts/1308_2022_MC_106X_" + sample + ".dat"
 
 
-nEvts = args.max_events # Max number of events to process #int(rhTree.GetEntries())
+# Max number of events to process #int(rhTree.GetEntries())
 n_tau_target = args.n_tau # Max number of taus to select
 plot = False
 
 
 shard = 0 # number of file if split into several required
-save_folder = args.save_path + "09082022"
+save_folder = args.save_path + "13082022"
 savepath = save_folder + "/" + alias + "_" + str(shard) + ".pkl"
 # check if directory exists
 if not os.path.exists(save_folder):
     os.makedirs(save_folder)
 
 
-
 count = 0
 with open(path_to_filelist) as f:
-    for i in f:
-        file = "root://gfe02.grid.hep.ph.ic.ac.uk:1097/store/user/lrussell/DetectorImages_MC_106X_2018/" + i.rstrip() 
-        # print(file)
+    lines = f.readlines()
+    lines = [line.rstrip('\n') for line in lines]
+    if args.split == "A":
+        lines = lines[:125]
+    elif args.split == "B":
+        lines = lines[125:250]
+    elif args.split == "C":
+        lines = lines[250:375]
+    elif args.split == "D":
+        lines = lines[375:500]
+    elif args.split == "E":
+        lines = lines[500:]
+    else: 
+        raise Exception("Split not recognised")
+    for i in lines:
+        file = "root://gfe02.grid.hep.ph.ic.ac.uk:1097/store/user/lrussell/DetectorImages_1308_MC_106X_2018/" + i
         rhTree.Add(file)
         count+=1
 
-def crop_image(Tracks, ECAL, HCAL, centre_eta, centre_phi):
-
+def crop_channel(image, centre_eta, centre_phi):
     pad = 16 # padding on each side of centre
     centre_eta += 85 # add 85 to crop array by index
 
@@ -64,68 +76,72 @@ def crop_image(Tracks, ECAL, HCAL, centre_eta, centre_phi):
         # print("Eta out of bounds, extra padding")
         add_cells = np.abs(centre_eta-pad)
         padding = np.zeros((add_cells, 360)) # Extra padding
-        ECAL = np.concatenate((padding, ECAL), axis = 0)
-        Tracks = np.concatenate((padding, Tracks), axis = 0)
-        HCAL = np.concatenate((padding, HCAL), axis = 0)
+        image = np.concatenate((padding, image), axis = 0)
         centre_eta += add_cells # Adjust eta index for cropping (the number added)
     elif centre_eta + pad >= 170: # Add above
         # print("Eta out of bounds, extra padding")
         add_cells = centre_eta+pad-169 # (169 as index 169 is 170th entry)
         padding = np.zeros((add_cells, 360)) # Extra padding
-        ECAL = np.concatenate((ECAL, padding), axis = 0)
-        Tracks = np.concatenate((Tracks, padding), axis = 0)
-        HCAL = np.concatenate((HCAL, padding), axis = 0)       
+        image = np.concatenate((image, padding), axis = 0)
 
     # Wrap phi for overlapping cases:
     if centre_phi < pad: # Wrap-around on left side
         # print("Wrapping left")
         diff = pad-centre_phi
-        ECAL_crop = np.concatenate((ECAL[centre_eta-pad:centre_eta+pad+1,-diff:],
-                                    ECAL[centre_eta-pad:centre_eta+pad+1,:centre_phi+pad+1]), axis=-1)
-        Tracks_crop = np.concatenate((Tracks[centre_eta-pad:centre_eta+pad+1,-diff:],
-                                    Tracks[centre_eta-pad:centre_eta+pad+1,:centre_phi+pad+1]), axis=-1)
-        HCAL_crop = np.concatenate((HCAL[centre_eta-pad:centre_eta+pad+1,-diff:],
-                                    HCAL[centre_eta-pad:centre_eta+pad+1,:centre_phi+pad+1]), axis=-1)
+        image_crop = np.concatenate((image[centre_eta-pad:centre_eta+pad+1,-diff:],
+                                    image[centre_eta-pad:centre_eta+pad+1,:centre_phi+pad+1]), axis=-1)
     elif 360-centre_phi <= pad: # Wrap-around on right side
         # print("Wrapping right")
         diff = pad - (360-centre_phi)
-        ECAL_crop = np.concatenate((ECAL[centre_eta-pad:centre_eta+pad+1,centre_phi-pad:],
-                                    ECAL[centre_eta-pad:centre_eta+pad+1,:diff+1]), axis=-1)
-        Tracks_crop = np.concatenate((Tracks[centre_eta-pad:centre_eta+pad+1,centre_phi-pad:],
-                                    Tracks[centre_eta-pad:centre_eta+pad+1,:diff+1]), axis=-1)
-        HCAL_crop = np.concatenate((HCAL[centre_eta-pad:centre_eta+pad+1,centre_phi-pad:],
-                                    HCAL[centre_eta-pad:centre_eta+pad+1,:diff+1]), axis=-1)
+        image_crop = np.concatenate((image[centre_eta-pad:centre_eta+pad+1,centre_phi-pad:],
+                                    image[centre_eta-pad:centre_eta+pad+1,:diff+1]), axis=-1)
     else:
-        ECAL_crop = ECAL[centre_eta-pad:centre_eta+pad+1,centre_phi-pad:centre_phi+pad+1]
-        Tracks_crop = Tracks[centre_eta-pad:centre_eta+pad+1,centre_phi-pad:centre_phi+pad+1]
-        HCAL_crop = HCAL[centre_eta-pad:centre_eta+pad+1,centre_phi-pad:centre_phi+pad+1]
+        image_crop = image[centre_eta-pad:centre_eta+pad+1,centre_phi-pad:centre_phi+pad+1]
+    return image_crop
 
-    return Tracks_crop, ECAL_crop, HCAL_crop
+def crop_image(Tracks, ECAL, PF_HCAL, PF_ECAL, addTracks, centre_eta, centre_phi):
 
+    Tracks_crop = crop_channel(Tracks, centre_eta, centre_phi)
+    ECAL_crop = crop_channel(ECAL, centre_eta, centre_phi)
+    PF_HCAL_crop = crop_channel(PF_HCAL, centre_eta, centre_phi)
+    PF_ECAL_crop = crop_channel(PF_ECAL, centre_eta, centre_phi)
+    addTracks_crop = crop_channel(addTracks, centre_eta, centre_phi)
+
+    return Tracks_crop, ECAL_crop, PF_HCAL_crop, PF_ECAL_crop, addTracks_crop
 
 
 targetDM = [0, 1, 2, 10, 11]
 
 Tracks_list = []
 ECAL_list = []
-HCAL_list = []
+PF_HCAL_list = []
+PF_ECAL_list = []
+addTracks_list = []
 DM_list = []
 
+
+
+nEvts = int(rhTree.GetEntries())
+
 n_selected = 0 # Number of taus selected
-pbar = tqdm(total = n_tau_target)
+if args.n_tau != -1:
+    pbar = tqdm(total = n_tau_target)
 complete = False # flag to say when all taus selected
 
+os.system('~/scripts/t-notify.sh Beginning image creation')
 
-os.system('~/scripts/t-notify.sh Begining image creation')
+ 
 
-for event in range(nEvts):
+for event in tqdm(range(nEvts)):
     rhTree.GetEntry(event)
     # Load truth values
     truthDM = np.array(rhTree.jet_truthDM)
-    # Load the three detector images
+    # Load the detector images
     ECAL_barrel = np.reshape(np.array(rhTree.EB_energy), (170, 360))
     Tracks_barrel = np.reshape(np.array(rhTree.TracksE_EB), (170, 360))
-    HCAL_barrel = np.reshape(np.array(rhTree.PF_HCAL_EB), (170, 360))
+    PF_HCAL_barrel = np.reshape(np.array(rhTree.PF_HCAL_EB), (170, 360))
+    PF_ECAL_barrel = np.reshape(np.array(rhTree.PF_ECAL_EB), (170, 360))
+    addTracks_barrel = np.reshape(np.array(rhTree.FailedTracksE_EB), (170, 360))
     # Load jet centre coordinates
     ieta = np.array(rhTree.jet_centre2_ieta)
     iphi = np.array(rhTree.jet_centre2_iphi)
@@ -141,7 +157,7 @@ for event in range(nEvts):
                 continue # don't use these events
             elif centre_eta>=80 or centre_eta<-80:
                 continue # too close to edge
-            image = crop_image(Tracks_barrel, ECAL_barrel, HCAL_barrel, centre_eta, centre_phi)
+            image = crop_image(Tracks_barrel, ECAL_barrel, PF_HCAL_barrel, PF_ECAL_barrel, addTracks_barrel, centre_eta, centre_phi)
             if (image[1].shape != (33, 33)):
                 print(image[1].shape)
                 print(event)
@@ -149,30 +165,37 @@ for event in range(nEvts):
                 raise Exception ("incorrect image shape")
             Tracks_list.append(image[0])
             ECAL_list.append(image[1])
-            HCAL_list.append(image[2])
+            PF_HCAL_list.append(image[2])
+            PF_ECAL_list.append(image[3])
+            addTracks_list.append(image[4])
             DM_list.append(truthDM[i])
             n_selected += 1
-            if n_selected%10 == 0:
-                pbar.update(10)
-            # print(n_selected)
-            if n_selected>=n_tau_target:
-                complete = True
-                break
+            if args.n_tau != -1:
+                if n_selected%10 == 0:
+                    pbar.update(10)
+                # print(n_selected)
+                if n_selected>=n_tau_target:
+                    complete = True
+                    break
             if (n_selected%10000)==0: # save in multiple files for safety
                 df = pd.DataFrame()
                 df["Tracks"] = Tracks_list
                 df["ECAL"] = ECAL_list
-                df["HCAL"] = HCAL_list
+                df["PF_HCAL"] = PF_HCAL_list
+                df["PF_ECAL"] = PF_ECAL_list
+                df["addTracks"] = addTracks_list
                 df["DM"] = DM_list
                 print("Saving dataframe at: ", savepath)
                 df.to_pickle(savepath)
                 shard+=1 # new shard
                 savepath = save_folder + "/" + alias + "_" + str(shard) + ".pkl"
-                os.system('~/scripts/t-notify.sh shard saved')
+                # os.system('~/scripts/t-notify.sh shard saved')
                 print("After event: ", event)
                 Tracks_list = []
                 ECAL_list = []
-                HCAL_list = []
+                PF_HCAL_list = []
+                PF_ECAL_list = []
+                addTracks_list = []
                 DM_list = []
 
             if plot: # plot for debug
@@ -187,13 +210,16 @@ for event in range(nEvts):
 
             # print("Image produced")
 
-
+savepath = save_folder + "/" + alias + "_" + str(shard) + "_end.pkl"
 df = pd.DataFrame()
 df["Tracks"] = Tracks_list
 df["ECAL"] = ECAL_list
-df["HCAL"] = HCAL_list
-df["DM"] = DM_list
+df["PF_HCAL"] = PF_HCAL_list
+df["PF_ECAL"] = PF_ECAL_list
+df["addTracks"] = addTracks_list
 print("Saving dataframe at ", savepath)
 df.to_pickle(savepath)
+
+os.system('~/scripts/t-notify.sh Finished')
 
 
