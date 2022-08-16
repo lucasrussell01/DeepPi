@@ -151,10 +151,10 @@ def create_model(model_name, dropout_rate):
     dense_DM4 = dense_block(dense_DM3, 100, dropout=dropout_rate, n="_DM_4")
     dense_DM5 = dense_block(dense_DM4, 3, n="_DM_5")
     # Pi0 output (softmax)
-    outputDM = Activation("softmax", name="output_DM")(dense5)
+    outputDM = Activation("softmax", name="output_DM")(dense_DM5)
 
     # create model
-    model = DeepPiModel(input_layer, output, name=model_name)
+    model = DeepPiModel(input_layer, outputDM, name=model_name)
 
     return model
 

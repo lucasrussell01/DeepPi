@@ -39,7 +39,7 @@ plot = False
 
 
 shard = 0 # number of file if split into several required
-save_folder = args.save_path + "13082022"
+save_folder = args.save_path + "Kinematics"
 savepath = save_folder + "/" + alias + "_" + str(shard) + ".pkl"
 # check if directory exists
 if not os.path.exists(save_folder):
@@ -118,7 +118,9 @@ PF_HCAL_list = []
 PF_ECAL_list = []
 addTracks_list = []
 DM_list = []
-
+releta_list = []
+relphi_list = []
+relp_list = []
 
 
 nEvts = int(rhTree.GetEntries())
@@ -145,12 +147,16 @@ for event in tqdm(range(nEvts)):
     # Load jet centre coordinates
     ieta = np.array(rhTree.jet_centre2_ieta)
     iphi = np.array(rhTree.jet_centre2_iphi)
+    # Load neutral kinematics
+    releta = np.array(rhTree.jet_neutral_indv_releta)
+    relphi = np.array(rhTree.jet_neutral_indv_relphi)
+    relp = np.array(rhTree.jet_neutral_indv_relp)
     # Iterate over the taus in the event
-    n_taus = len(truthDM) 
+    n_taus = len(truthDM)
     if complete:
         break
     for i in range(n_taus):
-        if truthDM[i] in targetDM: # check if genuine tau
+        if truthDM[i] in targetDM: # check if genuine tau    
             centre_phi = int(iphi[i])
             centre_eta = int(ieta[i]) 
             if centre_phi>=360 or centre_phi<0:
@@ -169,6 +175,9 @@ for event in tqdm(range(nEvts)):
             PF_ECAL_list.append(image[3])
             addTracks_list.append(image[4])
             DM_list.append(truthDM[i])
+            releta_list.append(np.array(releta[i]))
+            relphi_list.append(np.array(relphi[i]))
+            relp_list.append(np.array(relp[i]))
             n_selected += 1
             if args.n_tau != -1:
                 if n_selected%10 == 0:
@@ -185,6 +194,9 @@ for event in tqdm(range(nEvts)):
                 df["PF_ECAL"] = PF_ECAL_list
                 df["addTracks"] = addTracks_list
                 df["DM"] = DM_list
+                df["releta"] = releta_list
+                df["relphi"] = relphi_list
+                df["relp"] = relp_list
                 print("Saving dataframe at: ", savepath)
                 df.to_pickle(savepath)
                 shard+=1 # new shard
@@ -197,6 +209,9 @@ for event in tqdm(range(nEvts)):
                 PF_ECAL_list = []
                 addTracks_list = []
                 DM_list = []
+                releta_list = []
+                relphi_list = []
+                relp_list = []
 
             if plot: # plot for debug
                 plt.title(truthDM[i])
@@ -217,6 +232,10 @@ df["ECAL"] = ECAL_list
 df["PF_HCAL"] = PF_HCAL_list
 df["PF_ECAL"] = PF_ECAL_list
 df["addTracks"] = addTracks_list
+df["DM"] = DM_list
+df["releta"] = releta_list
+df["relphi"] = relphi_list
+df["relp"] = relp_list
 print("Saving dataframe at ", savepath)
 df.to_pickle(savepath)
 
