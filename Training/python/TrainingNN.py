@@ -19,6 +19,78 @@ import json
 import os
 from glob import glob
 
+
+class DeepPiModel(keras.Model):
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.DM_loss = TauLosses.DecayMode_loss
+        self.DM_loss_tracker = keras.metrics.Mean(name="loss")
+
+    def train_step(self, data):
+        # Unpack the data
+        sample_weight = None
+        x, y = data
+        n_tau = tf.shape(y)[0]
+
+        # Forward Pass:
+        with tf.GradientTape() as tape:
+            y_pred = self(x, training=True)
+            DM_loss_vec = self.DM_loss(y, y_pred)
+            DM_loss = tf.reduce_sum(DM_loss_vec)/tf.cast(n_tau, dtype=tf.float32)
+
+        # Compute gradients
+        trainable_pars = self.trainable_variables
+        gradients = tape.gradient(DM_loss, trainable_pars)
+
+        # Update trainable parameters
+        self.optimizer.apply_gradients(zip(gradients, trainable_pars))
+
+        # Update metrics
+        self.DM_loss_tracker.update_state(DM_loss)
+        self.compiled_metrics.update_state(y, y_pred)
+
+        # Return a dict mapping metric names to current value (printout)
+        metrics_out =  {m.name: m.result() for m in self.metrics}
+        return metrics_out
+    
+    def test_step(self, data):
+        # Unpack the data 
+        sample_weight = None
+        x, y = data
+        n_tau = tf.shape(y)[0]
+
+        # Evaluate Model
+        y_pred = self(x, training=False)
+        DM_loss_vec = self.DM_loss(y, y_pred)
+        DM_loss = tf.reduce_sum(DM_loss_vec)/tf.cast(n_tau, dtype=tf.float32)
+
+        # Update the metrics 
+        self.DM_loss_tracker.update_state(DM_loss)
+        self.compiled_metrics.update_state(y, y_pred)
+
+        # Return a dict mapping metric names to current value
+        metrics_out = {m.name: m.result() for m in self.metrics}
+        return metrics_out
+    
+    @property
+    def metrics(self):
+        # define metrics here so that `reset_states()` can be
+        # called automatically at the start of each epoch
+        # or at the start of `evaluate()`
+        metrics = []
+        metrics.append(self.DM_loss_tracker) 
+        if self._is_compiled:
+            # Track `LossesContainer` and `MetricsContainer` objects
+            # so that attr names are not load-bearing.
+            if self.compiled_loss is not None:
+                metrics += self.compiled_loss.metrics
+            if self.compiled_metrics is not None:
+                metrics += self.compiled_metrics.metrics
+        for l in self._flatten_layers():
+            metrics.extend(l._metrics)  # pylint: disable=protected-access
+        return metrics
+
 def layer_ending(layer, n, dim2d = True, dropout=0): #, activation, dropout_rate # add these from cfg later
     norm_layer = BatchNormalization(name="norm_{}".format(n))(layer)
     if dim2d: # if conv or pooling
@@ -51,39 +123,38 @@ def dense_block(prev_layer, size, n=1, dropout=0):
 
 def create_model(model_name, dropout_rate):
 
-    print("Creating model with dropout rate: ", dropout_rate)
-    # # No pooling model:
-    channels = 9
+    # Input Image
     input_layer = Input(name="input_image", shape=(33, 33, 5))
-    # convolutional layers:
+    # Feature extracting convolutional layers:
     conv0 = conv_block(input_layer, 24, dropout=dropout_rate, kernel_size=1, n=0) #31
     conv1 = conv_block(conv0, 15, dropout=dropout_rate, kernel_size=3, n=1) #31
-    conv2 = conv_block(conv1, channels, dropout=dropout_rate, n=2) #29 
-    conv3 = conv_block(conv2, channels, dropout=dropout_rate, n=3) #27
-    conv4 = conv_block(conv3, channels, dropout=dropout_rate, n=4) #25
-    conv5 = conv_block(conv4, channels, dropout=dropout_rate, n=5) #23
-    conv6 = conv_block(conv5, channels, dropout=dropout_rate, n=6) #21
-    conv7 = conv_block(conv6, channels, dropout=dropout_rate, n=7) #19
-    conv8 = conv_block(conv7, channels, dropout=dropout_rate, n=8) #17
-    conv9 = conv_block(conv8, channels, dropout=dropout_rate, n=9) #15
-    conv10 = conv_block(conv9, channels, dropout=dropout_rate, n=10) #13
-    conv11 = conv_block(conv10, channels, dropout=dropout_rate,n=11) #11
-    conv12 = conv_block(conv11, channels, dropout=dropout_rate, n=12) #9
-    conv13 = conv_block(conv12, channels, dropout=dropout_rate, n=13) #7
-    conv14 = conv_block(conv13, channels, dropout=dropout_rate, n=14) #5
-
+    conv2 = conv_block(conv1, 9, dropout=dropout_rate, n=2) #29 
+    conv3 = conv_block(conv2, 9, dropout=dropout_rate, n=3) #27
+    conv4 = conv_block(conv3, 9, dropout=dropout_rate, n=4) #25
+    conv5 = conv_block(conv4, 9, dropout=dropout_rate, n=5) #23
+    conv6 = conv_block(conv5, 9, dropout=dropout_rate, n=6) #21
+    conv7 = conv_block(conv6, 9, dropout=dropout_rate, n=7) #19
+    conv8 = conv_block(conv7, 9, dropout=dropout_rate, n=8) #17
+    conv9 = conv_block(conv8, 9, dropout=dropout_rate, n=9) #15
+    conv10 = conv_block(conv9, 9, dropout=dropout_rate, n=10) #13
+    conv11 = conv_block(conv10, 9, dropout=dropout_rate,n=11) #11
+    conv12 = conv_block(conv11, 9, dropout=dropout_rate, n=12) #9
+    conv13 = conv_block(conv12, 9, dropout=dropout_rate, n=13) #7
+    conv14 = conv_block(conv13, 9, dropout=dropout_rate, n=14) #5
+    # Flatten inputs
     flat = Flatten(name="flatten")(conv14) # 75 
-    flat_size = 125
-    dense1 = dense_block(flat, flat_size, dropout=dropout_rate, n=15)
-    dense2 = dense_block(dense1, flat_size, dropout=dropout_rate, n=16)
-    dense3 = dense_block(dense2, flat_size, dropout=dropout_rate, n=17)
-    dense4 = dense_block(dense3, flat_size, dropout=dropout_rate, n=18)
-    dense5 = dense_block(dense4, 3, n=19)
-    # softmax output
-    output = Activation("softmax", name="output")(dense5)
+    # Dense layers for pi0 number extrapolation
+    flat_size = 225
+    dense_DM1 = dense_block(flat, flat_size, dropout=dropout_rate, n="_DM_1")
+    dense_DM2 = dense_block(dense_DM1, flat_size, dropout=dropout_rate, n="_DM_2")
+    dense_DM3 = dense_block(dense_DM2, flat_size, dropout=dropout_rate, n="_DM_3")
+    dense_DM4 = dense_block(dense_DM3, 100, dropout=dropout_rate, n="_DM_4")
+    dense_DM5 = dense_block(dense_DM4, 3, n="_DM_5")
+    # Pi0 output (softmax)
+    outputDM = Activation("softmax", name="output_DM")(dense5)
 
     # create model
-    model = Model(input_layer, output, name=model_name)
+    model = DeepPiModel(input_layer, output, name=model_name)
 
     return model
 

@@ -26,7 +26,9 @@ class DataLoader:
         files = glob.glob(self.file_path + "/*.pkl")
         self.train_files, self.val_files = np.split(files, [int(len(files)*(1-self.val_split))])
         print("Files for training:", len(self.train_files))
+        # print(self.train_files)
         print("Files for validation:", len(self.val_files))
+        # print(self.val_files)
 
     def get_generator(self, primary_set = True, show_progress = False, evaluation = False):
 
