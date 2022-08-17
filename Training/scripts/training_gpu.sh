@@ -1,6 +1,5 @@
 #!/bin/sh
-cd /home/hep/lcr119/DeepPi
+cd /home/hep/lcr119/BatchCode/DeepPi
 source env.sh conda
 cd Training/python
-python TrainingNN.py experiment_name=optimisation training_cfg.Setup.dropout=0.2
-home/hep/lcr119/scripts/t-notify.sh Training Complete Dropout 0.2
+python -u TrainingNN.py experiment_name=gpurun training_cfg.Setup.dropout=0.2 &> train_out.log

@@ -25,7 +25,7 @@ class DeepPiModel(keras.Model):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.DM_loss = TauLosses.DecayMode_loss
-        self.DM_loss_tracker = keras.metrics.Mean(name="loss")
+        self.loss_tracker = keras.metrics.Mean(name="loss")
 
     def train_step(self, data):
         # Unpack the data
@@ -47,7 +47,7 @@ class DeepPiModel(keras.Model):
         self.optimizer.apply_gradients(zip(gradients, trainable_pars))
 
         # Update metrics
-        self.DM_loss_tracker.update_state(DM_loss)
+        self.loss_tracker.update_state(DM_loss)
         self.compiled_metrics.update_state(y, y_pred)
 
         # Return a dict mapping metric names to current value (printout)
@@ -66,7 +66,7 @@ class DeepPiModel(keras.Model):
         DM_loss = tf.reduce_sum(DM_loss_vec)/tf.cast(n_tau, dtype=tf.float32)
 
         # Update the metrics 
-        self.DM_loss_tracker.update_state(DM_loss)
+        self.loss_tracker.update_state(DM_loss)
         self.compiled_metrics.update_state(y, y_pred)
 
         # Return a dict mapping metric names to current value
@@ -79,7 +79,7 @@ class DeepPiModel(keras.Model):
         # called automatically at the start of each epoch
         # or at the start of `evaluate()`
         metrics = []
-        metrics.append(self.DM_loss_tracker) 
+        metrics.append(self.loss_tracker) 
         if self._is_compiled:
             # Track `LossesContainer` and `MetricsContainer` objects
             # so that attr names are not load-bearing.
