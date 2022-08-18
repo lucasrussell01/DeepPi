@@ -82,24 +82,6 @@ process.configurationMetadata = cms.untracked.PSet(
     version = cms.untracked.string('$Revision: 1.19 $')
 )
 
-# Output definition
-
-process.MINIAODSIMoutput = cms.OutputModule("PoolOutputModule",
-    compressionAlgorithm = cms.untracked.string('LZMA'),
-    compressionLevel = cms.untracked.int32(4),
-    dataset = cms.untracked.PSet(
-        dataTier = cms.untracked.string('MINIAODSIM'),
-        filterName = cms.untracked.string('')
-    ),
-    dropMetaData = cms.untracked.string('ALL'),
-    eventAutoFlushCompressedSize = cms.untracked.int32(-900),
-    fastCloning = cms.untracked.bool(False),
-    fileName = cms.untracked.string('file:test.root'),
-    outputCommands = cms.untracked.vstring('drop *', 'keep *_slimmedTaus_*_*'),
-    overrideInputFileSplitLevels = cms.untracked.bool(True),
-    splitLevel = cms.untracked.int32(0)
-)
-
 # Schedule definition
 process.schedule = cms.Schedule()
 process.schedule.associate(process.patTask)
@@ -108,14 +90,6 @@ associatePatAlgosToolsTask(process)
 
 # customisation of the process.
 
-# Automatic addition of the customisation function from Configuration.DataProcessing.Utils
-from Configuration.DataProcessing.Utils import addMonitoring
-
-#call to customisation function addMonitoring imported from Configuration.DataProcessing.Utils
-process = addMonitoring(process)
-
-# End of customisation functions
-#do not add changes to your config after this point (unless you know what you are doing)
 from FWCore.ParameterSet.Utilities import convertToUnscheduled
 process=convertToUnscheduled(process)
 
