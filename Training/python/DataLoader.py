@@ -53,19 +53,26 @@ class DataLoader:
                         addTracks = df["addTracks"][i]
                         x = (np.stack([Tracks, ECAL, PF_HCAL, PF_ECAL, addTracks], axis=-1))
                         DM = df["DM"][i]
+                        max_index = np.where(df["relp"][i] == np.max(df["relp"][i]))[0] # find leading neutral
+                        yKin = (df["relp"][i][max_index][0], df["releta"][i][max_index][0], df["relphi"][i][max_index][0])
                         if evaluation:
-                            y = DM
+                            yDM = DM
+                            yield(x, yDM)
                         else:
                             if DM == 0 or DM == 10:
-                                y = tf.one_hot(0, 3) # no pi0
+                                yDM = tf.one_hot(0, 3) # no pi0
+                                w = 0
                             elif DM ==1 or DM ==11:
-                                y = tf.one_hot(1, 3) # one pi0
+                                yDM = tf.one_hot(1, 3) # one pi0
+                                w = 1
                             elif DM == 2:
-                                y = tf.one_hot(2, 3) # two pi0
+                                yDM = tf.one_hot(2, 3) # two pi0
+                                w = 0
                             else: 
                                 raise RuntimeError(f"Unknown DM {DM}")
+                            yield (x, yDM, yKin, w)
                         counter += 1
-                        yield (x,y)
+                        
 
         return _generator
 
