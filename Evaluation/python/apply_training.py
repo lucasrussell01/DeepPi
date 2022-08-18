@@ -36,7 +36,7 @@ def test(data, model):
 with open(f'{path_to_artifacts}/input_cfg/training_cfg.yaml') as file:
     training_cfg = yaml.full_load(file)
     print("Training Config Loaded")
-training_cfg["Setup"]["input_dir"] = '/vols/cms/lcr119/Images/13082022/Evaluation'
+training_cfg["Setup"]["input_dir"] = '/vols/cms/lcr119/Images/Kinematics/Evaluation'
 training_cfg["Setup"]["n_batches"] = args.n_tau # 250k is full because batch size 1
 training_cfg["Setup"]["n_batches_val"] = 0
 training_cfg["Setup"]["val_split"] = 0
@@ -71,16 +71,10 @@ pbar = tqdm(total = dataloader.n_batches)
 i = 0
 for elem in data_eval:
     y, y_pred = test(elem, model)
-
+    y_pred = y_pred[0] # take only DM output
     # below is code for if dataloader not in eval mode
     # onehot_truth.append(y)
     full_pred.append(y_pred)
-    # if out[0][0][0] == 1:
-    #     truth.append(0)
-    # elif out[0][0][1] == 1:
-    #     truth.append(1)
-    # elif out[0][0][2] == 1:
-    #     truth.append(2)
     if y == 0 or y ==10:
         truth.append(0)
     elif y == 1 or y == 11:

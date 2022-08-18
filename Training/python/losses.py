@@ -15,7 +15,7 @@ class TauLosses:
         a = 0.01 # energy factor
         b = 1 # eta factor
         c = 1 # phi factor
-        loss = a*(output[0] - target[0])**2 + b*(output[1] - target[1])**2 + c*(output[2] - target[2])**2
+        loss = a*(output[:, 0] - target[:, 0])**2 + b*(output[:, 1] - target[:, 1])**2 + c*(output[:, 2] - target[:, 2])**2
         return loss
 
 

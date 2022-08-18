@@ -29,6 +29,7 @@ class DeepPiModel(keras.Model):
         self.Kin_loss = TauLosses.Kinematic_loss
         self.DM_loss_tracker = keras.metrics.Mean(name="DM_loss")
         self.Kin_loss_tracker = keras.metrics.Mean(name="Kin_loss")
+        self.DM_accuracy = tf.keras.metrics.CategoricalAccuracy(name='DM_accuracy', dtype=None)
         self.k1 = 1 # importance of L_DM
         self.k2 = 1 # importance of L_Kin
 
@@ -36,23 +37,18 @@ class DeepPiModel(keras.Model):
         # Unpack the data
         sample_weight = None
         x, yDM, yKin, w = data
-        n_tau = tf.shape(yDM)[0]
+        n_tau = tf.shape(yKin)[0]
+
         # Forward Pass:
         with tf.GradientTape() as DM_tape, tf.GradientTape() as Kin_tape:
             y_pred = self(x, training=True)
             y_predDM = y_pred[0]
             y_predKin = y_pred[1]
-            tf.print(f" DECAY MODE PRED: {y_predDM}")
-            tf.print(f" KINETIC PRED: {y_predKin}")
             DM_loss_vec = self.DM_loss(yDM, y_predDM)
             DM_loss = tf.reduce_sum(DM_loss_vec)/tf.cast(n_tau, dtype=tf.float32)
             Kin_loss_vec = self.Kin_loss(yKin, y_predKin)
-            # wT = w[:,0]
-            # tf.print(Kin_loss_vec.shape)
-            Kin_loss = tf.reduce_sum(Kin_loss_vec)/tf.cast(n_tau, dtype=tf.float32) 
+            Kin_loss = tf.reduce_sum(tf.multiply(Kin_loss_vec, w))/tf.reduce_sum(w) # only for DM 1, 11
             
-            #tf.reduce_sum(tf.multiply(Kin_loss_vec, w))/tf.cast(tf.reduce_sum(w), dtype=tf.float32) # only for DM 1, 11
-
         # Group TPs for different blocks:
         DM_layers = [var for var in self.trainable_variables if ("DM" in var.name)] # final DM layers
         Kin_layers = [var for var in self.trainable_variables if ("Kin" in var.name)] # final Kinematic layers
@@ -71,7 +67,8 @@ class DeepPiModel(keras.Model):
         # Update metrics
         self.DM_loss_tracker.update_state(DM_loss)
         self.Kin_loss_tracker.update_state(Kin_loss)
-        self.compiled_metrics.update_state(yDM, y_predDM)
+        self.DM_accuracy.update_state(yDM, y_predDM)
+        # self.compiled_metrics.update_state(yDM, y_predDM)
 
         # Return a dict mapping metric names to current value (printout)
         metrics_out =  {m.name: m.result() for m in self.metrics}
@@ -81,16 +78,22 @@ class DeepPiModel(keras.Model):
         # Unpack the data 
         sample_weight = None
         x, yDM, yKin, w = data
-        n_tau = tf.shape(y)[0]
+        n_tau = tf.shape(yDM)[0]
 
         # Evaluate Model
         y_pred = self(x, training=False)
-        DM_loss_vec = self.DM_loss(yDM, y_pred)
+        y_predDM = y_pred[0]
+        y_predKin = y_pred[1]
+        DM_loss_vec = self.DM_loss(yDM, y_predDM)
         DM_loss = tf.reduce_sum(DM_loss_vec)/tf.cast(n_tau, dtype=tf.float32)
+        Kin_loss_vec = self.Kin_loss(yKin, y_predKin)
+        Kin_loss = tf.reduce_sum(tf.multiply(Kin_loss_vec, w))/tf.reduce_sum(w) # only for DM 1, 11
 
         # Update the metrics 
-        self.loss_tracker.update_state(DM_loss)
-        self.compiled_metrics.update_state(y, y_pred)
+        self.DM_loss_tracker.update_state(DM_loss)
+        self.Kin_loss_tracker.update_state(Kin_loss)
+        self.DM_accuracy.update_state(yDM, y_predDM)
+        # self.compiled_metrics.update_state(yDM, y_predDM)
 
         # Return a dict mapping metric names to current value
         metrics_out = {m.name: m.result() for m in self.metrics}
@@ -103,14 +106,9 @@ class DeepPiModel(keras.Model):
         # or at the start of `evaluate()`
         metrics = []
         metrics.append(self.DM_loss_tracker) 
-        metrics.append(self.Kin_loss_tracker) 
-        if self._is_compiled:
-            # Track `LossesContainer` and `MetricsContainer` objects
-            # so that attr names are not load-bearing.
-            if self.compiled_loss is not None:
-                metrics += self.compiled_loss.metrics
-            if self.compiled_metrics is not None:
-                metrics += self.compiled_metrics.metrics
+        metrics.append(self.Kin_loss_tracker)
+        metrics.append(self.DM_accuracy) 
+
         for l in self._flatten_layers():
             metrics.extend(l._metrics)  # pylint: disable=protected-access
         return metrics
@@ -197,18 +195,17 @@ def create_model(model_name, dropout_rate):
 def compile_model(model):
 
     opt = tf.keras.optimizers.Nadam(learning_rate=1e-4)
-    accuracy = tf.keras.metrics.CategoricalAccuracy(name='categorical_accuracy', dtype=None)
 
     strmetrics = ["TauLosses.DecayMode_loss", "TauLosses.Kinematic_loss"]
-    metrics = [accuracy]
+    metrics = []
     for m in strmetrics:
         if "TauLosses" in m:
             m = eval(m)
         metrics.append(m)
 
-    model.compile(loss=None, optimizer=opt, metrics=metrics)
+    model.compile(loss=None, optimizer=opt, metrics=None)
     # mlflow log
-    metrics = {'categorical_accuracy': '', 'DecayMode_loss': '', 'Kinematic_loss': ''}
+    metrics = {'DM_loss': '', 'Kin_loss': '', 'DM_accuracy': ''}
     mlflow.log_dict(metrics, 'input_cfg/metric_names.json')
 
 def run_training(model, data_loader):

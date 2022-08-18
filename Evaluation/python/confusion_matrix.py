@@ -12,8 +12,8 @@ sn.set(font_scale=1.4)
 # path_to_mlflow = "../../Training/python/mlruns/"
 
 
-expID = "3"
-runID = "c481a804abcf441aaaf23e2a5870c98f"
+# expID = "3"
+# runID = "c481a804abcf441aaaf23e2a5870c98f"
 
 
 class cm_plotter:
