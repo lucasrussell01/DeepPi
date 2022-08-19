@@ -79,13 +79,16 @@
 #include "DataFormats/BTauReco/interface/JetTag.h"
 #include "DataFormats/BTauReco/interface/CandIPTagInfo.h"
 #include "DeepPi/Production/interface/GenTau.h"
+#include "DataFormats/PatCandidates/interface/Tau.h"
 
 #include "MagneticField/Engine/interface/MagneticField.h"
 #include "MagneticField/Records/interface/IdealMagneticFieldRecord.h"
 #include "DataFormats/ParticleFlowReco/interface/PFRecHit.h"
 
 
-
+#include "Math/Vector4D.h"
+#include "Math/Vector4Dfwd.h"
+#include "Math/VectorUtil.h"
 
 #include "CommonTools/BaseParticlePropagator/interface/BaseParticlePropagator.h"
 #include "CommonTools/BaseParticlePropagator/interface/RawParticle.h"
@@ -100,6 +103,20 @@
 // constructor "usesResource("TFileService");"
 // This will improve performance in multithreaded jobs.
 
+namespace {
+
+  template <class T, class U>
+  bool sortStrips(std::pair<T, U> i, std::pair<T, U> j) {
+    return (i.first.pt() > j.first.pt());
+  }
+
+  template <class T>
+  bool sortByPT(T i, T j) {
+    return (i->pt() > j->pt());
+  }
+
+}  // namespace
+
 class RecHitAnalyzer : public edm::one::EDAnalyzer<edm::one::SharedResources>  {
 //class RecHitAnalyzer : public edm::EDAnalyzer  {
   public:
@@ -112,6 +129,9 @@ class RecHitAnalyzer : public edm::one::EDAnalyzer<edm::one::SharedResources>  {
     virtual void beginJob(const edm::EventSetup&);
     virtual void analyze(const edm::Event&, const edm::EventSetup&) override;
     virtual void endJob() override;
+    
+    typedef ROOT::Math::PtEtaPhiEVector PtEtaPhiELV;
+    mutable std::vector<reco::CandidatePtr> gammas_;
 
     // ----------member data ---------------------------
     // Tokens
@@ -133,6 +153,7 @@ class RecHitAnalyzer : public edm::one::EDAnalyzer<edm::one::SharedResources>  {
     edm::EDGetTokenT<std::vector<reco::PFRecHit>> PFEBRecHitCollectionT_;
     edm::EDGetTokenT<std::vector<reco::PFRecHit>> PFHBHERecHitCollectionT_;
     edm::EDGetTokenT<std::vector<reco::GsfTrack>> gsfTracksCollectionT_;
+    edm::EDGetTokenT<pat::TauCollection> slimmedTausCollectionT_;
     
     typedef std::vector<reco::PFCandidate>  PFCollection;
     edm::EDGetTokenT<PFCollection> pfCollectionT_;
@@ -226,6 +247,11 @@ class RecHitAnalyzer : public edm::one::EDAnalyzer<edm::one::SharedResources>  {
 
 
     int nTotal, nPassed;
+
+    std::vector<std::pair<PtEtaPhiELV, std::vector<reco::CandidatePtr>>> HPSGammas(std::vector<reco::CandidatePtr> cands) const;
+    PtEtaPhiELV getPi0(std::vector<reco::CandidatePtr> gammas, bool leadEtaPhi) const;
+    std::pair<PtEtaPhiELV, PtEtaPhiELV> getRho(const pat::Tau tau, double gammas_pt_cut) const; 
+    std::pair<std::vector<PtEtaPhiELV>, PtEtaPhiELV> getA1(const pat::Tau tau, float gammas_pt_cut) const;
 
 }; // class RecHitAnalyzer
 

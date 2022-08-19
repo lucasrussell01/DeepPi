@@ -69,6 +69,9 @@ process.options   = cms.untracked.PSet(
     wantSummary = cms.untracked.bool(True),
 )
 
+# import charged hadrons - following the same code that is used for HPS
+from RecoTauTag.RecoTau.PFRecoTauChargedHadronProducer_cff import ak4PFJetsRecoTauChargedHadrons
+ak4PFJetsRecoTauChargedHadrons = ak4PFJetsRecoTauChargedHadrons.clone()
 
 ################################################################
 # 

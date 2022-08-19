@@ -43,6 +43,7 @@ RecHitAnalyzer::RecHitAnalyzer(const edm::ParameterSet& iConfig)
   PFEBRecHitCollectionT_    = consumes<std::vector<reco::PFRecHit>>(iConfig.getParameter<edm::InputTag>("PFEBRecHitCollection"));
   PFHBHERecHitCollectionT_    = consumes<std::vector<reco::PFRecHit>>(iConfig.getParameter<edm::InputTag>("PFHBHERecHitCollection"));
   gsfTracksCollectionT_    = consumes<std::vector<reco::GsfTrack>>(iConfig.getParameter<edm::InputTag>("gsfTracksCollection"));
+  slimmedTausCollectionT_    = consumes<pat::TauCollection>(iConfig.getParameter<edm::InputTag>("slimmedTausCollection"));
 
   //johnda add configuration
   mode_      = iConfig.getParameter<std::string>("mode");
