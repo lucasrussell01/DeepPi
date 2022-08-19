@@ -19,7 +19,7 @@ if args.year == "all": yl = ["2018"]
 else: yl = [args.year]
 
 cfg = {
-       "2018":"higgstautau_cfg_aod_2018.py"
+      "2018":"higgstautau_cfg_aod_inc_hps_2018.py" #  "2018":"higgstautau_cfg_aod_2018.py"
        }
 
 gt = {
@@ -103,10 +103,10 @@ for dm in dml:
             # tasks.append(('DY4JetsToLL-LO', '/DY4JetsToLL_M-50_MatchEWPDG20_TuneCP5_13TeV-madgraphMLM-pythia8/RunIISummer20UL18RECO-106X_upgrade2018_realistic_v11_L1v1-v1/AODSIM'))
 
             # SM Higgs
-            # tasks.append(('GluGluHToTauTau_M125', '/GluGluHToTauTau_M125_TuneCP5_13TeV-powheg-pythia8/RunIISummer20UL18RECO-106X_upgrade2018_realistic_v11_L1v1-v3/AODSIM'))
-            # tasks.append(('VBFHToTauTau_M125', '/VBFHToTauTau_M125_TuneCP5_13TeV-powheg-pythia8/RunIISummer20UL18RECO-106X_upgrade2018_realistic_v11_L1v1-v2/AODSIM'))
-            # tasks.append(('WminusHToTauTau_M125', '/WminusHToTauTau_M125_TuneCP5_13TeV-powheg-pythia8/RunIISummer20UL18RECO-106X_upgrade2018_realistic_v11_L1v1-v2/AODSIM'))
-            # tasks.append(('WplusHToTauTau_M125', '/WplusHToTauTau_M125_TuneCP5_13TeV-powheg-pythia8/RunIISummer20UL18RECO-106X_upgrade2018_realistic_v11_L1v1-v2/AODSIM'))
+            tasks.append(('GluGluHToTauTau_M125', '/GluGluHToTauTau_M125_TuneCP5_13TeV-powheg-pythia8/RunIISummer20UL18RECO-106X_upgrade2018_realistic_v11_L1v1-v3/AODSIM'))
+            tasks.append(('VBFHToTauTau_M125', '/VBFHToTauTau_M125_TuneCP5_13TeV-powheg-pythia8/RunIISummer20UL18RECO-106X_upgrade2018_realistic_v11_L1v1-v2/AODSIM'))
+            tasks.append(('WminusHToTauTau_M125', '/WminusHToTauTau_M125_TuneCP5_13TeV-powheg-pythia8/RunIISummer20UL18RECO-106X_upgrade2018_realistic_v11_L1v1-v2/AODSIM'))
+            tasks.append(('WplusHToTauTau_M125', '/WplusHToTauTau_M125_TuneCP5_13TeV-powheg-pythia8/RunIISummer20UL18RECO-106X_upgrade2018_realistic_v11_L1v1-v2/AODSIM'))
             tasks.append(('GluGluHToTauTau_M-125', '/GluGluHToTauTau_M-125_TuneCP5_13TeV-amcatnloFXFX-pythia8/RunIISummer20UL18RECO-106X_upgrade2018_realistic_v11_L1v1-v1/AODSIM'))
         
         for task in tasks:
