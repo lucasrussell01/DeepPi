@@ -72,6 +72,47 @@ vector<float> vTaujet_jet_centre2_iphi_;
 vector<double> vTaujet_jet_centre2_eta_;
 vector<double> vTaujet_jet_centre2_phi_;
 
+// HPS variables 
+// common variables
+vector<float> vHPSTau_dm_;
+vector<float> vHPSTau_pt_;
+vector<float> vHPSTau_E_;
+vector<float> vHPSTau_eta_;
+vector<float> vHPSTau_M_;
+vector<float> vHPSTau_pi_px_;
+vector<float> vHPSTau_pi_py_;
+vector<float> vHPSTau_pi_pz_;
+vector<float> vHPSTau_pi_E_;
+vector<float> vHPSTau_pi0_px_;
+vector<float> vHPSTau_pi0_py_;
+vector<float> vHPSTau_pi0_pz_;
+vector<float> vHPSTau_pi0_E_;
+vector<float> vHPSTau_strip_mass_;
+vector<float> vHPSTau_strip_pt_;
+vector<float> vHPSTau_pi0_dEta_;
+vector<float> vHPSTau_pi0_dPhi_;
+
+// 1pr variables
+vector<float> vHPSTau_rho_mass_;
+
+// 3pr variables
+vector<float> vHPSTau_pi2_px_;
+vector<float> vHPSTau_pi2_py_;
+vector<float> vHPSTau_pi2_pz_;
+vector<float> vHPSTau_pi2_E_;
+vector<float> vHPSTau_pi3_px_;
+vector<float> vHPSTau_pi3_py_;
+vector<float> vHPSTau_pi3_pz_;
+vector<float> vHPSTau_pi3_E_;
+
+vector<float> vHPSTau_mass0_;
+vector<float> vHPSTau_mass1_;
+vector<float> vHPSTau_mass2_;
+
+typedef ROOT::Math::PtEtaPhiEVector PtEtaPhiELV;
+const double mass_pi = 0.13498;
+const double mass_rho = 0.7755;
+
 // Initialize branches _____________________________________________________//
 void RecHitAnalyzer::branchesEvtSel_jet_taujet( TTree* tree, edm::Service<TFileService> &fs ) {
 
@@ -141,6 +182,37 @@ void RecHitAnalyzer::branchesEvtSel_jet_taujet( TTree* tree, edm::Service<TFileS
   tree->Branch("jet_centre2_eta", &vTaujet_jet_centre2_eta_);
   tree->Branch("jet_centre2_phi", &vTaujet_jet_centre2_phi_);
 
+  // HPS variables 
+  tree->Branch("tau_dm", &vHPSTau_dm_);
+  tree->Branch("tau_pt", &vHPSTau_pt_);
+  tree->Branch("tau_E", &vHPSTau_E_);
+  tree->Branch("tau_eta", &vHPSTau_eta_);
+  tree->Branch("tau_mass", &vHPSTau_M_);
+  tree->Branch("pi_px", &vHPSTau_pi_px_);
+  tree->Branch("pi_py", &vHPSTau_pi_py_);
+  tree->Branch("pi_pz", &vHPSTau_pi_pz_);
+  tree->Branch("pi_E", &vHPSTau_pi_E_);
+  tree->Branch("pi0_px", &vHPSTau_pi0_px_);
+  tree->Branch("pi0_py", &vHPSTau_pi0_py_);
+  tree->Branch("pi0_pz", &vHPSTau_pi0_pz_);
+  tree->Branch("pi0_E", &vHPSTau_pi0_E_);
+  tree->Branch("pi0_dEta", &vHPSTau_pi0_dEta_);
+  tree->Branch("pi0_dPhi", &vHPSTau_pi0_dPhi_);
+  tree->Branch("strip_mass", &vHPSTau_strip_mass_);
+  tree->Branch("strip_pt", &vHPSTau_strip_pt_);
+  tree->Branch("rho_mass", &vHPSTau_rho_mass_);
+  tree->Branch("pi2_px", &vHPSTau_pi2_px_);
+  tree->Branch("pi2_py", &vHPSTau_pi2_py_);
+  tree->Branch("pi2_pz", &vHPSTau_pi2_pz_);
+  tree->Branch("pi2_E", &vHPSTau_pi2_E_);
+  tree->Branch("pi3_px", &vHPSTau_pi3_px_);
+  tree->Branch("pi3_py", &vHPSTau_pi3_py_);
+  tree->Branch("pi3_pz", &vHPSTau_pi3_pz_);
+  tree->Branch("pi3_E", &vHPSTau_pi3_E_);
+  tree->Branch("mass0", &vHPSTau_mass0_);
+  tree->Branch("mass1", &vHPSTau_mass1_);
+  tree->Branch("mass2", &vHPSTau_mass2_);
+
 } // branchesEvtSel_jet_taujet()
 
 // Run jet selection _____________________________________________________//
@@ -203,6 +275,36 @@ bool RecHitAnalyzer::runEvtSel_jet_taujet( const edm::Event& iEvent, const edm::
   vTaujet_jet_neutral_relp_.clear();
   vTaujet_jet_neutral_relmass_.clear();
 
+  vHPSTau_dm_.clear();
+  vHPSTau_pt_.clear();
+  vHPSTau_E_.clear();
+  vHPSTau_eta_.clear();
+  vHPSTau_M_.clear();
+  vHPSTau_pi_px_.clear();
+  vHPSTau_pi_py_.clear();
+  vHPSTau_pi_pz_.clear();
+  vHPSTau_pi_E_.clear();
+  vHPSTau_pi0_px_.clear();
+  vHPSTau_pi0_py_.clear();
+  vHPSTau_pi0_pz_.clear();
+  vHPSTau_pi0_E_.clear();
+  vHPSTau_strip_mass_.clear();
+  vHPSTau_strip_pt_.clear();
+  vHPSTau_pi0_dEta_.clear();
+  vHPSTau_pi0_dPhi_.clear();
+  vHPSTau_rho_mass_.clear();
+  vHPSTau_pi2_px_.clear();
+  vHPSTau_pi2_py_.clear();
+  vHPSTau_pi2_pz_.clear();
+  vHPSTau_pi2_E_.clear();
+  vHPSTau_pi3_px_.clear();
+  vHPSTau_pi3_py_.clear();
+  vHPSTau_pi3_pz_.clear();
+  vHPSTau_pi3_E_.clear();
+  vHPSTau_mass0_.clear();
+  vHPSTau_mass1_.clear();
+  vHPSTau_mass2_.clear();
+
   int nJet = 0;
   // Loop over jets
   for ( unsigned iJ(0); iJ != jets->size(); ++iJ ) {
@@ -240,6 +342,183 @@ bool RecHitAnalyzer::runEvtSel_jet_taujet( const edm::Event& iEvent, const edm::
 
 } // runEvtSel_jet_taujet() 
 
+std::vector<std::pair<PtEtaPhiELV, std::vector<reco::CandidatePtr>>> RecHitAnalyzer::HPSGammas(
+    std::vector<reco::CandidatePtr> cands) const {
+  std::vector<std::pair<PtEtaPhiELV, std::vector<reco::CandidatePtr>>> strips;
+  while (!cands.empty()) {
+    std::vector<reco::CandidatePtr> associated = {};
+    std::vector<reco::CandidatePtr> notAssociated = {};
+
+    PtEtaPhiELV stripVector(0, 0, 0, 0);
+    stripVector = cands[0]->p4();
+    associated.push_back(cands[0]);
+
+    bool repeat = true;
+    unsigned int mini = 1;
+    while (repeat) {
+      repeat = false;
+      for (unsigned int i = mini; i < cands.size(); ++i) {
+        double etaAssociationDistance = 0.20 * pow(cands[i]->pt(), -0.66) + 0.20 * pow(stripVector.Pt(), -0.66);
+        double phiAssociationDistance = 0.35 * pow(cands[i]->pt(), -0.71) + 0.35 * pow(stripVector.Pt(), -0.71);
+        etaAssociationDistance = std::min(etaAssociationDistance, 0.15);
+        etaAssociationDistance = std::max(etaAssociationDistance, 0.05);
+        phiAssociationDistance = std::min(phiAssociationDistance, 0.30);
+        phiAssociationDistance = std::max(phiAssociationDistance, 0.05);
+
+        if (std::abs(cands[i]->eta() - stripVector.eta()) < etaAssociationDistance &&
+            std::abs(reco::deltaPhi(cands[i]->p4(), stripVector)) < phiAssociationDistance) {
+          stripVector += cands[i]->p4();
+          associated.push_back(cands[i]);
+          repeat = true;
+        } else {
+          notAssociated.push_back(cands[i]);
+        }
+      }
+      cands.swap(notAssociated);
+      notAssociated.clear();
+      mini = 0;
+    }
+
+    PtEtaPhiELV strip = getPi0(associated, false);
+    strips.push_back(std::make_pair(strip, associated));
+  }
+  std::sort(strips.begin(), strips.end(), sortStrips<PtEtaPhiELV, std::vector<reco::CandidatePtr>>);
+
+  return strips;
+}
+
+PtEtaPhiELV RecHitAnalyzer::getPi0(std::vector<reco::CandidatePtr> gammas, bool leadEtaPhi) const {
+  PtEtaPhiELV pi0;
+  if (!gammas.empty()) {
+    double tot_energy = 0.;
+    double phi = 0.;
+    double eta = 0.;
+    for (const auto& g : gammas) {
+      tot_energy += g->energy();
+      phi += g->energy() * g->phi();
+      eta += g->energy() * g->eta();
+    }
+    eta /= tot_energy;
+    phi /= tot_energy;
+
+    if (leadEtaPhi) {
+      // if true sets the eta and phi of the pi0 to that of the leading gamma rather than using the weighted average
+      eta = gammas[0]->eta();
+      phi = gammas[0]->phi();
+    }
+
+    double p = sqrt(tot_energy * tot_energy - mass_pi * mass_pi);
+    double theta = atan(exp(-eta)) * 2;
+    double pt = p * sin(theta);
+    pi0.SetCoordinates(pt, eta, phi, tot_energy);
+  }
+  return pi0;
+}
+
+std::pair<PtEtaPhiELV, PtEtaPhiELV> RecHitAnalyzer::getRho(const pat::Tau tau, double gammas_pt_cut) const {
+  PtEtaPhiELV pi;
+  PtEtaPhiELV pi0;
+  gammas_.clear();
+
+  std::vector<reco::CandidatePtr> gammas;
+  for (const auto& g : tau.signalGammaCands())
+    if (g->pt() > gammas_pt_cut)
+      gammas.push_back(g);
+
+  const auto& hads = tau.signalChargedHadrCands();
+  if (!hads.empty())
+    pi = hads[0]->p4();
+
+  double cone_size2 = std::pow(std::clamp(3. / tau.pt(), 0.05, 0.1), 2);
+  std::vector<std::pair<PtEtaPhiELV, std::vector<reco::CandidatePtr>>> strip_pairs = HPSGammas(gammas);
+  std::vector<std::pair<PtEtaPhiELV, std::vector<reco::CandidatePtr>>> strips_incone;
+  for (const auto& s : strip_pairs) {
+    if (reco::deltaR2(s.first, tau.p4()) < cone_size2)
+      strips_incone.push_back(s);
+  }
+  if (tau.decayMode() == 0) {
+    if (!strips_incone.empty()) {
+      gammas = strips_incone[0].second;
+    } else if (!strip_pairs.empty()) {
+      gammas = strip_pairs[0].second;
+    }
+  }
+  if ((tau.decayMode() == 1 || tau.decayMode() == 2) && !strip_pairs.empty())
+    pi0 = getPi0(strip_pairs[0].second, true);
+  else {
+    pi0 = getPi0(gammas, true);
+  }
+  std::sort(gammas.begin(), gammas.end(), sortByPT<reco::CandidatePtr>);
+  gammas_ = gammas;
+  return std::make_pair(pi, pi0);
+}
+
+std::pair<std::vector<PtEtaPhiELV>, PtEtaPhiELV> RecHitAnalyzer::getA1(const pat::Tau tau, float gammas_pt_cut) const {
+  std::vector<PtEtaPhiELV> prongs;
+  PtEtaPhiELV pi0;
+  std::vector<reco::CandidatePtr> hads;
+  for (const auto& h : tau.signalChargedHadrCands())
+    hads.push_back(h);
+  if (hads.size() == 3) {
+    // arrange hadrons so the oppositly charged hadron is contained in the first element
+    if (hads[1]->charge() != hads[0]->charge() && hads[1]->charge() != hads[2]->charge()) {
+      auto temp = hads[1];
+      hads[1] = hads[0];
+      hads[0] = temp;
+    } else if (hads[2]->charge() != hads[0]->charge() && hads[2]->charge() != hads[1]->charge()) {
+      auto temp = hads[2];
+      hads[2] = hads[0];
+      hads[0] = temp;
+    }
+    // from the two same sign hadrons place the one that gives the mass most similar to the rho meson as the second element
+    double dM1 = std::abs((hads[0]->p4() + hads[1]->p4()).M() - mass_rho);
+    double dM2 = std::abs((hads[0]->p4() + hads[2]->p4()).M() - mass_rho);
+    if (dM2 < dM1) {
+      auto temp = hads[2];
+      hads[2] = hads[1];
+      hads[1] = temp;
+    }
+  }
+
+  std::vector<reco::CandidatePtr> gammas_merge;
+  for (const auto& g : tau.signalGammaCands())
+    if (g->pt() > gammas_pt_cut)
+      gammas_merge.push_back(g);
+  if (tau.decayMode() != 11) {
+    for (const auto& g : tau.isolationGammaCands())
+      if (g->pt() > gammas_pt_cut)
+        gammas_merge.push_back(g);
+  }
+  std::sort(gammas_merge.begin(), gammas_merge.end(), sortByPT<reco::CandidatePtr>);
+  std::vector<reco::CandidatePtr> gammas = {};
+  gammas.reserve(gammas_merge.size());
+  for (const auto& g : gammas_merge)
+    gammas.push_back(g);
+  double cone_size2 = std::pow(std::clamp(3. / tau.pt(), 0.05, 0.1), 2);
+  std::vector<std::pair<PtEtaPhiELV, std::vector<reco::CandidatePtr>>> strip_pairs = HPSGammas(gammas);
+  std::vector<std::pair<PtEtaPhiELV, std::vector<reco::CandidatePtr>>> strips_incone;
+  for (const auto& s : strip_pairs)
+    if (reco::deltaR2(s.first, tau.p4()) < cone_size2)
+      strips_incone.push_back(s);
+
+  std::vector<reco::CandidatePtr> signal_gammas = {};
+
+  if (!strips_incone.empty()) {
+    signal_gammas = strips_incone[0].second;
+  } else if (!strip_pairs.empty()) {
+    signal_gammas = strip_pairs[0].second;
+  }
+  pi0 = getPi0(signal_gammas, true);
+  std::sort(signal_gammas.begin(), signal_gammas.end(), sortByPT<reco::CandidatePtr>);
+  gammas_ = signal_gammas;
+
+  prongs.reserve(hads.size());
+  for (const auto& h : hads)
+    prongs.push_back(PtEtaPhiELV(h->p4()));
+
+  return std::make_pair(prongs, pi0);
+}
+
 // Fill branches and histograms _____________________________________________________//
 void RecHitAnalyzer::fillEvtSel_jet_taujet( const edm::Event& iEvent, const edm::EventSetup& iSetup ) {
 
@@ -272,6 +551,9 @@ void RecHitAnalyzer::fillEvtSel_jet_taujet( const edm::Event& iEvent, const edm:
   edm::ESHandle<CaloGeometry> caloGeomH_;
   iSetup.get<CaloGeometryRecord>().get( caloGeomH_ );
   const CaloGeometry* caloGeom = caloGeomH_.product();
+
+  edm::Handle<pat::TauCollection> slimmedTausH_;
+  iEvent.getByToken( slimmedTausCollectionT_, slimmedTausH_ );
 
   h_taujet_jet_nJet->Fill( vJetIdxs.size() );
   // Fill branches and histograms 
@@ -370,7 +652,7 @@ void RecHitAnalyzer::fillEvtSel_jet_taujet( const edm::Event& iEvent, const edm:
       } else {
 
         }
-        } 
+   } 
 
     
     double magneticField = (magfield.product() ? magfield.product()->inTesla(GlobalPoint(0., 0., 0.)).z() : 0.0);
@@ -672,6 +954,148 @@ void RecHitAnalyzer::fillEvtSel_jet_taujet( const edm::Event& iEvent, const edm:
     vTaujet_jet_charged_indv_relphi_crystal_.push_back(charge_relphi_crystal_indv);
     vTaujet_jet_neutral_indv_relphi_crystal_.push_back(neutral_relphi_crystal_indv);
  
+
+    // add HPS Info
+    float tau_dm =-1; 
+    float tau_pt =0; 
+    float tau_E =0; 
+    float tau_eta =0; 
+    float tau_mass=0; 
+    float pi_px=0;
+    float pi_py=0;
+    float pi_pz=0;
+    float pi_E=0;
+    float pi0_px =0;
+    float pi0_py =0;
+    float pi0_pz =0;
+    float pi0_E=0;
+    float pi0_dEta=0;
+    float pi0_dPhi=0;
+    float strip_mass=0;
+    float strip_pt=0;
+    float rho_mass=0;
+    float pi2_px=0;
+    float pi2_py=0;
+    float pi2_pz=0;
+    float pi2_E=0;
+    float pi3_px=0;
+    float pi3_py=0;
+    float pi3_pz=0;
+    float pi3_E=0;
+    float mass0=0;
+    float mass1=0;
+    float mass2=0;
+    if(slimmedTausH_) {
+      float minDR=-1.;
+      pat::Tau HPStau;
+      // loop over taus and find matching jet
+      for (pat::TauCollection::const_iterator iTau = slimmedTausH_->begin(); iTau != slimmedTausH_->end(); ++iTau) {
+
+        float dR = reco::deltaR( thisJet->eta(), thisJet->phi(), iTau->eta(), iTau->phi() );
+
+        if ( dR > 0.5 ) continue;
+        if(minDR<0 || dR<minDR) {
+          minDR = dR;
+          HPStau = *iTau;
+        }
+
+      }
+      if(minDR>0) {
+        //found a match so fill variables
+        tau_dm=HPStau.decayMode();
+        tau_pt=HPStau.pt();
+        tau_E=HPStau.energy();
+        tau_eta=std::fabs(HPStau.eta());
+        tau_mass=HPStau.mass();
+
+        PtEtaPhiELV pi0;
+        PtEtaPhiELV pi;
+        std::pair<PtEtaPhiELV, PtEtaPhiELV> rho;
+        std::vector<PtEtaPhiELV> a1_daughters = {};
+      
+        if (tau_dm >= 10) {
+          std::pair<std::vector<PtEtaPhiELV>, PtEtaPhiELV> a1 = getA1(HPStau, 1.0);
+          a1_daughters = a1.first;
+          pi0 = a1.second;
+          if(a1_daughters.size()>2) {
+            mass0 = (a1_daughters[0] + a1_daughters[1] + a1_daughters[2]).M();
+            mass1 = (a1_daughters[0] + a1_daughters[1]).M();
+            mass2 = (a1_daughters[0] + a1_daughters[2]).M();
+
+            pi_px = a1_daughters[0].Px();
+            pi_py = a1_daughters[0].Py();
+            pi_pz = a1_daughters[0].Pz();
+            pi_E = a1_daughters[0].E();
+
+            pi2_px = a1_daughters[1].Px();
+            pi2_py = a1_daughters[1].Py();
+            pi2_pz = a1_daughters[1].Pz();
+            pi2_E = a1_daughters[1].E();
+
+            pi3_px = a1_daughters[2].Px();
+            pi3_py = a1_daughters[2].Py();
+            pi3_pz = a1_daughters[2].Pz();
+            pi3_E = a1_daughters[2].E();
+
+            PtEtaPhiELV a1 = a1_daughters[0]+a1_daughters[1]+a1_daughters[2];
+
+            pi0_dEta = std::fabs(pi0.eta() - a1.eta());
+            pi0_dPhi = std::fabs(ROOT::Math::VectorUtil::DeltaPhi(pi0, a1));
+
+          }
+        } else {
+          rho = getRho(HPStau, 1.0);
+          pi = rho.first;
+          pi0 = rho.second;
+          rho_mass = (pi + pi0).M();
+          pi_px = rho.first.Px();
+          pi_py = rho.first.Py();
+          pi_pz = rho.first.Pz();
+          pi_E = rho.first.E();
+          pi0_dPhi = std::fabs(ROOT::Math::VectorUtil::DeltaPhi(pi, pi0));
+          pi0_dEta = std::fabs(pi.eta() - pi0.eta());
+        }
+        pi0_px = pi0.Px();
+        pi0_py = pi0.Py();
+        pi0_pz = pi0.Pz();
+        pi0_E = pi0.E();
+
+        PtEtaPhiELV gammas_vector;
+        strip_pt = pi0.pt();
+        for (const auto& g : gammas_)
+          gammas_vector += g->p4();
+        strip_mass = gammas_vector.M(); 
+      }
+    }
+    vHPSTau_dm_.push_back(tau_dm);
+    vHPSTau_pt_.push_back(tau_pt);
+    vHPSTau_E_.push_back(tau_E);
+    vHPSTau_eta_.push_back(tau_eta);
+    vHPSTau_M_.push_back(tau_mass);
+    vHPSTau_pi_px_.push_back(pi_px);
+    vHPSTau_pi_py_.push_back(pi_py);
+    vHPSTau_pi_pz_.push_back(pi_pz);
+    vHPSTau_pi_E_.push_back(pi_E);
+    vHPSTau_pi0_px_.push_back(pi0_px);
+    vHPSTau_pi0_py_.push_back(pi0_py);
+    vHPSTau_pi0_pz_.push_back(pi0_pz);
+    vHPSTau_pi0_E_.push_back(pi0_E);
+    vHPSTau_strip_mass_.push_back(strip_mass);
+    vHPSTau_strip_pt_.push_back(strip_pt);
+    vHPSTau_pi0_dEta_.push_back(pi0_dEta);
+    vHPSTau_pi0_dPhi_.push_back(pi0_dPhi);
+    vHPSTau_rho_mass_.push_back(rho_mass);
+    vHPSTau_pi2_px_.push_back(pi2_px);
+    vHPSTau_pi2_py_.push_back(pi2_py);
+    vHPSTau_pi2_pz_.push_back(pi2_pz);
+    vHPSTau_pi2_E_.push_back(pi2_E);
+    vHPSTau_pi3_px_.push_back(pi3_px);
+    vHPSTau_pi3_py_.push_back(pi3_py);
+    vHPSTau_pi3_pz_.push_back(pi3_pz);
+    vHPSTau_pi3_E_.push_back(pi3_E);
+    vHPSTau_mass0_.push_back(mass0);
+    vHPSTau_mass1_.push_back(mass1);
+    vHPSTau_mass2_.push_back(mass2);
   }//vJetIdxs
 
 

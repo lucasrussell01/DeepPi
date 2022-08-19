@@ -35,10 +35,24 @@ print 'globalTag   : '+str(tag)
 ################################################################
 # Standard setup
 ################################################################
-process.load("FWCore.MessageLogger.MessageLogger_cfi")
-process.load("Configuration.Geometry.GeometryRecoDB_cff")
+
+from Configuration.Eras.Era_Run2_2018_cff import Run2_2018
+from Configuration.ProcessModifiers.run2_miniAOD_UL_cff import run2_miniAOD_UL
+
+process = cms.Process('PAT',Run2_2018,run2_miniAOD_UL)
+
+process.load('Configuration.StandardSequences.Services_cff')
+process.load('SimGeneral.HepPDTESSource.pythiapdt_cfi')
+process.load('FWCore.MessageService.MessageLogger_cfi')
+process.load('Configuration.EventContent.EventContent_cff')
+process.load('SimGeneral.MixingModule.mixNoPU_cfi')
+process.load('Configuration.StandardSequences.GeometryRecoDB_cff')
+process.load('Configuration.StandardSequences.MagneticField_cff')
+process.load('PhysicsTools.PatAlgos.slimming.metFilterPaths_cff')
+process.load('Configuration.StandardSequences.PATMC_cff')
+process.load('Configuration.StandardSequences.EndOfProcess_cff')
+process.load('Configuration.StandardSequences.FrontierConditions_GlobalTag_cff')
 process.load("Configuration.StandardSequences.FrontierConditions_GlobalTag_condDBv2_cff")
-process.load("Configuration.StandardSequences.MagneticField_cff")
 
 process.TFileService = cms.Service("TFileService",
     fileName = cms.string("EventTree.root"),
@@ -49,10 +63,46 @@ process.TFileService = cms.Service("TFileService",
 # Message Logging, summary, and number of events
 ################################################################
 process.maxEvents = cms.untracked.PSet(
-    input = cms.untracked.int32(1000)
+    input = cms.untracked.int32(100)
 )
 
 process.MessageLogger.cerr.FwkReport.reportEvery = 50
+
+process.options   = cms.untracked.PSet(
+    FailPath=cms.untracked.vstring("FileReadError"),
+    wantSummary = cms.untracked.bool(True),
+)
+
+# run miniAOD tau sequences on the fly
+
+# Production Info
+process.configurationMetadata = cms.untracked.PSet(
+    annotation = cms.untracked.string('--python_filename nevts:100'),
+    name = cms.untracked.string('Applications'),
+    version = cms.untracked.string('$Revision: 1.19 $')
+)
+
+# Schedule definition
+process.schedule = cms.Schedule()
+process.schedule.associate(process.patTask)
+from PhysicsTools.PatAlgos.tools.helpers import associatePatAlgosToolsTask
+associatePatAlgosToolsTask(process)
+
+# customisation of the process.
+
+from FWCore.ParameterSet.Utilities import convertToUnscheduled
+process=convertToUnscheduled(process)
+
+# customisation of the process.
+
+# Automatic addition of the customisation function from PhysicsTools.PatAlgos.slimming.miniAOD_tools
+from PhysicsTools.PatAlgos.slimming.miniAOD_tools import miniAOD_customizeAllMC
+
+#call to customisation function miniAOD_customizeAllMC imported from PhysicsTools.PatAlgos.slimming.miniAOD_tools
+process = miniAOD_customizeAllMC(process)
+
+# End of customisation functions
+
 
 
 ################################################################
@@ -69,9 +119,9 @@ process.options   = cms.untracked.PSet(
     wantSummary = cms.untracked.bool(True),
 )
 
-# import charged hadrons - following the same code that is used for HPS
-from RecoTauTag.RecoTau.PFRecoTauChargedHadronProducer_cff import ak4PFJetsRecoTauChargedHadrons
-ak4PFJetsRecoTauChargedHadrons = ak4PFJetsRecoTauChargedHadrons.clone()
+## import charged hadrons - following the same code that is used for HPS
+#from RecoTauTag.RecoTau.PFRecoTauChargedHadronProducer_cff import ak4PFJetsRecoTauChargedHadrons
+#ak4PFJetsRecoTauChargedHadrons = ak4PFJetsRecoTauChargedHadrons.clone()
 
 ################################################################
 # 
@@ -113,4 +163,4 @@ process.p = cms.Path(
     process.recHitAnalyzerSequence
 )
 
-process.schedule = cms.Schedule(process.p)
+process.schedule += cms.Schedule(process.p)
