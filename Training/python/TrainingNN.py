@@ -27,8 +27,14 @@ class DeepPiModel(keras.Model):
         super().__init__(*args, **kwargs)
         self.DM_loss = TauLosses.DecayMode_loss
         self.Kin_loss = TauLosses.Kinematic_loss
+        self.MSE_p = TauLosses.MSE_momentum
+        self.MSE_eta = TauLosses.MSE_eta
+        self.MSE_phi = TauLosses.MSE_phi
         self.DM_loss_tracker = keras.metrics.Mean(name="DM_loss")
         self.Kin_loss_tracker = keras.metrics.Mean(name="Kin_loss")
+        self.MSE_p_tracker = keras.metrics.Mean(name="MSE_momentum")
+        self.MSE_eta_tracker = keras.metrics.Mean(name="MSE_eta")
+        self.MSE_phi_tracker = keras.metrics.Mean(name="MSE_phi")
         self.DM_accuracy = tf.keras.metrics.CategoricalAccuracy(name='DM_accuracy', dtype=None)
         self.k1 = 1 # importance of L_DM
         self.k2 = 1 # importance of L_Kin
@@ -64,10 +70,18 @@ class DeepPiModel(keras.Model):
         # Update trainable parameters
         self.optimizer.apply_gradients(zip(grad_common + grad_DM_final + grad_Kin_final, common_layers + DM_layers + Kin_layers))
 
+        # Compute individual MSE:
+        MSE_p = tf.reduce_sum(tf.multiply(self.MSE_p(yKin, y_predKin), w))/tf.reduce_sum(w)
+        MSE_eta = tf.reduce_sum(tf.multiply(self.MSE_eta(yKin, y_predKin), w))/tf.reduce_sum(w)
+        MSE_phi = tf.reduce_sum(tf.multiply(self.MSE_phi(yKin, y_predKin), w))/tf.reduce_sum(w)
+
         # Update metrics
         self.DM_loss_tracker.update_state(DM_loss)
         self.Kin_loss_tracker.update_state(Kin_loss)
         self.DM_accuracy.update_state(yDM, y_predDM)
+        self.MSE_p_tracker.update_state(MSE_p)
+        self.MSE_eta_tracker.update_state(MSE_eta)
+        self.MSE_phi_tracker.update_state(MSE_phi)
         # self.compiled_metrics.update_state(yDM, y_predDM)
 
         # Return a dict mapping metric names to current value (printout)
@@ -89,10 +103,18 @@ class DeepPiModel(keras.Model):
         Kin_loss_vec = self.Kin_loss(yKin, y_predKin)
         Kin_loss = tf.reduce_sum(tf.multiply(Kin_loss_vec, w))/tf.reduce_sum(w) # only for DM 1, 11
 
+        # Compute individual MSE:
+        MSE_p = tf.reduce_sum(tf.multiply(self.MSE_p(yKin, y_predKin), w))/tf.reduce_sum(w)
+        MSE_eta = tf.reduce_sum(tf.multiply(self.MSE_eta(yKin, y_predKin), w))/tf.reduce_sum(w)
+        MSE_phi = tf.reduce_sum(tf.multiply(self.MSE_phi(yKin, y_predKin), w))/tf.reduce_sum(w)
+        
         # Update the metrics 
         self.DM_loss_tracker.update_state(DM_loss)
         self.Kin_loss_tracker.update_state(Kin_loss)
         self.DM_accuracy.update_state(yDM, y_predDM)
+        self.MSE_p_tracker.update_state(MSE_p)
+        self.MSE_eta_tracker.update_state(MSE_eta)
+        self.MSE_phi_tracker.update_state(MSE_phi)
         # self.compiled_metrics.update_state(yDM, y_predDM)
 
         # Return a dict mapping metric names to current value
@@ -108,6 +130,9 @@ class DeepPiModel(keras.Model):
         metrics.append(self.DM_loss_tracker) 
         metrics.append(self.Kin_loss_tracker)
         metrics.append(self.DM_accuracy) 
+        metrics.append(self.MSE_p_tracker)
+        metrics.append(self.MSE_eta_tracker)
+        metrics.append(self.MSE_phi_tracker)
 
         for l in self._flatten_layers():
             metrics.extend(l._metrics)  # pylint: disable=protected-access
@@ -205,7 +230,7 @@ def compile_model(model):
 
     model.compile(loss=None, optimizer=opt, metrics=None)
     # mlflow log
-    metrics = {'DM_loss': '', 'Kin_loss': '', 'DM_accuracy': ''}
+    metrics = {'DM_loss': '', 'Kin_loss': '', 'DM_accuracy': '', 'MSE_momentum': '', 'MSE_eta': '', 'MSE_phi': '',}
     mlflow.log_dict(metrics, 'input_cfg/metric_names.json')
 
 def run_training(model, data_loader):

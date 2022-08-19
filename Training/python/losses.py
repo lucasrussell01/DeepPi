@@ -12,10 +12,28 @@ class TauLosses:
     @staticmethod
     @tf.function
     def Kinematic_loss(target, output):
-        a = 0.01 # energy factor
+        a = 0.0001 # energy factor
         b = 1 # eta factor
         c = 1 # phi factor
         loss = a*(output[:, 0] - target[:, 0])**2 + b*(output[:, 1] - target[:, 1])**2 + c*(output[:, 2] - target[:, 2])**2
+        return loss
+
+    @staticmethod
+    @tf.function
+    def MSE_momentum(target, output):
+        loss = (output[:, 0] - target[:, 0])**2 
+        return loss
+    
+    @staticmethod
+    @tf.function
+    def MSE_eta(target, output):
+        loss = (output[:, 1] - target[:, 1])**2 
+        return loss
+
+    @staticmethod
+    @tf.function
+    def MSE_phi(target, output):
+        loss = (output[:, 2] - target[:, 2])**2 
         return loss
 
 
