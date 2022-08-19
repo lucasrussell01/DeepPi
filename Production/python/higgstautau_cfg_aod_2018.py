@@ -97,6 +97,7 @@ process.recHitAnalyzer = cms.EDAnalyzer('RecHitAnalyzer'
     , PFEBRecHitCollection = cms.InputTag('particleFlowRecHitECAL:Cleaned')
     , PFHBHERecHitCollection = cms.InputTag('particleFlowRecHitHBHE:Cleaned')
     , gsfTracksCollection = cms.InputTag('electronGsfTracks')
+    , slimmedTausCollection = cms.InputTag('slimmedTaus')
 
     # Jet level cfg
     , nJets = cms.int32(-1)
