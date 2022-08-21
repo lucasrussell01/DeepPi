@@ -30,7 +30,7 @@ if sample == "GluGluHToTauTau_M125":
     alias = "ggHTT_" + args.split
 else:
     alias = "unkwn"
-path_to_filelist = "/home/hep/lcr119/DeepPi/Analysis/scripts/1308_2022_MC_106X_" + sample + ".dat"
+path_to_filelist = "/home/hep/lcr119/DeepPi/Analysis/scripts/HPS_MC_106X_" + sample + ".dat"
 
 
 # Max number of events to process #int(rhTree.GetEntries())
@@ -39,7 +39,7 @@ plot = False
 
 
 shard = 0 # number of file if split into several required
-save_folder = args.save_path + "Kinematics"
+save_folder = args.save_path + "HPS_2108"
 savepath = save_folder + "/" + alias + "_" + str(shard) + ".pkl"
 # check if directory exists
 if not os.path.exists(save_folder):
@@ -52,6 +52,7 @@ with open(path_to_filelist) as f:
     lines = [line.rstrip('\n') for line in lines]
     if args.split == "A":
         lines = lines[:125]
+        print(lines)
     elif args.split == "B":
         lines = lines[125:250]
     elif args.split == "C":
@@ -63,7 +64,7 @@ with open(path_to_filelist) as f:
     else: 
         raise Exception("Split not recognised")
     for i in lines:
-        file = "root://gfe02.grid.hep.ph.ic.ac.uk:1097/store/user/lrussell/DetectorImages_1308_MC_106X_2018/" + i
+        file = "root://gfe02.grid.hep.ph.ic.ac.uk:1097/store/user/lrussell/DetectorImages_HPS_MC_106X_2018/" + i
         rhTree.Add(file)
         count+=1
 
@@ -121,6 +122,36 @@ DM_list = []
 releta_list = []
 relphi_list = []
 relp_list = []
+# HPS variables:
+list_tau_dm = []
+list_tau_pt = []
+list_tau_E = []
+list_tau_eta = []
+list_tau_mass = []
+list_pi_px = []
+list_pi_py = []
+list_pi_pz = []
+list_pi_E = []
+list_pi0_px = []
+list_pi0_py = []
+list_pi0_pz = []
+list_pi0_E = []
+list_pi0_dEta = []
+list_pi0_dPhi = []
+list_strip_mass = []
+list_strip_pt = []
+list_rho_mass = []
+list_pi2_px = []
+list_pi2_py = []
+list_pi2_pz = []
+list_pi2_E = []
+list_pi3_px = []
+list_pi3_py = []
+list_pi3_pz = []
+list_pi3_E = []
+list_mass0 = []
+list_mass1 = []
+list_mass2 = []
 
 
 nEvts = int(rhTree.GetEntries())
@@ -178,6 +209,36 @@ for event in tqdm(range(nEvts)):
             releta_list.append(np.array(releta[i]))
             relphi_list.append(np.array(relphi[i]))
             relp_list.append(np.array(relp[i]))
+            # add HPS variables:
+            list_tau_dm.append(np.array(rhTree.tau_dm)[i])
+            list_tau_pt.append(np.array(rhTree.tau_pt)[i])
+            list_tau_E.append(np.array(rhTree.tau_E)[i])
+            list_tau_eta.append(np.array(rhTree.tau_eta)[i])
+            list_tau_mass.append(np.array(rhTree.tau_mass)[i])
+            list_pi_px.append(np.array(rhTree.pi_px)[i])
+            list_pi_py.append(np.array(rhTree.pi_py)[i])
+            list_pi_pz.append(np.array(rhTree.pi_pz)[i])
+            list_pi_E.append(np.array(rhTree.pi_E)[i])
+            list_pi0_px.append(np.array(rhTree.pi0_px)[i])
+            list_pi0_py.append(np.array(rhTree.pi0_py)[i])
+            list_pi0_pz.append(np.array(rhTree.pi0_pz)[i])
+            list_pi0_E.append(np.array(rhTree.pi0_E)[i])
+            list_pi0_dEta.append(np.array(rhTree.pi0_dEta)[i])
+            list_pi0_dPhi.append(np.array(rhTree.pi0_dPhi)[i])
+            list_strip_mass.append(np.array(rhTree.strip_mass)[i])
+            list_strip_pt.append(np.array(rhTree.strip_pt)[i])
+            list_rho_mass.append(np.array(rhTree.rho_mass)[i])
+            list_pi2_px.append(np.array(rhTree.pi2_px)[i])
+            list_pi2_py.append(np.array(rhTree.pi2_py)[i])
+            list_pi2_pz.append(np.array(rhTree.pi2_pz)[i])
+            list_pi2_E.append(np.array(rhTree.pi2_E)[i])
+            list_pi3_px.append(np.array(rhTree.pi3_px)[i])
+            list_pi3_py.append(np.array(rhTree.pi3_py)[i])
+            list_pi3_pz.append(np.array(rhTree.pi3_pz)[i])
+            list_pi3_E.append(np.array(rhTree.pi3_E)[i])
+            list_mass0.append(np.array(rhTree.mass0)[i])
+            list_mass1.append(np.array(rhTree.mass1)[i])
+            list_mass2.append(np.array(rhTree.mass2)[i])
             n_selected += 1
             if args.n_tau != -1:
                 if n_selected%10 == 0:
@@ -197,6 +258,36 @@ for event in tqdm(range(nEvts)):
                 df["releta"] = releta_list
                 df["relphi"] = relphi_list
                 df["relp"] = relp_list
+                # HPS variables:
+                df["tau_dm"] = list_tau_dm
+                df["tau_pt"] = list_tau_pt
+                df["tau_E"] = list_tau_E
+                df["tau_eta"] = list_tau_eta
+                df["tau_mass"] = list_tau_mass
+                df["pi_px"] = list_pi_px
+                df["pi_py"] = list_pi_py
+                df["pi_pz"] = list_pi_pz
+                df["pi_E"] = list_pi_E
+                df["pi0_px"] = list_pi0_px
+                df["pi0_py"] = list_pi0_py
+                df["pi0_pz"] = list_pi0_pz
+                df["pi0_E"] = list_pi0_E
+                df["pi0_dEta"] = list_pi0_dEta
+                df["pi0_dPhi"] = list_pi0_dPhi
+                df["strip_mas"] = list_strip_mass
+                df["strip_pt"] = list_strip_pt
+                df["rho_mass"] = list_rho_mass
+                df["pi2_px"] = list_pi2_px
+                df["pi2_py"] = list_pi2_py
+                df["pi2_pz"] = list_pi2_pz
+                df["pi2_E"] = list_pi2_E
+                df["pi3_px"] = list_pi3_px
+                df["pi3_py"] = list_pi3_py
+                df["pi3_pz"] = list_pi3_pz
+                df["pi3_E"] = list_pi3_E
+                df["mass0"] = list_mass0
+                df["mass1"] = list_mass1
+                df["mass2"] = list_mass2
                 print("Saving dataframe at: ", savepath)
                 df.to_pickle(savepath)
                 shard+=1 # new shard
@@ -212,6 +303,35 @@ for event in tqdm(range(nEvts)):
                 releta_list = []
                 relphi_list = []
                 relp_list = []
+                list_tau_dm = []
+                list_tau_pt = []
+                list_tau_E = []
+                list_tau_eta = []
+                list_tau_mass = []
+                list_pi_px = []
+                list_pi_py = []
+                list_pi_pz = []
+                list_pi_E = []
+                list_pi0_px = []
+                list_pi0_py = []
+                list_pi0_pz = []
+                list_pi0_E = []
+                list_pi0_dEta = []
+                list_pi0_dPhi = []
+                list_strip_mass = []
+                list_strip_pt = []
+                list_rho_mass = []
+                list_pi2_px = []
+                list_pi2_py = []
+                list_pi2_pz = []
+                list_pi2_E = []
+                list_pi3_px = []
+                list_pi3_py = []
+                list_pi3_pz = []
+                list_pi3_E = []
+                list_mass0 = []
+                list_mass1 = []
+                list_mass2 = []
 
             if plot: # plot for debug
                 plt.title(truthDM[i])
@@ -236,6 +356,35 @@ df["DM"] = DM_list
 df["releta"] = releta_list
 df["relphi"] = relphi_list
 df["relp"] = relp_list
+df["tau_dm"] = list_tau_dm
+df["tau_pt"] = list_tau_pt
+df["tau_E"] = list_tau_E
+df["tau_eta"] = list_tau_eta
+df["tau_mass"] = list_tau_mass
+df["pi_px"] = list_pi_px
+df["pi_py"] = list_pi_py
+df["pi_pz"] = list_pi_pz
+df["pi_E"] = list_pi_E
+df["pi0_px"] = list_pi0_px
+df["pi0_py"] = list_pi0_py
+df["pi0_pz"] = list_pi0_pz
+df["pi0_E"] = list_pi0_E
+df["pi0_dEta"] = list_pi0_dEta
+df["pi0_dPhi"] = list_pi0_dPhi
+df["strip_mas"] = list_strip_mass
+df["strip_pt"] = list_strip_pt
+df["rho_mass"] = list_rho_mass
+df["pi2_px"] = list_pi2_px
+df["pi2_py"] = list_pi2_py
+df["pi2_pz"] = list_pi2_pz
+df["pi2_E"] = list_pi2_E
+df["pi3_px"] = list_pi3_px
+df["pi3_py"] = list_pi3_py
+df["pi3_pz"] = list_pi3_pz
+df["pi3_E"] = list_pi3_E
+df["mass0"] = list_mass0
+df["mass1"] = list_mass1
+df["mass2"] = list_mass2
 print("Saving dataframe at ", savepath)
 df.to_pickle(savepath)
 

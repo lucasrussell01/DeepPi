@@ -1,7 +1,7 @@
 Setup:
     n_tau           :   50 # N taus/batch
-    n_batches       :   30000 # N batches train
-    n_batches_val   :   3000 # N batches val
+    n_batches       :   51100 # N batches train
+    n_batches_val   :   9000 # N batches val
     input_dir       :   "/vols/cms/lcr119/Images/Kinematics/Training"
     val_split       :   0.15 # proportion of files to be used for validation
     n_epochs        :   5
