@@ -23,7 +23,6 @@ args = parser.parse_args()
 
 
 
-rhTree = R.TChain("recHitAnalyzer/RHTree")
 
 sample = args.sample #"GluGluHToTauTau_M125", "DYJetsToLL-LO"
 if sample == "GluGluHToTauTau_M125":
@@ -39,7 +38,7 @@ plot = False
 
 
 shard = 0 # number of file if split into several required
-save_folder = args.save_path + "HPS_2108"
+save_folder = args.save_path + "Test"
 savepath = save_folder + "/" + alias + "_" + str(shard) + ".pkl"
 # check if directory exists
 if not os.path.exists(save_folder):
@@ -51,21 +50,18 @@ with open(path_to_filelist) as f:
     lines = f.readlines()
     lines = [line.rstrip('\n') for line in lines]
     if args.split == "A":
-        lines = lines[:125]
+        files = lines[:125]
     elif args.split == "B":
-        lines = lines[125:250]
+        files = lines[125:250]
     elif args.split == "C":
-        lines = lines[250:375]
+        files = lines[250:375]
     elif args.split == "D":
-        lines = lines[375:500]
+        files = lines[375:500]
     elif args.split == "E":
-        lines = lines[500:]
+        files = lines[500:]
     else: 
         raise Exception("Split not recognised")
-    for i in lines:
-        file = "root://gfe02.grid.hep.ph.ic.ac.uk:1097/store/user/lrussell/DetectorImages_HPS_MC_106X_2018/" + i
-        rhTree.Add(file)
-        count+=1
+    
 
 def crop_channel(image, centre_eta, centre_phi):
     pad = 16 # padding on each side of centre
@@ -153,8 +149,6 @@ list_mass1 = []
 list_mass2 = []
 
 
-nEvts = int(rhTree.GetEntries())
-
 n_selected = 0 # Number of taus selected
 if args.n_tau != -1:
     pbar = tqdm(total = n_tau_target)
@@ -162,187 +156,184 @@ complete = False # flag to say when all taus selected
 
 os.system('~/scripts/t-notify.sh Beginning image creation')
 
- 
+file_pbar = tqdm(total = len(files))
 
-for event in tqdm(range(nEvts)):
-    rhTree.GetEntry(event)
-    # Load truth values
-    truthDM = np.array(rhTree.jet_truthDM)
-    # Load the detector images
-    ECAL_barrel = np.reshape(np.array(rhTree.EB_energy), (170, 360))
-    Tracks_barrel = np.reshape(np.array(rhTree.TracksE_EB), (170, 360))
-    PF_HCAL_barrel = np.reshape(np.array(rhTree.PF_HCAL_EB), (170, 360))
-    PF_ECAL_barrel = np.reshape(np.array(rhTree.PF_ECAL_EB), (170, 360))
-    addTracks_barrel = np.reshape(np.array(rhTree.FailedTracksE_EB), (170, 360))
-    # Load jet centre coordinates
-    ieta = np.array(rhTree.jet_centre2_ieta)
-    iphi = np.array(rhTree.jet_centre2_iphi)
-    # Load neutral kinematics
-    releta = np.array(rhTree.jet_neutral_indv_releta)
-    relphi = np.array(rhTree.jet_neutral_indv_relphi)
-    relp = np.array(rhTree.jet_neutral_indv_relp)
-    # Iterate over the taus in the event
-    n_taus = len(truthDM)
+for f in files:
+    file = "root://gfe02.grid.hep.ph.ic.ac.uk:1097/store/user/lrussell/DetectorImages_HPS_MC_106X_2018/" + f
+    rhTree = R.TChain("recHitAnalyzer/RHTree")
+    rhTree.Add(file)
+    nEvts = int(rhTree.GetEntries())
     if complete:
         break
-    for i in range(n_taus):
-        if truthDM[i] in targetDM: # check if genuine tau    
-            centre_phi = int(iphi[i])
-            centre_eta = int(ieta[i]) 
-            if centre_phi>=360 or centre_phi<0:
-                continue # don't use these events
-            elif centre_eta>=80 or centre_eta<-80:
-                continue # too close to edge
-            image = crop_image(Tracks_barrel, ECAL_barrel, PF_HCAL_barrel, PF_ECAL_barrel, addTracks_barrel, centre_eta, centre_phi)
-            if (image[1].shape != (33, 33)):
-                print(image[1].shape)
-                print(event)
-                print(centre_eta, centre_phi)
-                raise Exception ("incorrect image shape")
-            Tracks_list.append(image[0])
-            ECAL_list.append(image[1])
-            PF_HCAL_list.append(image[2])
-            PF_ECAL_list.append(image[3])
-            addTracks_list.append(image[4])
-            DM_list.append(truthDM[i])
-            releta_list.append(np.array(releta[i]))
-            relphi_list.append(np.array(relphi[i]))
-            relp_list.append(np.array(relp[i]))
-            # add HPS variables:
-            list_tau_dm.append(np.array(rhTree.tau_dm)[i])
-            list_tau_pt.append(np.array(rhTree.tau_pt)[i])
-            list_tau_E.append(np.array(rhTree.tau_E)[i])
-            list_tau_eta.append(np.array(rhTree.tau_eta)[i])
-            list_tau_mass.append(np.array(rhTree.tau_mass)[i])
-            list_pi_px.append(np.array(rhTree.pi_px)[i])
-            list_pi_py.append(np.array(rhTree.pi_py)[i])
-            list_pi_pz.append(np.array(rhTree.pi_pz)[i])
-            list_pi_E.append(np.array(rhTree.pi_E)[i])
-            list_pi0_px.append(np.array(rhTree.pi0_px)[i])
-            list_pi0_py.append(np.array(rhTree.pi0_py)[i])
-            list_pi0_pz.append(np.array(rhTree.pi0_pz)[i])
-            list_pi0_E.append(np.array(rhTree.pi0_E)[i])
-            list_pi0_dEta.append(np.array(rhTree.pi0_dEta)[i])
-            list_pi0_dPhi.append(np.array(rhTree.pi0_dPhi)[i])
-            list_strip_mass.append(np.array(rhTree.strip_mass)[i])
-            list_strip_pt.append(np.array(rhTree.strip_pt)[i])
-            list_rho_mass.append(np.array(rhTree.rho_mass)[i])
-            list_pi2_px.append(np.array(rhTree.pi2_px)[i])
-            list_pi2_py.append(np.array(rhTree.pi2_py)[i])
-            list_pi2_pz.append(np.array(rhTree.pi2_pz)[i])
-            list_pi2_E.append(np.array(rhTree.pi2_E)[i])
-            list_pi3_px.append(np.array(rhTree.pi3_px)[i])
-            list_pi3_py.append(np.array(rhTree.pi3_py)[i])
-            list_pi3_pz.append(np.array(rhTree.pi3_pz)[i])
-            list_pi3_E.append(np.array(rhTree.pi3_E)[i])
-            list_mass0.append(np.array(rhTree.mass0)[i])
-            list_mass1.append(np.array(rhTree.mass1)[i])
-            list_mass2.append(np.array(rhTree.mass2)[i])
-            n_selected += 1
-            if args.n_tau != -1:
-                if n_selected%10 == 0:
-                    pbar.update(10)
-                # print(n_selected)
-                if n_selected>=n_tau_target:
-                    complete = True
-                    break
-            if (n_selected%10000)==0: # save in multiple files for safety
-                df = pd.DataFrame()
-                df["Tracks"] = Tracks_list
-                df["ECAL"] = ECAL_list
-                df["PF_HCAL"] = PF_HCAL_list
-                df["PF_ECAL"] = PF_ECAL_list
-                df["addTracks"] = addTracks_list
-                df["DM"] = DM_list
-                df["releta"] = releta_list
-                df["relphi"] = relphi_list
-                df["relp"] = relp_list
-                # HPS variables:
-                df["tau_dm"] = list_tau_dm
-                df["tau_pt"] = list_tau_pt
-                df["tau_E"] = list_tau_E
-                df["tau_eta"] = list_tau_eta
-                df["tau_mass"] = list_tau_mass
-                df["pi_px"] = list_pi_px
-                df["pi_py"] = list_pi_py
-                df["pi_pz"] = list_pi_pz
-                df["pi_E"] = list_pi_E
-                df["pi0_px"] = list_pi0_px
-                df["pi0_py"] = list_pi0_py
-                df["pi0_pz"] = list_pi0_pz
-                df["pi0_E"] = list_pi0_E
-                df["pi0_dEta"] = list_pi0_dEta
-                df["pi0_dPhi"] = list_pi0_dPhi
-                df["strip_mas"] = list_strip_mass
-                df["strip_pt"] = list_strip_pt
-                df["rho_mass"] = list_rho_mass
-                df["pi2_px"] = list_pi2_px
-                df["pi2_py"] = list_pi2_py
-                df["pi2_pz"] = list_pi2_pz
-                df["pi2_E"] = list_pi2_E
-                df["pi3_px"] = list_pi3_px
-                df["pi3_py"] = list_pi3_py
-                df["pi3_pz"] = list_pi3_pz
-                df["pi3_E"] = list_pi3_E
-                df["mass0"] = list_mass0
-                df["mass1"] = list_mass1
-                df["mass2"] = list_mass2
-                print("Saving dataframe at: ", savepath)
-                df.to_pickle(savepath)
-                shard+=1 # new shard
-                savepath = save_folder + "/" + alias + "_" + str(shard) + ".pkl"
-                # os.system('~/scripts/t-notify.sh shard saved')
-                print("After event: ", event)
-                Tracks_list = []
-                ECAL_list = []
-                PF_HCAL_list = []
-                PF_ECAL_list = []
-                addTracks_list = []
-                DM_list = []
-                releta_list = []
-                relphi_list = []
-                relp_list = []
-                list_tau_dm = []
-                list_tau_pt = []
-                list_tau_E = []
-                list_tau_eta = []
-                list_tau_mass = []
-                list_pi_px = []
-                list_pi_py = []
-                list_pi_pz = []
-                list_pi_E = []
-                list_pi0_px = []
-                list_pi0_py = []
-                list_pi0_pz = []
-                list_pi0_E = []
-                list_pi0_dEta = []
-                list_pi0_dPhi = []
-                list_strip_mass = []
-                list_strip_pt = []
-                list_rho_mass = []
-                list_pi2_px = []
-                list_pi2_py = []
-                list_pi2_pz = []
-                list_pi2_E = []
-                list_pi3_px = []
-                list_pi3_py = []
-                list_pi3_pz = []
-                list_pi3_E = []
-                list_mass0 = []
-                list_mass1 = []
-                list_mass2 = []
-
-            if plot: # plot for debug
-                plt.title(truthDM[i])
-                if np.max(image[1]>1e-5):
-                    plt.pcolormesh(image[1], cmap=newcmp, norm = colors.LogNorm(vmin=1e-5, vmax=np.max(image[1])))
-                else:
-                    plt.pcolormesh(image[1], cmap=newcmp, norm = colors.LogNorm(vmin=1e-5, vmax=1e-3))
-                savepath = "/home/hep/lcr119/ImageTests/" + str(event) + str(i) + ".pdf"
-                plt.savefig(savepath)
-                plt.clf()
-
-            # print("Image produced")
+    for event in range(nEvts):
+        rhTree.GetEntry(event)
+        # Load truth values
+        truthDM = np.array(rhTree.jet_truthDM)
+        # Load the detector images
+        ECAL_barrel = np.reshape(np.array(rhTree.EB_energy), (170, 360))
+        Tracks_barrel = np.reshape(np.array(rhTree.TracksE_EB), (170, 360))
+        PF_HCAL_barrel = np.reshape(np.array(rhTree.PF_HCAL_EB), (170, 360))
+        PF_ECAL_barrel = np.reshape(np.array(rhTree.PF_ECAL_EB), (170, 360))
+        addTracks_barrel = np.reshape(np.array(rhTree.FailedTracksE_EB), (170, 360))
+        # Load jet centre coordinates
+        ieta = np.array(rhTree.jet_centre2_ieta)
+        iphi = np.array(rhTree.jet_centre2_iphi)
+        # Load neutral kinematics
+        releta = np.array(rhTree.jet_neutral_indv_releta, dtype=object)
+        relphi = np.array(rhTree.jet_neutral_indv_relphi, dtype=object)
+        relp = np.array(rhTree.jet_neutral_indv_relp, dtype=object)
+        # Iterate over the taus in the event
+        n_taus = len(truthDM)
+        for i in range(n_taus):
+            if truthDM[i] in targetDM: # check if genuine tau    
+                centre_phi = int(iphi[i])
+                centre_eta = int(ieta[i]) 
+                if centre_phi>=360 or centre_phi<0:
+                    continue # don't use these events
+                elif centre_eta>=80 or centre_eta<-80:
+                    continue # too close to edge
+                image = crop_image(Tracks_barrel, ECAL_barrel, PF_HCAL_barrel, PF_ECAL_barrel, addTracks_barrel, centre_eta, centre_phi)
+                if (image[1].shape != (33, 33)):
+                    print(image[1].shape)
+                    print(event)
+                    print(centre_eta, centre_phi)
+                    raise Exception ("incorrect image shape")
+                Tracks_list.append(image[0])
+                ECAL_list.append(image[1])
+                PF_HCAL_list.append(image[2])
+                PF_ECAL_list.append(image[3])
+                addTracks_list.append(image[4])
+                DM_list.append(truthDM[i])
+                releta_list.append(np.array(releta[i]))
+                relphi_list.append(np.array(relphi[i]))
+                relp_list.append(np.array(relp[i]))
+                # add HPS variables:
+                list_tau_dm.append(np.array(rhTree.tau_dm)[i])
+                list_tau_pt.append(np.array(rhTree.tau_pt)[i])
+                list_tau_E.append(np.array(rhTree.tau_E)[i])
+                list_tau_eta.append(np.array(rhTree.tau_eta)[i])
+                list_tau_mass.append(np.array(rhTree.tau_mass)[i])
+                list_pi_px.append(np.array(rhTree.pi_px)[i])
+                list_pi_py.append(np.array(rhTree.pi_py)[i])
+                list_pi_pz.append(np.array(rhTree.pi_pz)[i])
+                list_pi_E.append(np.array(rhTree.pi_E)[i])
+                list_pi0_px.append(np.array(rhTree.pi0_px)[i])
+                list_pi0_py.append(np.array(rhTree.pi0_py)[i])
+                list_pi0_pz.append(np.array(rhTree.pi0_pz)[i])
+                list_pi0_E.append(np.array(rhTree.pi0_E)[i])
+                list_pi0_dEta.append(np.array(rhTree.pi0_dEta)[i])
+                list_pi0_dPhi.append(np.array(rhTree.pi0_dPhi)[i])
+                list_strip_mass.append(np.array(rhTree.strip_mass)[i])
+                list_strip_pt.append(np.array(rhTree.strip_pt)[i])
+                list_rho_mass.append(np.array(rhTree.rho_mass)[i])
+                list_pi2_px.append(np.array(rhTree.pi2_px)[i])
+                list_pi2_py.append(np.array(rhTree.pi2_py)[i])
+                list_pi2_pz.append(np.array(rhTree.pi2_pz)[i])
+                list_pi2_E.append(np.array(rhTree.pi2_E)[i])
+                list_pi3_px.append(np.array(rhTree.pi3_px)[i])
+                list_pi3_py.append(np.array(rhTree.pi3_py)[i])
+                list_pi3_pz.append(np.array(rhTree.pi3_pz)[i])
+                list_pi3_E.append(np.array(rhTree.pi3_E)[i])
+                list_mass0.append(np.array(rhTree.mass0)[i])
+                list_mass1.append(np.array(rhTree.mass1)[i])
+                list_mass2.append(np.array(rhTree.mass2)[i])
+                n_selected += 1
+                if args.n_tau != -1:
+                    if n_selected%10 == 0:
+                        pbar.update(10)
+                    # print(n_selected)
+                    if n_selected>=n_tau_target:
+                        complete = True
+                        break
+                if (n_selected%10000)==0: # save in multiple files for safety
+                    df = pd.DataFrame()
+                    df["Tracks"] = Tracks_list
+                    df["ECAL"] = ECAL_list
+                    df["PF_HCAL"] = PF_HCAL_list
+                    df["PF_ECAL"] = PF_ECAL_list
+                    df["addTracks"] = addTracks_list
+                    df["DM"] = DM_list
+                    df["releta"] = releta_list
+                    df["relphi"] = relphi_list
+                    df["relp"] = relp_list
+                    # HPS variables:
+                    df["tau_dm"] = list_tau_dm
+                    df["tau_pt"] = list_tau_pt
+                    df["tau_E"] = list_tau_E
+                    df["tau_eta"] = list_tau_eta
+                    df["tau_mass"] = list_tau_mass
+                    df["pi_px"] = list_pi_px
+                    df["pi_py"] = list_pi_py
+                    df["pi_pz"] = list_pi_pz
+                    df["pi_E"] = list_pi_E
+                    df["pi0_px"] = list_pi0_px
+                    df["pi0_py"] = list_pi0_py
+                    df["pi0_pz"] = list_pi0_pz
+                    df["pi0_E"] = list_pi0_E
+                    df["pi0_dEta"] = list_pi0_dEta
+                    df["pi0_dPhi"] = list_pi0_dPhi
+                    df["strip_mas"] = list_strip_mass
+                    df["strip_pt"] = list_strip_pt
+                    df["rho_mass"] = list_rho_mass
+                    df["pi2_px"] = list_pi2_px
+                    df["pi2_py"] = list_pi2_py
+                    df["pi2_pz"] = list_pi2_pz
+                    df["pi2_E"] = list_pi2_E
+                    df["pi3_px"] = list_pi3_px
+                    df["pi3_py"] = list_pi3_py
+                    df["pi3_pz"] = list_pi3_pz
+                    df["pi3_E"] = list_pi3_E
+                    df["mass0"] = list_mass0
+                    df["mass1"] = list_mass1
+                    df["mass2"] = list_mass2
+                    print("Saving dataframe at: ", savepath)
+                    df.to_pickle(savepath)
+                    shard+=1 # new shard
+                    savepath = save_folder + "/" + alias + "_" + str(shard) + ".pkl"
+                    # os.system('~/scripts/t-notify.sh shard saved')
+                    print("After event: ", event)
+                    Tracks_list = []
+                    ECAL_list = []
+                    PF_HCAL_list = []
+                    PF_ECAL_list = []
+                    addTracks_list = []
+                    DM_list = []
+                    releta_list = []
+                    relphi_list = []
+                    relp_list = []
+                    list_tau_dm = []
+                    list_tau_pt = []
+                    list_tau_E = []
+                    list_tau_eta = []
+                    list_tau_mass = []
+                    list_pi_px = []
+                    list_pi_py = []
+                    list_pi_pz = []
+                    list_pi_E = []
+                    list_pi0_px = []
+                    list_pi0_py = []
+                    list_pi0_pz = []
+                    list_pi0_E = []
+                    list_pi0_dEta = []
+                    list_pi0_dPhi = []
+                    list_strip_mass = []
+                    list_strip_pt = []
+                    list_rho_mass = []
+                    list_pi2_px = []
+                    list_pi2_py = []
+                    list_pi2_pz = []
+                    list_pi2_E = []
+                    list_pi3_px = []
+                    list_pi3_py = []
+                    list_pi3_pz = []
+                    list_pi3_E = []
+                    list_mass0 = []
+                    list_mass1 = []
+                    list_mass2 = []
+    file_pbar.update(1)
+    print("Changing file")
+    del rhTree
+               
 
 savepath = save_folder + "/" + alias + "_" + str(shard) + "_end.pkl"
 df = pd.DataFrame()
