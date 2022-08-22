@@ -23,66 +23,87 @@ import numpy as np
 
 class DeepPiModel(keras.Model):
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, regress_kinematic=False, **kwargs):
         super().__init__(*args, **kwargs)
+        self.regress_kinematic = regress_kinematic # Toggle this to true if kinematic regression present
         self.DM_loss = TauLosses.DecayMode_loss
         self.Kin_loss = TauLosses.Kinematic_loss
         self.MSE_p = TauLosses.MSE_momentum
         self.MSE_eta = TauLosses.MSE_eta
         self.MSE_phi = TauLosses.MSE_phi
         self.DM_loss_tracker = keras.metrics.Mean(name="DM_loss")
-        self.Kin_loss_tracker = keras.metrics.Mean(name="Kin_loss")
-        self.MSE_p_tracker = keras.metrics.Mean(name="MSE_momentum")
-        self.MSE_eta_tracker = keras.metrics.Mean(name="MSE_eta")
-        self.MSE_phi_tracker = keras.metrics.Mean(name="MSE_phi")
+        if self.regress_kinematic:
+            self.Kin_loss_tracker = keras.metrics.Mean(name="Kin_loss")
+            self.MSE_p_tracker = keras.metrics.Mean(name="MSE_momentum")
+            self.MSE_eta_tracker = keras.metrics.Mean(name="MSE_eta")
+            self.MSE_phi_tracker = keras.metrics.Mean(name="MSE_phi")
+            self.k1 = 1 # importance of L_DM
+            self.k2 = 1 # importance of L_Kin
         self.DM_accuracy = tf.keras.metrics.CategoricalAccuracy(name='DM_accuracy', dtype=None)
-        self.k1 = 1 # importance of L_DM
-        self.k2 = 1 # importance of L_Kin
+        
 
     def train_step(self, data):
         # Unpack the data
-        sample_weight = None
-        x, yDM, yKin, w = data
-        n_tau = tf.shape(yKin)[0]
+        if self.regress_kinematic:
+            x, yDM, yKin, w = data
+        else:
+            x, yDM = data
+        n_tau = tf.shape(yDM)[0]
 
-        # Forward Pass:
-        with tf.GradientTape() as DM_tape, tf.GradientTape() as Kin_tape:
-            y_pred = self(x, training=True)
-            y_predDM = y_pred[0]
-            y_predKin = y_pred[1]
-            DM_loss_vec = self.DM_loss(yDM, y_predDM)
-            DM_loss = tf.reduce_sum(DM_loss_vec)/tf.cast(n_tau, dtype=tf.float32)
-            Kin_loss_vec = self.Kin_loss(yKin, y_predKin)
-            Kin_loss = tf.reduce_sum(tf.multiply(Kin_loss_vec, w))/tf.reduce_sum(w) # only for DM 1, 11
-            
-        # Group TPs for different blocks:
-        DM_layers = [var for var in self.trainable_variables if ("DM" in var.name)] # final DM layers
-        Kin_layers = [var for var in self.trainable_variables if ("Kin" in var.name)] # final Kinematic layers
-        common_layers = [var for var in self.trainable_variables if ("Kin" not in var.name and "DM" not in var.name)] # layers common to both
+        
+        if self.regress_kinematic: # If kinematic regression active
+            # Forward Pass:
+            with tf.GradientTape() as DM_tape, tf.GradientTape() as Kin_tape:
+                y_pred = self(x, training=True)
+                y_predDM = y_pred[0]
+                y_predKin = y_pred[1]
+                DM_loss_vec = self.DM_loss(yDM, y_predDM)
+                DM_loss = tf.reduce_sum(DM_loss_vec)/tf.cast(n_tau, dtype=tf.float32)
+                Kin_loss_vec = self.Kin_loss(yKin, y_predKin)
+                Kin_loss = tf.reduce_sum(tf.multiply(Kin_loss_vec, w))/tf.reduce_sum(w) # only for DM 1, 11
 
-        # Compute gradients
-        grad_DM_glob = DM_tape.gradient(DM_loss, common_layers + DM_layers) # for whole network wrt DM
-        grad_Kin_glob = Kin_tape.gradient(Kin_loss, common_layers + Kin_layers) # for whole network wrt Kin
-        grad_DM_final = grad_DM_glob[len(common_layers):] # final DM layers
-        grad_Kin_final = grad_Kin_glob[len(common_layers):] # final Kin layers
-        grad_common = [self.k1*grad_DM_glob[i] + self.k2*grad_Kin_glob[i] for i in range(len(common_layers))]
+            # Group TPs for different blocks:
+            DM_layers = [var for var in self.trainable_variables if ("DM" in var.name)] # final DM layers
+            Kin_layers = [var for var in self.trainable_variables if ("Kin" in var.name)] # final Kinematic layers
+            common_layers = [var for var in self.trainable_variables if ("Kin" not in var.name and "DM" not in var.name)] # layers common to both
 
-        # Update trainable parameters
-        self.optimizer.apply_gradients(zip(grad_common + grad_DM_final + grad_Kin_final, common_layers + DM_layers + Kin_layers))
+            # Compute gradients
+            grad_DM_glob = DM_tape.gradient(DM_loss, common_layers + DM_layers) # for whole network wrt DM
+            grad_Kin_glob = Kin_tape.gradient(Kin_loss, common_layers + Kin_layers) # for whole network wrt Kin
+            grad_DM_final = grad_DM_glob[len(common_layers):] # final DM layers
+            grad_Kin_final = grad_Kin_glob[len(common_layers):] # final Kin layers
+            grad_common = [self.k1*grad_DM_glob[i] + self.k2*grad_Kin_glob[i] for i in range(len(common_layers))]
 
-        # Compute individual MSE:
-        MSE_p = tf.reduce_sum(tf.multiply(self.MSE_p(yKin, y_predKin), w))/tf.reduce_sum(w)
-        MSE_eta = tf.reduce_sum(tf.multiply(self.MSE_eta(yKin, y_predKin), w))/tf.reduce_sum(w)
-        MSE_phi = tf.reduce_sum(tf.multiply(self.MSE_phi(yKin, y_predKin), w))/tf.reduce_sum(w)
+            # Update trainable parameters
+            self.optimizer.apply_gradients(zip(grad_common + grad_DM_final + grad_Kin_final, common_layers + DM_layers + Kin_layers))
+
+            # Compute individual MSE:
+            MSE_p = tf.reduce_sum(tf.multiply(self.MSE_p(yKin, y_predKin), w))/tf.reduce_sum(w)
+            MSE_eta = tf.reduce_sum(tf.multiply(self.MSE_eta(yKin, y_predKin), w))/tf.reduce_sum(w)
+            MSE_phi = tf.reduce_sum(tf.multiply(self.MSE_phi(yKin, y_predKin), w))/tf.reduce_sum(w)
+        else: # If only DM classification
+            # Forward pass:
+            with tf.GradientTape() as DM_tape:
+                y_predDM = self(x, training=True)
+                DM_loss_vec = self.DM_loss(yDM, y_predDM)
+                DM_loss = tf.reduce_sum(DM_loss_vec)/tf.cast(n_tau, dtype=tf.float32)
+        
+            # Compute gradients
+            trainable_pars = self.trainable_variables
+            gradients = DM_tape.gradient(DM_loss, trainable_pars)
+
+            # Update trainable parameters
+            self.optimizer.apply_gradients(zip(gradients, trainable_pars))
+        
 
         # Update metrics
         self.DM_loss_tracker.update_state(DM_loss)
-        self.Kin_loss_tracker.update_state(Kin_loss)
         self.DM_accuracy.update_state(yDM, y_predDM)
-        self.MSE_p_tracker.update_state(MSE_p)
-        self.MSE_eta_tracker.update_state(MSE_eta)
-        self.MSE_phi_tracker.update_state(MSE_phi)
-        # self.compiled_metrics.update_state(yDM, y_predDM)
+        if self.regress_kinematic:
+            self.Kin_loss_tracker.update_state(Kin_loss)
+            self.MSE_p_tracker.update_state(MSE_p)
+            self.MSE_eta_tracker.update_state(MSE_eta)
+            self.MSE_phi_tracker.update_state(MSE_phi)
 
         # Return a dict mapping metric names to current value (printout)
         metrics_out =  {m.name: m.result() for m in self.metrics}
@@ -90,32 +111,36 @@ class DeepPiModel(keras.Model):
     
     def test_step(self, data):
         # Unpack the data 
-        sample_weight = None
-        x, yDM, yKin, w = data
+        if self.regress_kinematic:
+            x, yDM, yKin, w = data
+        else:
+            x, yDM = data
         n_tau = tf.shape(yDM)[0]
 
         # Evaluate Model
-        y_pred = self(x, training=False)
-        y_predDM = y_pred[0]
-        y_predKin = y_pred[1]
+        if self.regress_kinematic:
+            y_pred = self(x, training=False)
+            y_predDM = y_pred[0]
+            y_predKin = y_pred[1]
+            Kin_loss_vec = self.Kin_loss(yKin, y_predKin)
+            Kin_loss = tf.reduce_sum(tf.multiply(Kin_loss_vec, w))/tf.reduce_sum(w) # only for DM 1, 11
+            MSE_p = tf.reduce_sum(tf.multiply(self.MSE_p(yKin, y_predKin), w))/tf.reduce_sum(w)
+            MSE_eta = tf.reduce_sum(tf.multiply(self.MSE_eta(yKin, y_predKin), w))/tf.reduce_sum(w)
+            MSE_phi = tf.reduce_sum(tf.multiply(self.MSE_phi(yKin, y_predKin), w))/tf.reduce_sum(w)
+        else:
+            y_predDM = self(x, training=False)
         DM_loss_vec = self.DM_loss(yDM, y_predDM)
         DM_loss = tf.reduce_sum(DM_loss_vec)/tf.cast(n_tau, dtype=tf.float32)
-        Kin_loss_vec = self.Kin_loss(yKin, y_predKin)
-        Kin_loss = tf.reduce_sum(tf.multiply(Kin_loss_vec, w))/tf.reduce_sum(w) # only for DM 1, 11
-
-        # Compute individual MSE:
-        MSE_p = tf.reduce_sum(tf.multiply(self.MSE_p(yKin, y_predKin), w))/tf.reduce_sum(w)
-        MSE_eta = tf.reduce_sum(tf.multiply(self.MSE_eta(yKin, y_predKin), w))/tf.reduce_sum(w)
-        MSE_phi = tf.reduce_sum(tf.multiply(self.MSE_phi(yKin, y_predKin), w))/tf.reduce_sum(w)
+        
         
         # Update the metrics 
         self.DM_loss_tracker.update_state(DM_loss)
-        self.Kin_loss_tracker.update_state(Kin_loss)
         self.DM_accuracy.update_state(yDM, y_predDM)
-        self.MSE_p_tracker.update_state(MSE_p)
-        self.MSE_eta_tracker.update_state(MSE_eta)
-        self.MSE_phi_tracker.update_state(MSE_phi)
-        # self.compiled_metrics.update_state(yDM, y_predDM)
+        if self.regress_kinematic:
+            self.Kin_loss_tracker.update_state(Kin_loss)
+            self.MSE_p_tracker.update_state(MSE_p)
+            self.MSE_eta_tracker.update_state(MSE_eta)
+            self.MSE_phi_tracker.update_state(MSE_phi)
 
         # Return a dict mapping metric names to current value
         metrics_out = {m.name: m.result() for m in self.metrics}
@@ -128,11 +153,13 @@ class DeepPiModel(keras.Model):
         # or at the start of `evaluate()`
         metrics = []
         metrics.append(self.DM_loss_tracker) 
-        metrics.append(self.Kin_loss_tracker)
+        if self.regress_kinematic:
+            metrics.append(self.Kin_loss_tracker)
         metrics.append(self.DM_accuracy) 
-        metrics.append(self.MSE_p_tracker)
-        metrics.append(self.MSE_eta_tracker)
-        metrics.append(self.MSE_phi_tracker)
+        if self.regress_kinematic:
+            metrics.append(self.MSE_p_tracker)
+            metrics.append(self.MSE_eta_tracker)
+            metrics.append(self.MSE_phi_tracker)
 
         for l in self._flatten_layers():
             metrics.extend(l._metrics)  # pylint: disable=protected-access
@@ -168,7 +195,7 @@ def dense_block(prev_layer, size, n=1, dropout=0):
     out = layer_ending(dense, n, dim2d=False, dropout=dropout)
     return out
 
-def create_model(model_name, dropout_rate):
+def create_model(model_name, dropout_rate, regress_kinematic):
 
     # Input Image
     input_layer = Input(name="input_image", shape=(33, 33, 5))
@@ -203,34 +230,43 @@ def create_model(model_name, dropout_rate):
     # Pi0 output (softmax)
     outputDM = Activation("softmax", name="output_DM")(dense_DM5)
 
-    # Dense layers for kinematic extrapolation
-    dense_Kin1 = dense_block(flat, flat_size, dropout=dropout_rate, n="_Kin_1")
-    dense_Kin2 = dense_block(dense_Kin1, flat_size, dropout=dropout_rate, n="_Kin_2")
-    dense_Kin3 = dense_block(dense_Kin2, flat_size, dropout=dropout_rate, n="_Kin_3")
-    dense_Kin4 = dense_block(dense_Kin3, 100, dropout=dropout_rate, n="_Kin_4")
-    dense_Kin5 = dense_block(dense_Kin4, 3, n="_Kin_5")
-    # Kinematic output
-    outputKin= Dense(3, name="output_Kin")(dense_Kin5)
+    if regress_kinematic:
+        # Dense layers for kinematic extrapolation
+        dense_Kin1 = dense_block(flat, flat_size, dropout=dropout_rate, n="_Kin_1")
+        dense_Kin2 = dense_block(dense_Kin1, flat_size, dropout=dropout_rate, n="_Kin_2")
+        dense_Kin3 = dense_block(dense_Kin2, flat_size, dropout=dropout_rate, n="_Kin_3")
+        dense_Kin4 = dense_block(dense_Kin3, 100, dropout=dropout_rate, n="_Kin_4")
+        dense_Kin5 = dense_block(dense_Kin4, 3, n="_Kin_5")
+        # Kinematic output
+        outputKin= Dense(3, name="output_Kin")(dense_Kin5)
 
     # create model
-    model = DeepPiModel(input_layer, [outputDM, outputKin], name=model_name)
+    if regress_kinematic:
+        model = DeepPiModel(input_layer, [outputDM, outputKin], name=model_name, regress_kinematic=True)
+    else:
+        model = DeepPiModel(input_layer, outputDM, name=model_name, regress_kinematic=False)
 
     return model
 
-def compile_model(model):
+def compile_model(model, regress_kinematic=False):
 
     opt = tf.keras.optimizers.Nadam(learning_rate=1e-4)
 
-    strmetrics = ["TauLosses.DecayMode_loss", "TauLosses.Kinematic_loss"]
-    metrics = []
-    for m in strmetrics:
-        if "TauLosses" in m:
-            m = eval(m)
-        metrics.append(m)
+    # strmetrics = ["TauLosses.DecayMode_loss", "TauLosses.Kinematic_loss"]
+    # metrics = []
+    # for m in strmetrics:
+    #     if "TauLosses" in m:
+    #         m = eval(m)
+    #     metrics.append(m)
 
     model.compile(loss=None, optimizer=opt, metrics=None)
     # mlflow log
-    metrics = {'DM_loss': '', 'Kin_loss': '', 'DM_accuracy': '', 'MSE_momentum': '', 'MSE_eta': '', 'MSE_phi': '',}
+    if regress_kinematic:
+        print("Warning: Training with kinematic regression")
+        metrics = {'DM_loss': '', 'Kin_loss': '', 'DM_accuracy': '', 'MSE_momentum': '', 'MSE_eta': '', 'MSE_phi': '',}
+    else:
+        print("Warning: Training without kinematic regression")
+        metrics = {'DM_loss': '', 'DM_accuracy': ''}
     mlflow.log_dict(metrics, 'input_cfg/metric_names.json')
 
 def run_training(model, data_loader):
@@ -240,8 +276,13 @@ def run_training(model, data_loader):
     gen_val = data_loader.get_generator(primary_set = False)
 
     # datasets from generators
-    input_shape = ((33, 33, 5), None, 3, None)
-    input_types = (tf.float32, tf.float32, tf.float32, tf.float32)
+    if data_loader.regress_kinematic:
+        input_shape = ((33, 33, 5), None, 3, None)
+        input_types = (tf.float32, tf.float32, tf.float32, tf.float32)
+    else:
+        input_shape = ((33, 33, 5), None)
+        input_types = (tf.float32, tf.float32)
+    
     data_train = tf.data.Dataset.from_generator(
         gen_train, output_types = input_types, output_shapes = input_shape
         ).prefetch(tf.data.AUTOTUNE).batch(data_loader.n_tau).take(data_loader.n_batches)
@@ -303,7 +344,7 @@ def main(cfg: DictConfig) -> None:
         dataloader = DataLoader(training_cfg)
 
         # main training
-        model = create_model(dataloader.model_name, dataloader.dropout_rate)
+        model = create_model(dataloader.model_name, dataloader.dropout_rate, dataloader.regress_kinematic)
 
         if cfg.pretrained is None:
             print("Warning: no pretrained NN -> training will be started from scratch")
@@ -324,7 +365,7 @@ def main(cfg: DictConfig) -> None:
                 if not weights_found:
                     print(f"Weights for layer '{layer.name}' not found.")
 
-        compile_model(model)
+        compile_model(model, regress_kinematic=dataloader.regress_kinematic)
         fit = run_training(model, dataloader)
 
         # log NN params

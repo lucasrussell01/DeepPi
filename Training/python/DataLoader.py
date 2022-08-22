@@ -21,6 +21,7 @@ class DataLoader:
         self.optimiser = self.config["Setup"]["optimiser"]
         self.learning_rate = self.config["Setup"]["learning_rate"]
         self.model_name = self.config["Setup"]["model_name"]
+        self.regress_kinematic = self.config["Setup"]["kinematic"]
         self.file_path = self.config["Setup"]["input_dir"]
         print(self.file_path)
         files = glob.glob(self.file_path + "/*.pkl")
@@ -53,8 +54,9 @@ class DataLoader:
                         addTracks = df["addTracks"][i]
                         x = (np.stack([Tracks, ECAL, PF_HCAL, PF_ECAL, addTracks], axis=-1))
                         DM = df["DM"][i]
-                        max_index = np.where(df["relp"][i] == np.max(df["relp"][i]))[0] # find leading neutral
-                        yKin = (df["relp"][i][max_index][0], df["releta"][i][max_index][0], df["relphi"][i][max_index][0])
+                        if self.regress_kinematic:
+                            max_index = np.where(df["relp"][i] == np.max(df["relp"][i]))[0] # find leading neutral
+                            yKin = (df["relp"][i][max_index][0], df["releta"][i][max_index][0], df["relphi"][i][max_index][0])
                         if evaluation:
                             yDM = DM
                             yield(x, yDM)
@@ -70,7 +72,10 @@ class DataLoader:
                                 w = 0
                             else: 
                                 raise RuntimeError(f"Unknown DM {DM}")
-                            yield (x, yDM, yKin, w)
+                            if self.regress_kinematic:
+                                yield (x, yDM, yKin, w)
+                            else:
+                                yield (x, yDM)
                         counter += 1
                         
 

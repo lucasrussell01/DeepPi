@@ -52,7 +52,6 @@ with open(path_to_filelist) as f:
     lines = [line.rstrip('\n') for line in lines]
     if args.split == "A":
         lines = lines[:125]
-        print(lines)
     elif args.split == "B":
         lines = lines[125:250]
     elif args.split == "C":
