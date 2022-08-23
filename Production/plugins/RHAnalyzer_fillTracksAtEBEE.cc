@@ -126,6 +126,8 @@ void RecHitAnalyzer::fillTracksAtEBEE ( const edm::Event& iEvent, const edm::Eve
   vPF_ECAL_EB_.assign( EBDetId::kSizeForDenseIndexing, 0. );
   vPF_ECAL_EB_raw_.assign( EBDetId::kSizeForDenseIndexing, 0. );
 
+  vPrimaryVertex_.clear();
+  
   for ( int iz(0); iz < nEE; iz++ ) {
     vTracks_EE_[iz].assign( EE_NC_PER_ZSIDE, 0. );
     vTracksPt_EE_[iz].assign( EE_NC_PER_ZSIDE, 0. );

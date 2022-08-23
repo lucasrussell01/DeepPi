@@ -166,6 +166,8 @@ for f in files:
     if complete:
         break
     for event in range(nEvts):
+        if complete:
+            break
         rhTree.GetEntry(event)
         # Load truth values
         truthDM = np.array(rhTree.jet_truthDM)
@@ -238,13 +240,6 @@ for f in files:
                 list_mass1.append(np.array(rhTree.mass1)[i])
                 list_mass2.append(np.array(rhTree.mass2)[i])
                 n_selected += 1
-                if args.n_tau != -1:
-                    if n_selected%10 == 0:
-                        pbar.update(10)
-                    # print(n_selected)
-                    if n_selected>=n_tau_target:
-                        complete = True
-                        break
                 if (n_selected%10000)==0: # save in multiple files for safety
                     df = pd.DataFrame()
                     df["Tracks"] = Tracks_list
@@ -330,6 +325,13 @@ for f in files:
                     list_mass0 = []
                     list_mass1 = []
                     list_mass2 = []
+                if args.n_tau != -1:
+                    if n_selected%10 == 0:
+                        pbar.update(10)
+                    # print(n_selected)
+                    if n_selected>=n_tau_target:
+                        complete = True
+                        break
     file_pbar.update(1)
     print("Changing file")
     del rhTree
