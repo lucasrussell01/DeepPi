@@ -11,8 +11,8 @@ experiment_name: ???
 
 pretrained: null
 # pretrained:
-#   run_id : 73affa12c31e4705b164ba640062f6de 
-#   experiment_id: 5
+#   run_id : deb4d6b122414f3cae0a4d0927b0765c #4d938a098fbb46898a368928c05091f7 
+#   experiment_id: 7 #5
 #   starting_model: DeepPi_v1_step_final.tf
 
 # setup

@@ -141,6 +141,22 @@ def create_model(model_name, dropout_rate):
     conv12 = conv_block(conv11, 9, dropout=dropout_rate, n=12) #9
     conv13 = conv_block(conv12, 9, dropout=dropout_rate, n=13) #7
     conv14 = conv_block(conv13, 9, dropout=dropout_rate, n=14) #5
+
+    # conv1 = conv_block(input_layer, 5, dropout=dropout_rate, kernel_size=3, n=1) #31
+    # conv2 = conv_block(conv1, 5, dropout=dropout_rate, n=2) #29 
+    # conv3 = conv_block(conv2, 5, dropout=dropout_rate, n=3) #27
+    # conv4 = conv_block(conv3, 5, dropout=dropout_rate, n=4) #25
+    # conv5 = conv_block(conv4, 5, dropout=dropout_rate, n=5) #23
+    # conv6 = conv_block(conv5, 5, dropout=dropout_rate, n=6) #21
+    # conv7 = conv_block(conv6, 5, dropout=dropout_rate, n=7) #19
+    # conv8 = conv_block(conv7, 5, dropout=dropout_rate, n=8) #17
+    # conv9 = conv_block(conv8, 5, dropout=dropout_rate, n=9) #15
+    # conv10 = conv_block(conv9, 5, dropout=dropout_rate, n=10) #13
+    # conv11 = conv_block(conv10, 5, dropout=dropout_rate,n=11) #11
+    # conv12 = conv_block(conv11, 5, dropout=dropout_rate, n=12) #9
+    # conv13 = conv_block(conv12, 5, dropout=dropout_rate, n=13) #7
+    # conv14 = conv_block(conv13, 5, dropout=dropout_rate, n=14) #5
+
     # Flatten inputs
     flat = Flatten(name="flatten")(conv14) # 75 
     # Dense layers for pi0 number extrapolation

@@ -23,11 +23,36 @@ class DataLoader:
         self.model_name = self.config["Setup"]["model_name"]
         self.file_path = self.config["Setup"]["input_dir"]
         print(self.file_path)
-        files = glob.glob(self.file_path + "/*.pkl")
-        self.train_files, self.val_files = np.split(files, [int(len(files)*(1-self.val_split))])
+        if self.config["Setup"]["override_files"]:
+            print(f"FILE OVERRIDE TRAINING: {self.config['Setup']['train_override']}")
+            with open(self.config["Setup"]["train_override"]) as f:
+                files = f.readlines()
+                self.train_files = [line.rstrip('\n') for line in files]
+                print(self.train_files)
+            with open(self.config["Setup"]["val_override"]) as f: 
+                print(f"FILE OVERRIDE VALIDATION: {self.config['Setup']['val_override']}")
+                files = f.readlines()
+                self.val_files = [line.rstrip('\n') for line in files]
+        else:
+            files = glob.glob(self.file_path + "/*.pkl")
+            self.train_files, self.val_files = np.split(files, [int(len(files)*(1-self.val_split))])
         print("Files for training:", len(self.train_files))
-        # print(self.train_files)
         print("Files for validation:", len(self.val_files))
+        # with open("/vols/cms/lcr119/Images/13082022/ABCTrain.txt", 'w') as f:
+        #     for file in self.train_files:
+        #         f.write("%s\n" % file)
+        #     print('Saved Training ABC file list')
+        # with open("/vols/cms/lcr119/Images/13082022/ABCDTrain.txt", 'w') as f:
+        #     for file in self.train_files:
+        #         f.write("%s\n" % file)
+        #     for file in glob.glob("/vols/cms/lcr119/Images/13082022/Evaluation/*.pkl"):
+        #         f.write("%s\n" % file)  
+        #     print('Saved Training ABCD file list')
+        # # print(self.train_files)
+        with open("/vols/cms/lcr119/Images/13082022/ABCDVal.txt", 'w') as f:
+            for file in self.val_files:
+                f.write("%s\n" % file)
+            print('Saved Validation ABCD file list')
         # print(self.val_files)
 
     def get_generator(self, primary_set = True, show_progress = False, evaluation = False):
