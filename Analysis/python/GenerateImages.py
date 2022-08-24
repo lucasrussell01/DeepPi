@@ -117,6 +117,8 @@ DM_list = []
 releta_list = []
 relphi_list = []
 relp_list = []
+# PV information:
+PV_list = []
 # HPS variables:
 list_tau_dm = []
 list_tau_pt = []
@@ -160,8 +162,10 @@ file_pbar = tqdm(total = len(files))
 
 for f in files:
     file = "root://gfe02.grid.hep.ph.ic.ac.uk:1097/store/user/lrussell/DetectorImages_HPS_MC_106X_2018/" + f
-    rhTree = R.TChain("recHitAnalyzer/RHTree")
-    rhTree.Add(file)
+    
+    Rfile = R.TFile.Open(file, "READ")
+    rhTree = f.Get("recHitAnalyzer/RHTree")
+
     nEvts = int(rhTree.GetEntries())
     if complete:
         break
@@ -184,6 +188,8 @@ for f in files:
         releta = np.array(rhTree.jet_neutral_indv_releta, dtype=object)
         relphi = np.array(rhTree.jet_neutral_indv_relphi, dtype=object)
         relp = np.array(rhTree.jet_neutral_indv_relp, dtype=object)
+        # Primary vertex:
+        PV = rhTree.PrimaryVertex
         # Iterate over the taus in the event
         n_taus = len(truthDM)
         for i in range(n_taus):
@@ -209,6 +215,7 @@ for f in files:
                 releta_list.append(np.array(releta[i]))
                 relphi_list.append(np.array(relphi[i]))
                 relp_list.append(np.array(relp[i]))
+                PV_list.append(PV)
                 # add HPS variables:
                 list_tau_dm.append(np.array(rhTree.tau_dm)[i])
                 list_tau_pt.append(np.array(rhTree.tau_pt)[i])
@@ -251,6 +258,7 @@ for f in files:
                     df["releta"] = releta_list
                     df["relphi"] = relphi_list
                     df["relp"] = relp_list
+                    df["PV"] = PV_list
                     # HPS variables:
                     df["tau_dm"] = list_tau_dm
                     df["tau_pt"] = list_tau_pt
@@ -296,6 +304,7 @@ for f in files:
                     releta_list = []
                     relphi_list = []
                     relp_list = []
+                    PV_list = []
                     list_tau_dm = []
                     list_tau_pt = []
                     list_tau_E = []
@@ -334,7 +343,7 @@ for f in files:
                         break
     file_pbar.update(1)
     print("Changing file")
-    del rhTree
+    Rfile.Close()
                
 
 savepath = save_folder + "/" + alias + "_" + str(shard) + "_end.pkl"
@@ -348,6 +357,7 @@ df["DM"] = DM_list
 df["releta"] = releta_list
 df["relphi"] = relphi_list
 df["relp"] = relp_list
+df["PV"] = PV_list
 df["tau_dm"] = list_tau_dm
 df["tau_pt"] = list_tau_pt
 df["tau_E"] = list_tau_E

@@ -52,6 +52,40 @@ class DataLoader:
                         PF_HCAL = df["PF_HCAL"][i]
                         PF_ECAL = df["PF_ECAL"][i]
                         addTracks = df["addTracks"][i]
+                        # Clip outliers to max determined from 99.7%:
+                        if np.sum(Tracks)>200:
+                            Tracks = 200*Tracks/np.sum(Tracks)
+                        if np.sum(ECAL)>200:
+                            ECAL = 200*ECAL/np.sum(ECAL)
+                        if np.sum(PF_HCAL)>150:
+                            PF_HCAL = 150*PF_HCAL/np.sum(PF_HCAL)
+                        if np.sum(PF_ECAL)>200:
+                            PF_ECAL = 200*PF_ECAL/np.sum(PF_ECAL)
+                        if np.sum(addTracks)>70:
+                            addTracks = 70*addTracks/np.sum(addTracks)
+                        # Normalise input images:    
+                        Tracks = Tracks/200
+                        ECAL = ECAL/200
+                        PF_HCAL = PF_HCAL/150
+                        PF_ECAL = PF_ECAL/200
+                        addTracks = addTracks/70
+                        # Check if anything above 1 after normalisation:
+                        if round(np.sum(Tracks),3) > 1:
+                            print("WARNING: Energy sum: ", round(np.sum(Tracks),3))
+                            raise Exception("Track normalisation issue")
+                        if round(np.sum(ECAL),3) > 1:
+                            print("WARNING: Energy sum: ", round(np.sum(ECAL),3))
+                            raise Exception("ECAL normalisation issue")
+                        if round(np.sum(PF_HCAL),3) > 1:
+                            print("WARNING: Energy sum: ", round(np.sum(PF_HCAL),3))
+                            raise Exception("PF_HCAL normalisation issue")
+                        if round(np.sum(PF_ECAL),3) > 1:
+                            print("WARNING: Energy sum: ", round(np.sum(PF_ECAL),3))
+                            raise Exception("PF_ECAL normalisation issue")
+                        if round(np.sum(addTracks),3) > 1:
+                            print("WARNING: Energy sum: ", round(np.sum(addTracks),3))
+                            raise Exception("addTrack normalisation issue")
+                        # Stack and pass to network:
                         x = (np.stack([Tracks, ECAL, PF_HCAL, PF_ECAL, addTracks], axis=-1))
                         DM = df["DM"][i]
                         if self.regress_kinematic:
