@@ -38,7 +38,7 @@ plot = False
 
 
 shard = 0 # number of file if split into several required
-save_folder = args.save_path + "Test"
+save_folder = args.save_path + "HPS_2308"
 savepath = save_folder + "/" + alias + "_" + str(shard) + ".pkl"
 # check if directory exists
 if not os.path.exists(save_folder):
@@ -161,10 +161,10 @@ os.system('~/scripts/t-notify.sh Beginning image creation')
 file_pbar = tqdm(total = len(files))
 
 for f in files:
-    file = "root://gfe02.grid.hep.ph.ic.ac.uk:1097/store/user/lrussell/DetectorImages_HPS_MC_106X_2018/" + f
+    file = "root://gfe02.grid.hep.ph.ic.ac.uk:1097/store/user/lrussell/DetectorImages_HPS2308_MC_106X_2018/" + f
     
     Rfile = R.TFile.Open(file, "READ")
-    rhTree = f.Get("recHitAnalyzer/RHTree")
+    rhTree = Rfile.Get("recHitAnalyzer/RHTree")
 
     nEvts = int(rhTree.GetEntries())
     if complete:
