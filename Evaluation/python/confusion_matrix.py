@@ -12,21 +12,24 @@ sn.set(font_scale=1.4)
 # path_to_mlflow = "../../Training/python/mlruns/"
 
 
-# expID = "3"
-# runID = "c481a804abcf441aaaf23e2a5870c98f"
+expID = "3"
+runID = "c481a804abcf441aaaf23e2a5870c98f"
 
 
 class cm_plotter:
 
-    def __init__(self, expID, runID):
+    def __init__(self, expID, runID, useHPS = True):
         self.expID = expID
         self.runID = runID
         path_to_mlflow = "../../Training/python/mlruns/"
-        self.path_to_pred = path_to_mlflow + self.expID + "/" + self.runID + "/artifacts/predictions/pred_ggH.pkl"
+        if useHPS:
+            self.path_to_pred = path_to_mlflow + self.expID + "/" + self.runID + "/artifacts/predictions/pred_ggH.pkl"
+        else:
+            self.path_to_pred = path_to_mlflow + self.expID + "/" + self.runID + "/artifacts/predictions/pred_ggH_HPS_only.pkl"
         self.df = pd.read_pickle(self.path_to_pred)
-        self.where_threeprong = np.concatenate((np.where(self.df["truthDM"]==10)[0], np.where(self.df["truthDM"]==11)[0]))
-        self.where_oneprong = np.concatenate(( np.where(self.df["truthDM"]==0)[0], np.where(self.df["truthDM"]==1)[0],
-                                                 np.where(self.df["truthDM"]==2)[0]))
+        self.where_threeprong = np.concatenate((np.where(self.df['truthDM']==10)[0], np.where(self.df['truthDM']==11)[0]))
+        self.where_oneprong = np.concatenate(( np.where(self.df['truthDM']==0)[0], np.where(self.df['truthDM']==1)[0],
+                                                 np.where(self.df['truthDM']==2)[0]))
         self.axis_lab = ["0 $\pi^0$", "1 $\pi^0$", "2 $\pi^0$"]
 
     def plot_cm(self):
@@ -57,11 +60,11 @@ class cm_plotter:
         plt.ylabel("True Label")
         plt.xlabel("Predicted Label")
         plt.title("All DMs", loc='right')
-        print(f"Fraction of DM0: {len(np.where(self.df["truthDM"]==0)[0])/10000}")
-        print(f"Fraction of DM1: {len(np.where(self.df["truthDM"]==1)[0])/10000}")
-        print(f"Fraction of DM2: {len(np.where(self.df["truthDM"]==2)[0])/10000}")
-        print(f"Fraction of DM10: {len(np.where(self.df["truthDM"]==10)[0])/10000}")
-        print(f"Fraction of DM11: {len(np.where(self.df["truthDM"]==11)[0])/10000}")
+        print(f"Fraction of DM0: {len(np.where(self.df['truthDM']==0)[0])/10000}")
+        print(f"Fraction of DM1: {len(np.where(self.df['truthDM']==1)[0])/10000}")
+        print(f"Fraction of DM2: {len(np.where(self.df['truthDM']==2)[0])/10000}")
+        print(f"Fraction of DM10: {len(np.where(self.df['truthDM']==10)[0])/10000}")
+        print(f"Fraction of DM11: {len(np.where(self.df['truthDM']==11)[0])/10000}")
         plt.text(0.03, -0.05, "CMS ", fontsize=18, fontweight="bold")
         plt.text(0.4, -0.05, "Work in progess ", fontsize=18, fontstyle="italic")
         plt.show()

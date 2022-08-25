@@ -16,9 +16,12 @@ parser = argparse.ArgumentParser(description='Generate predictions for DeepPi tr
 parser.add_argument('--expID', required=True, type=str, help="Experiment ID")
 parser.add_argument('--runID', required=True, type=str, help="Run ID")
 parser.add_argument('--n_tau', required=False, default = 50000, type=int, help="n_tau")
+parser.add_argument('--HPS', required=False, default = "False", type=str, help="use HPS taus onluy")
 
 args = parser.parse_args()
 
+if args.HPS=="True":
+    print("WARNING: Selecting HPS taus only")
 
 path_to_mlflow = "../../Training/python/mlruns/"
 expID = args.expID 
@@ -28,7 +31,7 @@ path_to_artifacts = path_to_mlflow + expID + "/" + runID + "/artifacts"
 
 def test(data, model):
         # Unpack the data
-        x, y = data
+        x, y, yHPSDM = data
         y_pred = model(x, training=False) 
         return (y, y_pred)
 
@@ -36,7 +39,7 @@ def test(data, model):
 with open(f'{path_to_artifacts}/input_cfg/training_cfg.yaml') as file:
     training_cfg = yaml.full_load(file)
     print("Training Config Loaded")
-training_cfg["Setup"]["input_dir"] = '/vols/cms/lcr119/Images/Kinematics/Evaluation'
+training_cfg["Setup"]["input_dir"] = '/vols/cms/lcr119/Images/HPS_2108/Evaluation'
 training_cfg["Setup"]["n_batches"] = args.n_tau # 250k is full because batch size 1
 training_cfg["Setup"]["n_batches_val"] = 0
 training_cfg["Setup"]["val_split"] = 0
@@ -46,8 +49,8 @@ print(training_cfg)
 # Load evaluation dataset
 dataloader = DataLoader(training_cfg)
 gen_eval = dataloader.get_generator(primary_set = True, evaluation=True)
-input_shape = ((33, 33, 5), None)
-input_types = (tf.float32, tf.float32)
+input_shape = ((33, 33, 5), None, None)
+input_types = (tf.float32, tf.float32, tf.float32)
 data_eval = tf.data.Dataset.from_generator(
     gen_eval, output_types = input_types, output_shapes = input_shape
     ).prefetch(tf.data.AUTOTUNE).batch(1).take(dataloader.n_batches)
@@ -70,21 +73,26 @@ pbar = tqdm(total = dataloader.n_batches)
 
 i = 0
 for elem in data_eval:
-    y, y_pred = test(elem, model)
-    y_pred = y_pred[0] # take only DM output
-    # below is code for if dataloader not in eval mode
-    # onehot_truth.append(y)
-    full_pred.append(y_pred)
-    if y == 0 or y ==10:
-        truth.append(0)
-    elif y == 1 or y == 11:
-        truth.append(1)
-    elif y == 2:
-        truth.append(2)
+    x, yDM, yHPSDM = elem
+    if args.HPS=="True"and yHPSDM==-1:
+        continue
     else:
-        raise RuntimeError("Unknown DM")
-    truthDM.append(int(y))
-    max_pred.append(int(np.where(y_pred[0] == np.max(y_pred[0]))[0]))
+        y, y_pred = test(elem, model)
+        if training_cfg["Setup"]["kinematic"]:
+            y_pred = y_pred[0] # take only DM output
+
+        # below is code for if dataloader in eval mode
+        full_pred.append(y_pred)
+        if y == 0 or y ==10:
+            truth.append(0)
+        elif y == 1 or y == 11:
+            truth.append(1)
+        elif y == 2:
+            truth.append(2)
+        else:
+            raise RuntimeError("Unknown DM")
+        truthDM.append(int(y))
+        max_pred.append(int(np.where(y_pred[0] == np.max(y_pred[0]))[0]))
     i+=1
     if i%10 ==0:
         pbar.update(10)
@@ -102,7 +110,11 @@ print("Predictions computed")
 save_folder = path_to_artifacts + "/predictions"
 if not os.path.exists(save_folder):
     os.makedirs(save_folder)
-savepath = save_folder + "/pred_ggH.pkl"
+if args.HPS=="True":
+    savepath = save_folder + "/pred_ggH_HPS_only.pkl"
+else:
+    savepath = save_folder + "/pred_ggH.pkl"
+
 df.to_pickle(savepath)
 
 print("Predictions saved in artifacts/predictions")
