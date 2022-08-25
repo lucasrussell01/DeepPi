@@ -29,7 +29,7 @@ if sample == "GluGluHToTauTau_M125":
     alias = "ggHTT_" + args.split
 else:
     alias = "unkwn"
-path_to_filelist = "/home/hep/lcr119/DeepPi/Analysis/scripts/HPS_MC_106X_" + sample + ".dat"
+path_to_filelist = "/home/hep/lcr119/DeepPi/Analysis/scripts/HPS_2308_MC_106X_" + sample + ".dat"
 
 
 # Max number of events to process #int(rhTree.GetEntries())
