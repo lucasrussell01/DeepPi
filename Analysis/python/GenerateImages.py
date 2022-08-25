@@ -275,7 +275,7 @@ for f in files:
                     df["pi0_E"] = list_pi0_E
                     df["pi0_dEta"] = list_pi0_dEta
                     df["pi0_dPhi"] = list_pi0_dPhi
-                    df["strip_mas"] = list_strip_mass
+                    df["strip_mass"] = list_strip_mass
                     df["strip_pt"] = list_strip_pt
                     df["rho_mass"] = list_rho_mass
                     df["pi2_px"] = list_pi2_px
@@ -373,7 +373,7 @@ df["pi0_pz"] = list_pi0_pz
 df["pi0_E"] = list_pi0_E
 df["pi0_dEta"] = list_pi0_dEta
 df["pi0_dPhi"] = list_pi0_dPhi
-df["strip_mas"] = list_strip_mass
+df["strip_mass"] = list_strip_mass
 df["strip_pt"] = list_strip_pt
 df["rho_mass"] = list_rho_mass
 df["pi2_px"] = list_pi2_px

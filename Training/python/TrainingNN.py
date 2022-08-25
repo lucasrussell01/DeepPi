@@ -23,9 +23,10 @@ import numpy as np
 
 class DeepPiModel(keras.Model):
 
-    def __init__(self, *args, regress_kinematic=False, **kwargs):
+    def __init__(self, *args, regress_kinematic=False, use_HPS=True, **kwargs):
         super().__init__(*args, **kwargs)
         self.regress_kinematic = regress_kinematic # Toggle this to true if kinematic regression present
+        self.use_HPS = use_HPS # Toggle true if HPS mass variables present
         self.DM_loss = TauLosses.DecayMode_loss
         self.Kin_loss = TauLosses.Kinematic_loss
         self.MSE_p = TauLosses.MSE_momentum
@@ -195,7 +196,7 @@ def dense_block(prev_layer, size, n=1, dropout=0):
     out = layer_ending(dense, n, dim2d=False, dropout=dropout)
     return out
 
-def create_model(model_name, dropout_rate, regress_kinematic):
+def create_model(model_name, dropout_rate, regress_kinematic, use_HPS):
 
     # Input Image
     input_layer = Input(name="input_image", shape=(33, 33, 5))
@@ -221,8 +222,18 @@ def create_model(model_name, dropout_rate, regress_kinematic):
     flat = Flatten(name="flatten")(conv14) # 75
     flat_size = 225 
 
+    if use_HPS: # add HPS dense layers
+        print("Warning: Using HPS mass variables")
+        input_HPS = Input(name="input_mass_vars", shape=(13))
+        dense_mass1 = dense_block(input_HPS, 50, dropout=dropout_rate, n="_mass_1")
+        dense_mass2 = dense_block(dense_mass1, 50, dropout=dropout_rate, n="_mass_2")
+        dense_mass3 = dense_block(dense_mass2, 50, dropout=dropout_rate, n="_mass_3")
+        concat = Concatenate()([flat, dense_mass3])
+        dense_DM1 = dense_block(concat, flat_size, dropout=dropout_rate, n="_DM_1")
+    else: 
+        dense_DM1 = dense_block(flat, flat_size, dropout=dropout_rate, n="_DM_1")
+
     # Dense layers for pi0 number extrapolation
-    dense_DM1 = dense_block(flat, flat_size, dropout=dropout_rate, n="_DM_1")
     dense_DM2 = dense_block(dense_DM1, flat_size, dropout=dropout_rate, n="_DM_2")
     dense_DM3 = dense_block(dense_DM2, flat_size, dropout=dropout_rate, n="_DM_3")
     dense_DM4 = dense_block(dense_DM3, 100, dropout=dropout_rate, n="_DM_4")
@@ -243,6 +254,8 @@ def create_model(model_name, dropout_rate, regress_kinematic):
     # create model
     if regress_kinematic:
         model = DeepPiModel(input_layer, [outputDM, outputKin], name=model_name, regress_kinematic=True)
+    elif use_HPS:
+        model = DeepPiModel([input_layer, input_HPS], outputDM, name=model_name, use_HPS=True)
     else:
         model = DeepPiModel(input_layer, outputDM, name=model_name, regress_kinematic=False)
 
@@ -279,6 +292,9 @@ def run_training(model, data_loader):
     if data_loader.regress_kinematic:
         input_shape = ((33, 33, 5), None, 3, None)
         input_types = (tf.float32, tf.float32, tf.float32, tf.float32)
+    elif data_loader.use_HPS:
+        input_shape = (((33, 33, 5), 13), None)
+        input_types = ((tf.float32, tf.float32), tf.float32)
     else:
         input_shape = ((33, 33, 5), None)
         input_types = (tf.float32, tf.float32)
@@ -344,7 +360,7 @@ def main(cfg: DictConfig) -> None:
         dataloader = DataLoader(training_cfg)
 
         # main training
-        model = create_model(dataloader.model_name, dataloader.dropout_rate, dataloader.regress_kinematic)
+        model = create_model(dataloader.model_name, dataloader.dropout_rate, dataloader.regress_kinematic, dataloader.use_HPS)
 
         if cfg.pretrained is None:
             print("Warning: no pretrained NN -> training will be started from scratch")
