@@ -49,8 +49,13 @@ print(training_cfg)
 # Load evaluation dataset
 dataloader = DataLoader(training_cfg)
 gen_eval = dataloader.get_generator(primary_set = True, evaluation=True)
-input_shape = ((33, 33, 5), None, None)
-input_types = (tf.float32, tf.float32, tf.float32)
+
+if training_cfg["Setup"]["HPS_features"]:
+    input_shape = (((33, 33, 5), 13), None, None)
+    input_types = ((tf.float32, tf.float32), tf.float32, tf.float32)
+else:
+    input_shape = ((33, 33, 5), None, None)
+    input_types = (tf.float32, tf.float32, tf.float32)
 data_eval = tf.data.Dataset.from_generator(
     gen_eval, output_types = input_types, output_shapes = input_shape
     ).prefetch(tf.data.AUTOTUNE).batch(1).take(dataloader.n_batches)
