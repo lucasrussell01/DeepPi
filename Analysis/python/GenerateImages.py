@@ -12,6 +12,7 @@ rgb = np.array([[255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255
 rgb = np.transpose(rgb)
 newcmp = colors.ListedColormap(rgb)
 import argparse
+import gc 
 
 parser = argparse.ArgumentParser(description='Generate images from RHTree ROOT files')
 parser.add_argument('--n_tau', required=True, type=int, help="Number of taus to select")
@@ -38,7 +39,7 @@ plot = False
 
 
 shard = 0 # number of file if split into several required
-save_folder = args.save_path + "HPS_2308"
+save_folder = args.save_path + "v2Images"
 savepath = save_folder + "/" + alias + "_" + str(shard) + ".pkl"
 # check if directory exists
 if not os.path.exists(save_folder):
@@ -117,6 +118,9 @@ DM_list = []
 releta_list = []
 relphi_list = []
 relp_list = []
+# centre of image
+jet_eta_list = []
+jet_phi_list = []
 # PV information:
 PV_list = []
 # HPS variables:
@@ -189,7 +193,7 @@ for f in files:
         relphi = np.array(rhTree.jet_neutral_indv_relphi, dtype=object)
         relp = np.array(rhTree.jet_neutral_indv_relp, dtype=object)
         # Primary vertex:
-        PV = rhTree.PrimaryVertex
+        PV = np.array(rhTree.PrimaryVertex)
         # Iterate over the taus in the event
         n_taus = len(truthDM)
         for i in range(n_taus):
@@ -216,6 +220,8 @@ for f in files:
                 relphi_list.append(np.array(relphi[i]))
                 relp_list.append(np.array(relp[i]))
                 PV_list.append(PV)
+                jet_eta_list.append(np.array(rhTree.jet_centre2_eta)[i])
+                jet_phi_list.append(np.array(rhTree.jet_centre2_phi)[i])
                 # add HPS variables:
                 list_tau_dm.append(np.array(rhTree.tau_dm)[i])
                 list_tau_pt.append(np.array(rhTree.tau_pt)[i])
@@ -259,6 +265,8 @@ for f in files:
                     df["relphi"] = relphi_list
                     df["relp"] = relp_list
                     df["PV"] = PV_list
+                    df["jet_eta"] = jet_eta_list
+                    df["jet_phi"] = jet_phi_list
                     # HPS variables:
                     df["tau_dm"] = list_tau_dm
                     df["tau_pt"] = list_tau_pt
@@ -295,6 +303,7 @@ for f in files:
                     savepath = save_folder + "/" + alias + "_" + str(shard) + ".pkl"
                     # os.system('~/scripts/t-notify.sh shard saved')
                     print("After event: ", event)
+                    del df # delete dataframe to save memory
                     Tracks_list = []
                     ECAL_list = []
                     PF_HCAL_list = []
@@ -305,6 +314,8 @@ for f in files:
                     relphi_list = []
                     relp_list = []
                     PV_list = []
+                    jet_eta_list = []
+                    jet_phi_list = []
                     list_tau_dm = []
                     list_tau_pt = []
                     list_tau_E = []
@@ -334,6 +345,7 @@ for f in files:
                     list_mass0 = []
                     list_mass1 = []
                     list_mass2 = []
+                    gc.collect()
                 if args.n_tau != -1:
                     if n_selected%10 == 0:
                         pbar.update(10)
@@ -344,6 +356,8 @@ for f in files:
     file_pbar.update(1)
     print("Changing file")
     Rfile.Close()
+    del Rfile
+    gc.collect()
                
 
 savepath = save_folder + "/" + alias + "_" + str(shard) + "_end.pkl"
@@ -358,6 +372,8 @@ df["releta"] = releta_list
 df["relphi"] = relphi_list
 df["relp"] = relp_list
 df["PV"] = PV_list
+df["jet_eta"] = jet_eta_list
+df["jet_phi"] = jet_phi_list
 df["tau_dm"] = list_tau_dm
 df["tau_pt"] = list_tau_pt
 df["tau_E"] = list_tau_E
