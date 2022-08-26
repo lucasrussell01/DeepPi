@@ -22,6 +22,8 @@ class DataLoader:
         self.learning_rate = self.config["Setup"]["learning_rate"]
         self.model_name = self.config["Setup"]["model_name"]
         self.regress_kinematic = self.config["Setup"]["kinematic"]
+        self.kDM = self.config["Setup"]["DM_importance"]
+        self.kKin = self.config["Setup"]["kin_importance"]
         self.use_HPS = self.config["Setup"]["HPS_features"]
         self.file_path = self.config["Setup"]["input_dir"]
         print(self.file_path)

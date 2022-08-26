@@ -13,3 +13,5 @@ Setup:
     learning_rate   :   0.0001 # Not actually coded in yet
     kinematic       :   False  # Toggle True if want kinematic prediction as well as DM
     HPS_features    :   False  # Toggle True if want to use HPS high level mass variables
+    DM_importance   :   1 # importance of gradients of DM
+    kin_importance  :   1 # importance of gradients of kinematic loss

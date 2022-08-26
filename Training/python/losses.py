@@ -36,6 +36,24 @@ class TauLosses:
         loss = (output[:, 2] - target[:, 2])**2 
         return loss
 
+    @staticmethod
+    @tf.function
+    def RMSE_momentum(target, output):
+        loss = ((output[:, 0] - target[:, 0])**2)**0.5
+        return loss
+    
+    @staticmethod
+    @tf.function
+    def RMSE_eta(target, output):
+        loss = ((output[:, 1] - target[:, 1])**2)**0.5 
+        return loss
+
+    @staticmethod
+    @tf.function
+    def RMSE_phi(target, output):
+        loss = ((output[:, 2] - target[:, 2])**2)**0.5 
+        return loss
+
 
 class EpochCheckpoint(Callback):
     def __init__(self, file_name_prefix):

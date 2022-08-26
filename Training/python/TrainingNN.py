@@ -23,23 +23,30 @@ import numpy as np
 
 class DeepPiModel(keras.Model):
 
-    def __init__(self, *args, regress_kinematic=False, use_HPS=True, **kwargs):
+    def __init__(self, *args, regress_kinematic=False, use_HPS=True, kDM=1, kKin=1, **kwargs):
         super().__init__(*args, **kwargs)
         self.regress_kinematic = regress_kinematic # Toggle this to true if kinematic regression present
         self.use_HPS = use_HPS # Toggle true if HPS mass variables present
         self.DM_loss = TauLosses.DecayMode_loss
-        self.Kin_loss = TauLosses.Kinematic_loss
-        self.MSE_p = TauLosses.MSE_momentum
-        self.MSE_eta = TauLosses.MSE_eta
-        self.MSE_phi = TauLosses.MSE_phi
         self.DM_loss_tracker = keras.metrics.Mean(name="DM_loss")
-        if self.regress_kinematic:
+        if self.regress_kinematic:       
+            self.Kin_loss = TauLosses.Kinematic_loss
+            self.MSE_p = TauLosses.MSE_momentum
+            self.MSE_eta = TauLosses.MSE_eta
+            self.MSE_phi = TauLosses.MSE_phi
+            self.RMSE_p = TauLosses.RMSE_momentum
+            self.RMSE_eta = TauLosses.RMSE_eta
+            self.RMSE_phi = TauLosses.RMSE_phi
             self.Kin_loss_tracker = keras.metrics.Mean(name="Kin_loss")
             self.MSE_p_tracker = keras.metrics.Mean(name="MSE_momentum")
             self.MSE_eta_tracker = keras.metrics.Mean(name="MSE_eta")
             self.MSE_phi_tracker = keras.metrics.Mean(name="MSE_phi")
-            self.k1 = 1 # importance of L_DM
-            self.k2 = 1 # importance of L_Kin
+            self.RMSE_p_tracker = keras.metrics.Mean(name="RMSE_momentum")
+            self.RMSE_eta_tracker = keras.metrics.Mean(name="RMSE_eta")
+            self.RMSE_phi_tracker = keras.metrics.Mean(name="RMSE_phi")
+            self.kDM = kDM # importance of L_DM
+            self.kKin = kKin # importance of L_Kin
+            print(f"Decay Mode Importance: {self.kDM}, Kinematic Importance: {self.kKin}")
         self.DM_accuracy = tf.keras.metrics.CategoricalAccuracy(name='DM_accuracy', dtype=None)
         
 
@@ -73,7 +80,7 @@ class DeepPiModel(keras.Model):
             grad_Kin_glob = Kin_tape.gradient(Kin_loss, common_layers + Kin_layers) # for whole network wrt Kin
             grad_DM_final = grad_DM_glob[len(common_layers):] # final DM layers
             grad_Kin_final = grad_Kin_glob[len(common_layers):] # final Kin layers
-            grad_common = [self.k1*grad_DM_glob[i] + self.k2*grad_Kin_glob[i] for i in range(len(common_layers))]
+            grad_common = [self.kDM*grad_DM_glob[i] + self.kKin*grad_Kin_glob[i] for i in range(len(common_layers))]
 
             # Update trainable parameters
             self.optimizer.apply_gradients(zip(grad_common + grad_DM_final + grad_Kin_final, common_layers + DM_layers + Kin_layers))
@@ -82,6 +89,10 @@ class DeepPiModel(keras.Model):
             MSE_p = tf.reduce_sum(tf.multiply(self.MSE_p(yKin, y_predKin), w))/tf.reduce_sum(w)
             MSE_eta = tf.reduce_sum(tf.multiply(self.MSE_eta(yKin, y_predKin), w))/tf.reduce_sum(w)
             MSE_phi = tf.reduce_sum(tf.multiply(self.MSE_phi(yKin, y_predKin), w))/tf.reduce_sum(w)
+            RMSE_p = tf.reduce_sum(tf.multiply(self.RMSE_p(yKin, y_predKin), w))/tf.reduce_sum(w)
+            RMSE_eta = tf.reduce_sum(tf.multiply(self.RMSE_eta(yKin, y_predKin), w))/tf.reduce_sum(w)
+            RMSE_phi = tf.reduce_sum(tf.multiply(self.RMSE_phi(yKin, y_predKin), w))/tf.reduce_sum(w)
+
         else: # If only DM classification
             # Forward pass:
             with tf.GradientTape() as DM_tape:
@@ -105,6 +116,9 @@ class DeepPiModel(keras.Model):
             self.MSE_p_tracker.update_state(MSE_p)
             self.MSE_eta_tracker.update_state(MSE_eta)
             self.MSE_phi_tracker.update_state(MSE_phi)
+            self.RMSE_p_tracker.update_state(RMSE_p)
+            self.RMSE_eta_tracker.update_state(RMSE_eta)
+            self.RMSE_phi_tracker.update_state(RMSE_phi)
 
         # Return a dict mapping metric names to current value (printout)
         metrics_out =  {m.name: m.result() for m in self.metrics}
@@ -128,6 +142,9 @@ class DeepPiModel(keras.Model):
             MSE_p = tf.reduce_sum(tf.multiply(self.MSE_p(yKin, y_predKin), w))/tf.reduce_sum(w)
             MSE_eta = tf.reduce_sum(tf.multiply(self.MSE_eta(yKin, y_predKin), w))/tf.reduce_sum(w)
             MSE_phi = tf.reduce_sum(tf.multiply(self.MSE_phi(yKin, y_predKin), w))/tf.reduce_sum(w)
+            RMSE_p = tf.reduce_sum(tf.multiply(self.RMSE_p(yKin, y_predKin), w))/tf.reduce_sum(w)
+            RMSE_eta = tf.reduce_sum(tf.multiply(self.RMSE_eta(yKin, y_predKin), w))/tf.reduce_sum(w)
+            RMSE_phi = tf.reduce_sum(tf.multiply(self.RMSE_phi(yKin, y_predKin), w))/tf.reduce_sum(w)
         else:
             y_predDM = self(x, training=False)
         DM_loss_vec = self.DM_loss(yDM, y_predDM)
@@ -142,6 +159,9 @@ class DeepPiModel(keras.Model):
             self.MSE_p_tracker.update_state(MSE_p)
             self.MSE_eta_tracker.update_state(MSE_eta)
             self.MSE_phi_tracker.update_state(MSE_phi)
+            self.RMSE_p_tracker.update_state(RMSE_p)
+            self.RMSE_eta_tracker.update_state(RMSE_eta)
+            self.RMSE_phi_tracker.update_state(RMSE_phi)
 
         # Return a dict mapping metric names to current value
         metrics_out = {m.name: m.result() for m in self.metrics}
@@ -161,6 +181,9 @@ class DeepPiModel(keras.Model):
             metrics.append(self.MSE_p_tracker)
             metrics.append(self.MSE_eta_tracker)
             metrics.append(self.MSE_phi_tracker)
+            metrics.append(self.RMSE_p_tracker)
+            metrics.append(self.RMSE_eta_tracker)
+            metrics.append(self.RMSE_phi_tracker)
 
         for l in self._flatten_layers():
             metrics.extend(l._metrics)  # pylint: disable=protected-access
@@ -196,8 +219,9 @@ def dense_block(prev_layer, size, n=1, dropout=0):
     out = layer_ending(dense, n, dim2d=False, dropout=dropout)
     return out
 
-def create_model(model_name, dropout_rate, regress_kinematic, use_HPS):
+def create_model(dataloader):
 
+    dropout_rate = dataloader.dropout_rate
     # Input Image
     input_layer = Input(name="input_image", shape=(33, 33, 5))
 
@@ -222,7 +246,7 @@ def create_model(model_name, dropout_rate, regress_kinematic, use_HPS):
     flat = Flatten(name="flatten")(conv14) # 75
     flat_size = 225 
 
-    if use_HPS: # add HPS dense layers
+    if dataloader.use_HPS: # add HPS dense layers
         print("Warning: Using HPS mass variables")
         input_HPS = Input(name="input_mass_vars", shape=(13))
         dense_mass1 = dense_block(input_HPS, 50, dropout=dropout_rate, n="_mass_1")
@@ -241,7 +265,7 @@ def create_model(model_name, dropout_rate, regress_kinematic, use_HPS):
     # Pi0 output (softmax)
     outputDM = Activation("softmax", name="output_DM")(dense_DM5)
 
-    if regress_kinematic:
+    if dataloader.regress_kinematic:
         # Dense layers for kinematic extrapolation
         dense_Kin1 = dense_block(flat, flat_size, dropout=dropout_rate, n="_Kin_1")
         dense_Kin2 = dense_block(dense_Kin1, flat_size, dropout=dropout_rate, n="_Kin_2")
@@ -252,12 +276,13 @@ def create_model(model_name, dropout_rate, regress_kinematic, use_HPS):
         outputKin= Dense(3, name="output_Kin")(dense_Kin5)
 
     # create model
-    if regress_kinematic:
-        model = DeepPiModel(input_layer, [outputDM, outputKin], name=model_name, regress_kinematic=True)
-    elif use_HPS:
-        model = DeepPiModel([input_layer, input_HPS], outputDM, name=model_name, use_HPS=True)
+    if dataloader.regress_kinematic:
+        model = DeepPiModel(input_layer, [outputDM, outputKin], name=dataloader.model_name, regress_kinematic=True,
+                             kDM=dataloader.kDM, kKin=dataloader.kKin)
+    elif dataloader.use_HPS:
+        model = DeepPiModel([input_layer, input_HPS], outputDM, name=dataloader.model_name, use_HPS=True)
     else:
-        model = DeepPiModel(input_layer, outputDM, name=model_name, regress_kinematic=False)
+        model = DeepPiModel(input_layer, outputDM, name=dataloader.model_name, regress_kinematic=False)
 
     return model
 
@@ -360,7 +385,7 @@ def main(cfg: DictConfig) -> None:
         dataloader = DataLoader(training_cfg)
 
         # main training
-        model = create_model(dataloader.model_name, dataloader.dropout_rate, dataloader.regress_kinematic, dataloader.use_HPS)
+        model = create_model(dataloader)
 
         if cfg.pretrained is None:
             print("Warning: no pretrained NN -> training will be started from scratch")
