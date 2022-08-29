@@ -28,6 +28,8 @@ args = parser.parse_args()
 sample = args.sample #"GluGluHToTauTau_M125", "DYJetsToLL-LO"
 if sample == "GluGluHToTauTau_M125":
     alias = "ggHTT_" + args.split
+elif sample == "GluGluHToTauTau_M-125":
+    alias = "ggHTT_madgraph_" + args.split
 else:
     alias = "unkwn"
 path_to_filelist = "/home/hep/lcr119/DeepPi/Analysis/scripts/HPS_2308_MC_106X_" + sample + ".dat"
@@ -36,7 +38,6 @@ path_to_filelist = "/home/hep/lcr119/DeepPi/Analysis/scripts/HPS_2308_MC_106X_" 
 # Max number of events to process #int(rhTree.GetEntries())
 n_tau_target = args.n_tau # Max number of taus to select
 plot = False
-
 
 shard = 0 # number of file if split into several required
 save_folder = args.save_path + "v2Images"
@@ -50,19 +51,32 @@ count = 0
 with open(path_to_filelist) as f:
     lines = f.readlines()
     lines = [line.rstrip('\n') for line in lines]
-    if args.split == "A":
-        files = lines[:125]
-    elif args.split == "B":
-        files = lines[125:250]
-    elif args.split == "C":
-        files = lines[250:375]
-    elif args.split == "D":
-        files = lines[375:500]
-    elif args.split == "E":
-        files = lines[500:]
-    else: 
-        raise Exception("Split not recognised")
-    
+    if sample == "GluGluHToTauTau_M125":
+        if args.split == "A":
+            files = lines[:125]
+        elif args.split == "B":
+            files = lines[125:250]
+        elif args.split == "C":
+            files = lines[250:375]
+        elif args.split == "D":
+            files = lines[375:500]
+        elif args.split == "E":
+            files = lines[500:]
+        else: 
+            raise Exception("Split not recognised")
+    elif sample == "GluGluHToTauTau_M-125":
+        if args.split == "A":
+            files = lines[:75]
+        elif args.split == "B":
+            files = lines[75:150]
+        elif args.split == "C":
+            files = lines[150:225]
+        elif args.split == "D":
+            files = lines[225:300]
+        elif args.split == "E":
+            files = lines[300:]
+        else: 
+            raise Exception("Split not recognised")
 
 def crop_channel(image, centre_eta, centre_phi):
     pad = 16 # padding on each side of centre
@@ -303,7 +317,17 @@ for f in files:
                     savepath = save_folder + "/" + alias + "_" + str(shard) + ".pkl"
                     # os.system('~/scripts/t-notify.sh shard saved')
                     print("After event: ", event)
-                    del df # delete dataframe to save memory
+                    # delete lists and df to reduce memory leakage
+                    del df
+                    del Tracks_list, ECAL_list, PF_HCAL_list, PF_ECAL_list, addTracks_list, DM_list
+                    del releta_list, relphi_list, relp_list, jet_eta_list, jet_phi_list, PV_list
+                    del list_tau_dm, list_tau_pt, list_tau_E, list_tau_eta, list_tau_mass, list_pi_px 
+                    del list_pi_py, list_pi_pz, list_pi_E, list_pi0_px, list_pi0_py, list_pi0_pz, list_pi0_E
+                    del list_pi0_dEta, list_pi0_dPhi, list_strip_mass, list_strip_pt, list_rho_mass 
+                    del list_pi2_px, list_pi2_py, list_pi2_pz, list_pi2_E, list_pi3_px, list_pi3_py
+                    del list_pi3_pz, list_pi3_E, list_mass0, list_mass1, list_mass2 
+                    gc.collect() # collect released memory
+                    # initialise lists again
                     Tracks_list = []
                     ECAL_list = []
                     PF_HCAL_list = []
@@ -345,7 +369,6 @@ for f in files:
                     list_mass0 = []
                     list_mass1 = []
                     list_mass2 = []
-                    gc.collect()
                 if args.n_tau != -1:
                     if n_selected%10 == 0:
                         pbar.update(10)

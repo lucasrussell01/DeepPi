@@ -24,10 +24,10 @@ class distribution_plotter:
             print(f"File {i} out of {len(self.file_list)} processed")
         print("All files loaded")
     
-    def plot_eta(self, bins, DM = None):
+    def plot_eta(self, bins, n_bins=30,  DM = None):
         plt.figure()
         w_plot = bins[1] - bins[0]
-        bins = np.arange(bins[0], bins[1] + w_plot/30,  w_plot/30) # histo with 30 bins
+        bins = np.arange(bins[0], bins[1] + w_plot/n_bins,  w_plot/n_bins) 
         if DM:
             where = np.empty(shape=1, dtype=int)
             for i in DM:
@@ -43,10 +43,10 @@ class distribution_plotter:
         plt.title("Relative eta")
         plt.show()
 
-    def plot_phi(self, bins, DM = None):
+    def plot_phi(self, bins, n_bins=30, DM = None):
         plt.figure()
         w_plot = bins[1] - bins[0]
-        bins = np.arange(bins[0], bins[1] + w_plot/30,  w_plot/30) # histo with 30 bins
+        bins = np.arange(bins[0], bins[1] + w_plot/n_bins,  w_plot/n_bins) 
         if DM:
             where = np.empty(shape=1, dtype=int)
             for i in DM:
@@ -62,10 +62,10 @@ class distribution_plotter:
         plt.title("Relative phi")
         plt.show()
 
-    def plot_p(self, bins, DM = None):
+    def plot_p(self, bins, n_bins=30, DM = None):
         plt.figure()
         w_plot = bins[1] - bins[0]
-        bins = np.arange(bins[0], bins[1] + w_plot/30,  w_plot/30) # histo with 30 bins
+        bins = np.arange(bins[0], bins[1] + w_plot/n_bins,  w_plot/n_bins) 
         if DM:
             where = np.empty(shape=1, dtype=int)
             for i in DM:
