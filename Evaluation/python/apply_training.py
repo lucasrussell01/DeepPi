@@ -39,7 +39,7 @@ def test(data, model):
 with open(f'{path_to_artifacts}/input_cfg/training_cfg.yaml') as file:
     training_cfg = yaml.full_load(file)
     print("Training Config Loaded")
-training_cfg["Setup"]["input_dir"] = '/vols/cms/lcr119/Images/HPS_2108/Evaluation'
+training_cfg["Setup"]["input_dir"] = '/vols/cms/lcr119/Images/v2Images/Evaluation'
 training_cfg["Setup"]["n_batches"] = args.n_tau # 250k is full because batch size 1
 training_cfg["Setup"]["n_batches_val"] = 0
 training_cfg["Setup"]["val_split"] = 0

@@ -95,7 +95,7 @@ class DataLoader:
                         # Add HPS vars if using them
                         if self.use_HPS:
                             x_mass = (np.stack([df["tau_dm"][i], df["tau_pt"][i], df["tau_E"][i], df["tau_eta"][i], df["tau_mass"][i],
-                            df["pi0_dEta"][i], df["pi0_dPhi"][i], df["strip_mas"][i], df["strip_pt"][i], 
+                            df["pi0_dEta"][i], df["pi0_dPhi"][i], df["strip_mass"][i], df["strip_pt"][i], 
                             df["rho_mass"][i], df["mass0"][i], df["mass1"][i], df["mass2"][i]], axis=-1))
                             x = tuple([x, x_mass])
                         DM = df["DM"][i]
