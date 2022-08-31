@@ -34,7 +34,7 @@ class DataLoader:
         print("Files for validation:", len(self.val_files))
         # print(self.val_files)
 
-    def get_generator(self, primary_set = True, show_progress = False, evaluation = False):
+    def get_generator(self, primary_set = True, show_progress = False, DM_evaluation = False, Kin_evaluation = False):
 
         _files = self.train_files if primary_set else self.val_files
         print(("Training" if primary_set else "Validation") + " file list loaded" )
@@ -102,10 +102,16 @@ class DataLoader:
                         if self.regress_kinematic:
                             max_index = np.where(df["relp"][i] == np.max(df["relp"][i]))[0] # find leading neutral
                             yKin = (df["relp"][i][max_index][0], df["releta"][i][max_index][0], df["relphi"][i][max_index][0])
-                        if evaluation:
+                        if DM_evaluation:
                             yDM = DM
                             HPSDM = df["tau_dm"][i]
                             yield(x, yDM, HPSDM)
+                        elif Kin_evaluation:
+                            PV = df["PV"][i]
+                            HPSDM = df["tau_dm"][i]
+                            HPS_pi0 = [df["pi0_px"][i], df["pi0_py"][i], df["pi0_pz"][i]]
+                            jet = [df["jet_eta"][i], df["jet_phi"][i]]
+                            yield(x, yKin, PV, DM, HPSDM, HPS_pi0, jet)
                         else:
                             if DM == 0 or DM == 10:
                                 yDM = tf.one_hot(0, 3) # no pi0

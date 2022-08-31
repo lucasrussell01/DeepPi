@@ -12,11 +12,11 @@ from DataLoader import DataLoader
 os.environ["CUDA_VISIBLE_DEVICES"]="-1" # don't need to use GPU
 
 import argparse
-parser = argparse.ArgumentParser(description='Generate predictions for DeepPi training')
+parser = argparse.ArgumentParser(description='Generate DM predictions for DeepPi training')
 parser.add_argument('--expID', required=True, type=str, help="Experiment ID")
 parser.add_argument('--runID', required=True, type=str, help="Run ID")
 parser.add_argument('--n_tau', required=False, default = 50000, type=int, help="n_tau")
-parser.add_argument('--HPS', required=False, default = "False", type=str, help="use HPS taus onluy")
+parser.add_argument('--HPS', required=False, default = "False", type=str, help="use HPS taus only")
 
 args = parser.parse_args()
 
@@ -48,7 +48,7 @@ print(training_cfg)
 
 # Load evaluation dataset
 dataloader = DataLoader(training_cfg)
-gen_eval = dataloader.get_generator(primary_set = True, evaluation=True)
+gen_eval = dataloader.get_generator(primary_set = True, DM_evaluation=True)
 
 if training_cfg["Setup"]["HPS_features"]:
     input_shape = (((33, 33, 5), 13), None, None)
