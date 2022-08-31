@@ -21,7 +21,7 @@ from glob import glob
 import numpy as np
 
 
-class DeepPiModel(keras.Model):
+class DeepPiv1Model(keras.Model):
 
     def __init__(self, *args, regress_kinematic=False, use_HPS=True, kDM=1, kKin=1, **kwargs):
         super().__init__(*args, **kwargs)
@@ -219,7 +219,7 @@ def dense_block(prev_layer, size, n=1, dropout=0):
     out = layer_ending(dense, n, dim2d=False, dropout=dropout)
     return out
 
-def create_model(dataloader):
+def create_v1_model(dataloader):
 
     dropout_rate = dataloader.dropout_rate
     # Input Image
@@ -277,25 +277,18 @@ def create_model(dataloader):
 
     # create model
     if dataloader.regress_kinematic:
-        model = DeepPiModel(input_layer, [outputDM, outputKin], name=dataloader.model_name, regress_kinematic=True,
+        model = DeepPiv1Model(input_layer, [outputDM, outputKin], name=dataloader.model_name, regress_kinematic=True,
                              kDM=dataloader.kDM, kKin=dataloader.kKin)
     elif dataloader.use_HPS:
-        model = DeepPiModel([input_layer, input_HPS], outputDM, name=dataloader.model_name, use_HPS=True)
+        model = DeepPiv1Model([input_layer, input_HPS], outputDM, name=dataloader.model_name, use_HPS=True)
     else:
-        model = DeepPiModel(input_layer, outputDM, name=dataloader.model_name, regress_kinematic=False)
+        model = DeepPiv1Model(input_layer, outputDM, name=dataloader.model_name, regress_kinematic=False)
 
     return model
 
-def compile_model(model, regress_kinematic=False):
+def compile_v1_model(model, regress_kinematic=False):
 
     opt = tf.keras.optimizers.Nadam(learning_rate=1e-4)
-
-    # strmetrics = ["TauLosses.DecayMode_loss", "TauLosses.Kinematic_loss"]
-    # metrics = []
-    # for m in strmetrics:
-    #     if "TauLosses" in m:
-    #         m = eval(m)
-    #     metrics.append(m)
 
     model.compile(loss=None, optimizer=opt, metrics=None)
     # mlflow log
@@ -314,15 +307,16 @@ def run_training(model, data_loader):
     gen_val = data_loader.get_generator(primary_set = False)
 
     # datasets from generators
-    if data_loader.regress_kinematic:
-        input_shape = ((33, 33, 5), None, 3, None)
-        input_types = (tf.float32, tf.float32, tf.float32, tf.float32)
-    elif data_loader.use_HPS:
-        input_shape = (((33, 33, 5), 13), None)
-        input_types = ((tf.float32, tf.float32), tf.float32)
-    else:
-        input_shape = ((33, 33, 5), None)
-        input_types = (tf.float32, tf.float32)
+    if data_loader.model_name == "DeepPi_v1":
+        if data_loader.regress_kinematic:
+            input_shape = ((33, 33, 5), None, 3, None)
+            input_types = (tf.float32, tf.float32, tf.float32, tf.float32)
+        elif data_loader.use_HPS:
+            input_shape = (((33, 33, 5), 13), None)
+            input_types = ((tf.float32, tf.float32), tf.float32)
+        else:
+            input_shape = ((33, 33, 5), None)
+            input_types = (tf.float32, tf.float32)
     
     data_train = tf.data.Dataset.from_generator(
         gen_train, output_types = input_types, output_shapes = input_shape
@@ -385,7 +379,8 @@ def main(cfg: DictConfig) -> None:
         dataloader = DataLoader(training_cfg)
 
         # main training
-        model = create_model(dataloader)
+        if dataloader.model_name == "DeepPi_v1":
+            model = create_v1_model(dataloader)
 
         if cfg.pretrained is None:
             print("Warning: no pretrained NN -> training will be started from scratch")
@@ -406,7 +401,8 @@ def main(cfg: DictConfig) -> None:
                 if not weights_found:
                     print(f"Weights for layer '{layer.name}' not found.")
 
-        compile_model(model, regress_kinematic=dataloader.regress_kinematic)
+        if dataloader.model_name == "DeepPi_v1":
+            compile_v1_model(model, regress_kinematic=dataloader.regress_kinematic)
         fit = run_training(model, dataloader)
 
         # log NN params
