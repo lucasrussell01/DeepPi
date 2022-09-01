@@ -286,6 +286,57 @@ def create_v1_model(dataloader):
 
     return model
 
+
+def create_v2_model(dataloader):
+
+    dropout_rate = dataloader.dropout_rate
+    # Input Image
+    input_layer = Input(name="input_image", shape=(33, 33, 5))
+
+    # Feature extracting convolutional layers:
+    conv0 = conv_block(input_layer, 24, dropout=dropout_rate, kernel_size=1, n=0) #31
+    conv1 = conv_block(conv0, 15, dropout=dropout_rate, kernel_size=3, n=1) #31
+    conv2 = conv_block(conv1, 9, dropout=dropout_rate, n=2) #29 
+    conv3 = conv_block(conv2, 9, dropout=dropout_rate, n=3) #27
+    conv4 = conv_block(conv3, 9, dropout=dropout_rate, n=4) #25
+    conv5 = conv_block(conv4, 9, dropout=dropout_rate, n=5) #23
+    conv6 = conv_block(conv5, 9, dropout=dropout_rate, n=6) #21
+    conv7 = conv_block(conv6, 9, dropout=dropout_rate, n=7) #19
+    conv8 = conv_block(conv7, 9, dropout=dropout_rate, n=8) #17
+    conv9 = conv_block(conv8, 9, dropout=dropout_rate, n=9) #15
+    conv10 = conv_block(conv9, 9, dropout=dropout_rate, n=10) #13
+    conv11 = conv_block(conv10, 9, dropout=dropout_rate,n=11) #11
+    conv12 = conv_block(conv11, 9, dropout=dropout_rate, n=12) #9
+    conv13 = conv_block(conv12, 9, dropout=dropout_rate, n=13) #7
+    conv14 = conv_block(conv13, 9, dropout=dropout_rate, n=14) #5
+
+    # Flatten inputs
+    flat = Flatten(name="flatten")(conv14) # 75
+    flat_size = 225 
+
+    if dataloader.use_HPS: # add HPS dense layers
+        print("Warning: Using HPS mass variables")
+        input_HPS = Input(name="input_mass_vars", shape=(14))
+        dense_mass1 = dense_block(input_HPS, 50, dropout=dropout_rate, n="_mass_1")
+        dense_mass2 = dense_block(dense_mass1, 50, dropout=dropout_rate, n="_mass_2")
+        dense_mass3 = dense_block(dense_mass2, 50, dropout=dropout_rate, n="_mass_3")
+        concat = Concatenate()([flat, dense_mass3])
+        dense_Kin1 = dense_block(concat, flat_size, dropout=dropout_rate, n="_Kin_1")
+    else: 
+        dense_Kin1 = dense_block(flat, flat_size, dropout=dropout_rate, n="_Kin_1")
+
+    # Dense layers for kinematic extrapolation    
+    dense_Kin2 = dense_block(dense_Kin1, flat_size, dropout=dropout_rate, n="_Kin_2")
+    dense_Kin3 = dense_block(dense_Kin2, flat_size, dropout=dropout_rate, n="_Kin_3")
+    dense_Kin4 = dense_block(dense_Kin3, 100, dropout=dropout_rate, n="_Kin_4")
+    # Kinematic output
+    outputKin= Dense(1, name="output_Kin")(dense_Kin4)
+
+    # create model
+    model = Model(input_layer, outputKin, name=dataloader.model_name)
+
+    return model
+
 def compile_v1_model(model, regress_kinematic=False):
 
     opt = tf.keras.optimizers.Nadam(learning_rate=1e-4)
@@ -300,14 +351,23 @@ def compile_v1_model(model, regress_kinematic=False):
         metrics = {'DM_loss': '', 'DM_accuracy': ''}
     mlflow.log_dict(metrics, 'input_cfg/metric_names.json')
 
+def compile_v2_model(model, regress_kinematic=False):
+
+    opt = tf.keras.optimizers.Nadam(learning_rate=1e-4)
+
+    model.compile(loss=TauLosses.MSE_momentum_v2, optimizer=opt, metrics=TauLosses.MSE_momentum_v2)
+    # mlflow log
+    metrics = {'loss': '', 'MSE_momentum_v2': ''}
+    mlflow.log_dict(metrics, 'input_cfg/metric_names.json')
+
 def run_training(model, data_loader):
 
-    # load generators
-    gen_train = data_loader.get_generator(primary_set = True)
-    gen_val = data_loader.get_generator(primary_set = False)
-
-    # datasets from generators
+    print(f"Warning: Model name for training is: {data_loader.model_name}")
     if data_loader.model_name == "DeepPi_v1":
+        # load generators
+        gen_train = data_loader.get_generator_v1(primary_set = True)
+        gen_val = data_loader.get_generator_v1(primary_set = False)
+        # define input shapes
         if data_loader.regress_kinematic:
             input_shape = ((33, 33, 5), None, 3, None)
             input_types = (tf.float32, tf.float32, tf.float32, tf.float32)
@@ -317,13 +377,25 @@ def run_training(model, data_loader):
         else:
             input_shape = ((33, 33, 5), None)
             input_types = (tf.float32, tf.float32)
+    elif data_loader.model_name == "DeepPi_v2":
+        # load generators
+        gen_train = data_loader.get_generator_v2(primary_set = True)
+        gen_val = data_loader.get_generator_v2(primary_set = False)
+        # define input shapes
+        if data_loader.use_HPS:
+            input_shape = (((33, 33, 5), 14), None)
+            input_types = ((tf.float32, tf.float32), tf.float32)
+        else:
+            input_shape = ((33, 33, 5), None)
+            input_types = (tf.float32, tf.float32)
     
+    # datasets from generators
     data_train = tf.data.Dataset.from_generator(
         gen_train, output_types = input_types, output_shapes = input_shape
-        ).prefetch(tf.data.AUTOTUNE).batch(data_loader.n_tau).take(data_loader.n_batches)
+        ).prefetch(tf.data.AUTOTUNE).batch(data_loader.n_tau)#.take(data_loader.n_batches)
     data_val = tf.data.Dataset.from_generator(
         gen_val, output_types = input_types, output_shapes = input_shape
-        ).prefetch(tf.data.AUTOTUNE).batch(data_loader.n_tau).take(data_loader.n_batches_val)
+        ).prefetch(tf.data.AUTOTUNE).batch(data_loader.n_tau)#.take(data_loader.n_batches_val)
     
     # logs/callbacks
     model_name = data_loader.model_name
@@ -337,8 +409,14 @@ def run_training(model, data_loader):
     callbacks = [epoch_checkpoint, csv_log]
 
     # Run training
-    fit = model.fit(data_train, validation_data = data_val, epochs = data_loader.n_epochs, 
-                    initial_epoch = data_loader.epoch, callbacks = callbacks)
+    if data_loader.n_batches == -1:
+        fit = model.fit(data_train, validation_data = data_val, epochs = data_loader.n_epochs, 
+                        initial_epoch = data_loader.epoch, callbacks = callbacks)
+    else:
+        fit = model.fit(data_train, validation_data = data_val, epochs = data_loader.n_epochs, 
+                        steps_per_epoch = data_loader.n_batches, validation_steps = data_loader.n_batches_val,
+                        initial_epoch = data_loader.epoch, callbacks = callbacks)
+
     model_path = f"{log_name}_final.tf"
     model.save(model_path, save_format="tf")
 
@@ -381,6 +459,8 @@ def main(cfg: DictConfig) -> None:
         # main training
         if dataloader.model_name == "DeepPi_v1":
             model = create_v1_model(dataloader)
+        elif dataloader.model_name == "DeepPi_v2":
+            model = create_v2_model(dataloader)
 
         if cfg.pretrained is None:
             print("Warning: no pretrained NN -> training will be started from scratch")
@@ -403,6 +483,9 @@ def main(cfg: DictConfig) -> None:
 
         if dataloader.model_name == "DeepPi_v1":
             compile_v1_model(model, regress_kinematic=dataloader.regress_kinematic)
+        elif dataloader.model_name == "DeepPi_v2":
+            compile_v2_model(model)
+
         fit = run_training(model, dataloader)
 
         # log NN params

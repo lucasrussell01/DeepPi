@@ -79,7 +79,7 @@ print(training_cfg)
 
 # Load evaluation dataset
 dataloader = DataLoader(training_cfg)
-gen_eval = dataloader.get_generator(primary_set = True, Kin_evaluation=True)
+gen_eval = dataloader.get_generator_v1(primary_set = True, Kin_evaluation=True)
 
 if not training_cfg["Setup"]["kinematic"]:
     raise Exception("This script should only be used to evaluate models trained with kinematic regression active")

@@ -54,6 +54,12 @@ class TauLosses:
         loss = ((output[:, 2] - target[:, 2])**2)**0.5 
         return loss
 
+    @staticmethod
+    @tf.function
+    def MSE_momentum_v2(target, output):
+        loss = (output - target)**2 
+        return loss
+
 
 class EpochCheckpoint(Callback):
     def __init__(self, file_name_prefix):

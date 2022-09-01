@@ -10,18 +10,16 @@ import sys
 sys.path.append("../../Training/python")
 from DataLoader import DataLoader
 os.environ["CUDA_VISIBLE_DEVICES"]="-1" # don't need to use GPU
-
 import argparse
-parser = argparse.ArgumentParser(description='Generate DM predictions for DeepPi training')
+
+parser = argparse.ArgumentParser(description='Generate Kinematic predictions for DeepPi training')
 parser.add_argument('--expID', required=True, type=str, help="Experiment ID")
 parser.add_argument('--runID', required=True, type=str, help="Run ID")
 parser.add_argument('--n_tau', required=False, default = 50000, type=int, help="n_tau")
-parser.add_argument('--HPS', required=False, default = "False", type=str, help="use HPS taus only")
+
 
 args = parser.parse_args()
 
-if args.HPS=="True":
-    print("WARNING: Selecting HPS taus only")
 
 path_to_mlflow = "../../Training/python/mlruns/"
 expID = args.expID 
@@ -29,18 +27,21 @@ runID = args.runID
 
 path_to_artifacts = path_to_mlflow + expID + "/" + runID + "/artifacts"
 
-def test(data, model):
-        # Unpack the data
-        x, y, yHPSDM = data
-        y_pred = model(x, training=False) 
-        return (y, y_pred)
+
+def test(x, model):
+    y_pred = model(x, training=False)
+    return np.array(y_pred)[0][0]
+
+def get_HPS_p(p_vect):
+    p = np.sqrt(p_vect[0]**2 + p_vect[1]**2 + p_vect[2]**2)
+    return p
 
 # Load training cfg
 with open(f'{path_to_artifacts}/input_cfg/training_cfg.yaml') as file:
     training_cfg = yaml.full_load(file)
     print("Training Config Loaded")
 training_cfg["Setup"]["input_dir"] = '/vols/cms/lcr119/Images/v2Images/Evaluation'
-training_cfg["Setup"]["n_batches"] = args.n_tau # 250k is full because batch size 1
+training_cfg["Setup"]["n_batches"] = args.n_tau
 training_cfg["Setup"]["n_batches_val"] = 0
 training_cfg["Setup"]["val_split"] = 0
 
@@ -48,14 +49,11 @@ print(training_cfg)
 
 # Load evaluation dataset
 dataloader = DataLoader(training_cfg)
-gen_eval = dataloader.get_generator_v1(primary_set = True, DM_evaluation=True)
+gen_eval = dataloader.get_generator_v2(primary_set = True, evaluation = True)
 
-if training_cfg["Setup"]["HPS_features"]:
-    input_shape = (((33, 33, 5), 13), None, None)
-    input_types = ((tf.float32, tf.float32), tf.float32, tf.float32)
-else:
-    input_shape = ((33, 33, 5), None, None)
-    input_types = (tf.float32, tf.float32, tf.float32)
+
+input_shape = ((33, 33, 5), None, 3, None, None, 3,  2)
+input_types = (tf.float32, tf.float32, tf.float32, tf.float32, tf.float32, tf.float32, tf.float32)
 data_eval = tf.data.Dataset.from_generator(
     gen_eval, output_types = input_types, output_shapes = input_shape
     ).prefetch(tf.data.AUTOTUNE).batch(1).take(dataloader.n_batches)
@@ -69,44 +67,46 @@ with open(f'{path_to_artifacts}/input_cfg/metric_names.json') as f:
 model = load_model(path_to_model, {name: lambda _: None for name in metric_names.keys()})
 print("Model loaded")
 
-full_pred = []
-truth = []
-truthDM = []
-max_pred = []
-
 pbar = tqdm(total = dataloader.n_batches)
 
+pi0_p = []
+pi0_p_pred = []
+pi0_p_HPS = []
+
+# Generate predictions
 i = 0
 for elem in data_eval:
-    x, yDM, yHPSDM = elem
-    if args.HPS=="True"and yHPSDM==-1:
+    x, y, PV, DM, HPSDM, HPS_pi0, jetpos = elem
+    HPS_pi0 = np.array(HPS_pi0)[0]
+    jetpos = np.array(jetpos[0])
+    if DM != 1 and DM != 11: # only kinematic regress DM 1 for now
+        i+=1
+        if i%10 ==0:
+            pbar.update(10)
         continue
+    elif HPSDM == 1 or HPSDM == 11: # make sure HPS has reco tau as same DM
+        y_pred = test(x, model)
+        y = np.array(y)[0]
+        pi0_p.append(y)
+        pi0_p_pred.append(y_pred)
+        pi0_p_HPS.append(get_HPS_p(HPS_pi0))
+        i+=1
+        if i%10 ==0:
+            pbar.update(10)
     else:
-        y, y_pred = test(elem, model)
-        if training_cfg["Setup"]["kinematic"]:
-            y_pred = y_pred[0] # take only DM output
+        i+=1
+        if i%10 ==0:
+            pbar.update(10)
+        continue
 
-        # below is code for if dataloader in eval mode
-        full_pred.append(y_pred)
-        if y == 0 or y ==10:
-            truth.append(0)
-        elif y == 1 or y == 11:
-            truth.append(1)
-        elif y == 2:
-            truth.append(2)
-        else:
-            raise RuntimeError("Unknown DM")
-        truthDM.append(int(y))
-        max_pred.append(int(np.where(y_pred[0] == np.max(y_pred[0]))[0]))
-    i+=1
-    if i%10 ==0:
-        pbar.update(10)
+print(f"Total of {len(pi0_p)} DM 1 or 11 taus evaluated")
+
 
 df = pd.DataFrame()
-df["truth"] = truth
-df["max_pred"] = max_pred
-df["truthDM"] = truthDM
-df["full_pred"] = full_pred
+df["pi0_p"] = pi0_p 
+df["pi0_p_pred"] = pi0_p_pred
+df["pi0_p_HPS"] = pi0_p_HPS
+
 
 print(df)
 
@@ -115,10 +115,7 @@ print("Predictions computed")
 save_folder = path_to_artifacts + "/predictions"
 if not os.path.exists(save_folder):
     os.makedirs(save_folder)
-if args.HPS=="True":
-    savepath = save_folder + "/pred_ggH_HPS_only.pkl"
-else:
-    savepath = save_folder + "/pred_ggH.pkl"
+savepath = save_folder + "/kinematicv2_pred_ggH.pkl"
 
 df.to_pickle(savepath)
 

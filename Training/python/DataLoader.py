@@ -34,7 +34,7 @@ class DataLoader:
         print("Files for validation:", len(self.val_files))
         # print(self.val_files)
 
-    def get_generator(self, primary_set = True, show_progress = False, DM_evaluation = False, Kin_evaluation = False):
+    def get_generator_v1(self, primary_set = True, show_progress = False, DM_evaluation = False, Kin_evaluation = False):
 
         _files = self.train_files if primary_set else self.val_files
         print(("Training" if primary_set else "Validation") + " file list loaded" )
@@ -50,7 +50,6 @@ class DataLoader:
                 for j in range(len(_files)):
                     df = pd.read_pickle(_files[j])
                     for i in range(len(df)):
-                        # input_shape, input_type = [], []
                         # Image inputs
                         Tracks = df["Tracks"][i]
                         ECAL = df["ECAL"][i]
@@ -68,31 +67,7 @@ class DataLoader:
                             PF_ECAL = 200*PF_ECAL/np.sum(PF_ECAL)
                         if np.sum(addTracks)>70:
                             addTracks = 70*addTracks/np.sum(addTracks)
-                        # # Normalise input images:    
-                        # Tracks = Tracks/200
-                        # ECAL = ECAL/200
-                        # PF_HCAL = PF_HCAL/150
-                        # PF_ECAL = PF_ECAL/200
-                        # addTracks = addTracks/70
-                        # # Check if anything above 1 after normalisation:
-                        # if round(np.sum(Tracks),3) > 1:
-                        #     print("WARNING: Energy sum: ", round(np.sum(Tracks),3))
-                        #     raise Exception("Track normalisation issue")
-                        # if round(np.sum(ECAL),3) > 1:
-                        #     print("WARNING: Energy sum: ", round(np.sum(ECAL),3))
-                        #     raise Exception("ECAL normalisation issue")
-                        # if round(np.sum(PF_HCAL),3) > 1:
-                        #     print("WARNING: Energy sum: ", round(np.sum(PF_HCAL),3))
-                        #     raise Exception("PF_HCAL normalisation issue")
-                        # if round(np.sum(PF_ECAL),3) > 1:
-                        #     print("WARNING: Energy sum: ", round(np.sum(PF_ECAL),3))
-                        #     raise Exception("PF_ECAL normalisation issue")
-                        # if round(np.sum(addTracks),3) > 1:
-                        #     print("WARNING: Energy sum: ", round(np.sum(addTracks),3))
-                        #     raise Exception("addTrack normalisation issue")
-                        # Stack and pass to network:
                         x = (np.stack([Tracks, ECAL, PF_HCAL, PF_ECAL, addTracks], axis=-1))
-                        # Add HPS vars if using them
                         if self.use_HPS:
                             x_mass = (np.stack([df["tau_dm"][i], df["tau_pt"][i], df["tau_E"][i], df["tau_eta"][i], df["tau_mass"][i],
                             df["pi0_dEta"][i], df["pi0_dPhi"][i], df["strip_mass"][i], df["strip_pt"][i], 
@@ -129,7 +104,59 @@ class DataLoader:
                             else:
                                 yield (x, yDM)
                         counter += 1
-                        
 
         return _generator
 
+    def get_generator_v2(self, primary_set = True, show_progress = False, evaluation = False):
+
+        _files = self.train_files if primary_set else self.val_files
+        print(("Training" if primary_set else "Validation") + " file list loaded" )
+        if len(_files)==0:
+            raise RuntimeError(("Training" if primary_set else "Validation")+\
+                                " file list is empty.")
+
+        n_batches = self.n_batches if primary_set else self.n_batches_val
+
+        def _generator():
+            for j in range(len(_files)):
+                df = pd.read_pickle(_files[j])
+                for i in range(len(df)):
+                    DM = df["DM"][i]
+                    if self.use_HPS:
+                        HPSDM = df["tau_dm"][i] # use HPS DM for cuts
+                    if DM != 1 and DM != 11: # v2 train only on 1 pi0 taus for now
+                        continue
+                    # Image inputs
+                    Tracks = df["Tracks"][i]
+                    ECAL = df["ECAL"][i]
+                    PF_HCAL = df["PF_HCAL"][i]
+                    PF_ECAL = df["PF_ECAL"][i]
+                    addTracks = df["addTracks"][i]
+                    # Clip outliers to max determined from 99.7%:
+                    if np.sum(Tracks)>200:
+                        Tracks = 200*Tracks/np.sum(Tracks)
+                    if np.sum(ECAL)>200:
+                        ECAL = 200*ECAL/np.sum(ECAL)
+                    if np.sum(PF_HCAL)>150:
+                        PF_HCAL = 150*PF_HCAL/np.sum(PF_HCAL)
+                    if np.sum(PF_ECAL)>200:
+                        PF_ECAL = 200*PF_ECAL/np.sum(PF_ECAL)
+                    if np.sum(addTracks)>70:
+                        addTracks = 70*addTracks/np.sum(addTracks)
+                    x = (np.stack([Tracks, ECAL, PF_HCAL, PF_ECAL, addTracks], axis=-1))
+                    if self.use_HPS:
+                        x_mass = (np.stack([df["tau_dm"][i], df["tau_pt"][i], df["tau_E"][i], df["tau_eta"][i], df["tau_mass"][i],
+                        df["pi0_dEta"][i], df["pi0_dPhi"][i], df["strip_mass"][i], df["strip_pt"][i], 
+                        df["rho_mass"][i], df["mass0"][i], df["mass1"][i], df["mass2"][i], df["pi0_E"][i]], axis=-1))
+                        x = tuple([x, x_mass])
+                    yE = df["relp"][i][0] # pi0 energy
+                    if evaluation:
+                        PV = df["PV"][i]
+                        HPSDM = df["tau_dm"][i]
+                        HPS_pi0 = [df["pi0_px"][i], df["pi0_py"][i], df["pi0_pz"][i]]
+                        jet = [df["jet_eta"][i], df["jet_phi"][i]]
+                        yield(x, yE, PV, DM, HPSDM, HPS_pi0, jet)
+                    else:
+                        yield(x, yE)
+
+        return _generator
