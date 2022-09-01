@@ -4,7 +4,7 @@ Setup:
     n_batches_val   :   -1 #31600 # N batches val
     input_dir       :   "/vols/cms/lcr119/Images/v2Images/Training" 
     val_split       :   0.15 # proportion of files to be used for validation
-    n_epochs        :   3 #5
+    n_epochs        :   5
     epoch           :   0 # starting epoch
     # Model name Guide:
     # DeepPi_v1: Mainly for DM (allows kinematic regression simultaneously)

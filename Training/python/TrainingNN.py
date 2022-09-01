@@ -333,7 +333,10 @@ def create_v2_model(dataloader):
     outputKin= Dense(1, name="output_Kin")(dense_Kin4)
 
     # create model
-    model = Model(input_layer, outputKin, name=dataloader.model_name)
+    if dataloader.use_HPS:
+        model = Model([input_layer, input_HPS], outputKin, name=dataloader.model_name)
+    else:
+        model = Model(input_layer, outputKin, name=dataloader.model_name)
 
     return model
 
