@@ -189,6 +189,99 @@ class DeepPiv1Model(keras.Model):
             metrics.extend(l._metrics)  # pylint: disable=protected-access
         return metrics
 
+
+class DeepPiv2Model(keras.Model):
+
+    def __init__(self, *args, use_weights = False, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.use_weights = use_weights
+        self.Kin_loss = TauLosses.MSE_momentum_v2
+        self.Kin_loss_tracker = keras.metrics.Mean(name="loss")
+        if self.use_weights:
+            self.Kin_raw_loss_tracker =  keras.metrics.Mean(name="raw_loss")
+
+    def train_step(self, data):
+        # Unpack the data
+        if self.use_weights:
+            x, y, w = data
+        else:
+            x, y = data
+
+        # Forward pass:
+        with tf.GradientTape() as tape:
+            y_pred = self(x, training=True)[:,0] # index to flatten
+            loss_vec = self.Kin_loss(y, y_pred)
+            # tf.print(tf.reduce_sum(w))
+            raw_loss = tf.reduce_sum(tf.reduce_sum(loss_vec))/tf.cast(tf.shape(y)[0], dtype=tf.float32)
+            if self.use_weights:
+                loss = tf.reduce_sum(tf.reduce_sum(tf.multiply(loss_vec, w)))/tf.reduce_sum(w)
+            else:
+                loss = raw_loss
+    
+        # Compute gradients
+        trainable_pars = self.trainable_variables
+        gradients = tape.gradient(loss, trainable_pars)
+
+        # Update trainable parameters
+        self.optimizer.apply_gradients(zip(gradients, trainable_pars))
+        
+        # Update metrics
+        self.Kin_loss_tracker.update_state(loss)
+        if self.use_weights:
+            self.Kin_raw_loss_tracker.update_state(raw_loss)
+
+
+        # Return a dict mapping metric names to current value (printout)
+        metrics_out =  {m.name: m.result() for m in self.metrics}
+        return metrics_out
+    
+    def test_step(self, data):
+        # Unpack the data 
+        if self.use_weights:
+            x, y, w = data
+        else:
+            x, y = data
+
+        # Evaluate Model
+        
+        y_pred = self(x, training=True)[:,0] # index to flatten
+        loss_vec = self.Kin_loss(y, y_pred)
+        raw_loss = tf.reduce_sum(tf.reduce_sum(loss_vec))/tf.cast(tf.shape(y)[0], dtype=tf.float32)
+        if self.use_weights:
+            loss = tf.reduce_sum(tf.reduce_sum(tf.multiply(loss_vec, w)))/tf.reduce_sum(w)
+        else:
+            loss = raw_loss
+        
+        # Update the metrics 
+        self.Kin_loss_tracker.update_state(loss)
+        if self.use_weights:
+            self.Kin_raw_loss_tracker.update_state(raw_loss)
+
+        # Return a dict mapping metric names to current value
+        metrics_out = {m.name: m.result() for m in self.metrics}
+        return metrics_out
+    
+    @property
+    def metrics(self):
+        # define metrics here so that `reset_states()` can be
+        # called automatically at the start of each epoch
+        # or at the start of `evaluate()`
+        metrics = []
+        metrics.append(self.Kin_loss_tracker) 
+        if self.use_weights:
+            metrics.append(self.Kin_raw_loss_tracker)
+        if self._is_compiled:
+            # Track `LossesContainer` and `MetricsContainer` objects
+            # so that attr names are not load-bearing.
+            if self.compiled_loss is not None:
+                metrics += self.compiled_loss.metrics
+            if self.compiled_metrics is not None:
+                metrics += self.compiled_metrics.metrics
+        for l in self._flatten_layers():
+            metrics.extend(l._metrics)  # pylint: disable=protected-access
+        return metrics
+
+
 def layer_ending(layer, n, dim2d = True, dropout=0): #, activation, dropout_rate # add these from cfg later
     norm_layer = BatchNormalization(name="norm_{}".format(n))(layer)
     if dim2d: # if conv or pooling
@@ -334,9 +427,9 @@ def create_v2_model(dataloader):
 
     # create model
     if dataloader.use_HPS:
-        model = Model([input_layer, input_HPS], outputKin, name=dataloader.model_name)
+        model = DeepPiv2Model([input_layer, input_HPS], outputKin, use_weights=dataloader.use_weights, name=dataloader.model_name)
     else:
-        model = Model(input_layer, outputKin, name=dataloader.model_name)
+        model = DeepPiv2Model(input_layer, outputKin, use_weights=dataloader.use_weights, name=dataloader.model_name)
 
     return model
 
@@ -354,13 +447,16 @@ def compile_v1_model(model, regress_kinematic=False):
         metrics = {'DM_loss': '', 'DM_accuracy': ''}
     mlflow.log_dict(metrics, 'input_cfg/metric_names.json')
 
-def compile_v2_model(model, regress_kinematic=False):
+def compile_v2_model(model, use_weights = False):
 
     opt = tf.keras.optimizers.Nadam(learning_rate=1e-4)
 
-    model.compile(loss=TauLosses.MSE_momentum_v2, optimizer=opt, metrics=TauLosses.MSE_momentum_v2)
+    model.compile(loss=None, optimizer=opt, metrics=None)
     # mlflow log
-    metrics = {'loss': '', 'MSE_momentum_v2': ''}
+    if use_weights:
+        metrics = {'loss': '', 'raw_loss': ''}
+    else:
+        metrics = {}
     mlflow.log_dict(metrics, 'input_cfg/metric_names.json')
 
 def run_training(model, data_loader):
@@ -385,13 +481,22 @@ def run_training(model, data_loader):
         gen_train = data_loader.get_generator_v2(primary_set = True)
         gen_val = data_loader.get_generator_v2(primary_set = False)
         # define input shapes
-        if data_loader.use_HPS:
-            input_shape = (((33, 33, 5), 14), None)
-            input_types = ((tf.float32, tf.float32), tf.float32)
+        if data_loader.use_weights:
+            print("Warning: Weights active")
+            if data_loader.use_HPS:
+                input_shape = (((33, 33, 5), 14), None, None)
+                input_types = ((tf.float32, tf.float32), tf.float32, tf.float32)
+            else:
+                input_shape = ((33, 33, 5), None, None)
+                input_types = (tf.float32, tf.float32, tf.float32)
         else:
-            input_shape = ((33, 33, 5), None)
-            input_types = (tf.float32, tf.float32)
-    
+            if data_loader.use_HPS:
+                input_shape = (((33, 33, 5), 14), None)
+                input_types = ((tf.float32, tf.float32), tf.float32)
+            else:
+                input_shape = ((33, 33, 5), None)
+                input_types = (tf.float32, tf.float32)
+
     # datasets from generators
     data_train = tf.data.Dataset.from_generator(
         gen_train, output_types = input_types, output_shapes = input_shape
@@ -487,7 +592,7 @@ def main(cfg: DictConfig) -> None:
         if dataloader.model_name == "DeepPi_v1":
             compile_v1_model(model, regress_kinematic=dataloader.regress_kinematic)
         elif dataloader.model_name == "DeepPi_v2":
-            compile_v2_model(model)
+            compile_v2_model(model, use_weights=dataloader.use_weights)
 
         fit = run_training(model, dataloader)
 

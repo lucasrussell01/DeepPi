@@ -25,6 +25,7 @@ class DataLoader:
         self.kDM = self.config["Setup"]["DM_importance"]
         self.kKin = self.config["Setup"]["kin_importance"]
         self.use_HPS = self.config["Setup"]["HPS_features"]
+        self.use_weights = self.config["Setup"]["use_weights"]
         self.file_path = self.config["Setup"]["input_dir"]
         print(self.file_path)
         files = glob.glob(self.file_path + "/*.pkl")
@@ -149,14 +150,27 @@ class DataLoader:
                         df["pi0_dEta"][i], df["pi0_dPhi"][i], df["strip_mass"][i], df["strip_pt"][i], 
                         df["rho_mass"][i], df["mass0"][i], df["mass1"][i], df["mass2"][i], df["pi0_E"][i]], axis=-1))
                         x = tuple([x, x_mass])
-                    yE = df["relp"][i][0] # pi0 energy
+                    yp = df["relp"][i][0] # pi0 momentum
                     if evaluation:
                         PV = df["PV"][i]
                         HPSDM = df["tau_dm"][i]
                         HPS_pi0 = [df["pi0_px"][i], df["pi0_py"][i], df["pi0_pz"][i]]
                         jet = [df["jet_eta"][i], df["jet_phi"][i]]
-                        yield(x, yE, PV, DM, HPSDM, HPS_pi0, jet)
+                        yield(x, yp, PV, DM, HPSDM, HPS_pi0, jet)
+                    elif self.use_weights:
+                        weights = np.array([1.35282914, 0.42862416, 0.40479484, 0.45116552, 0.54597761, 0.66752737, 0.8515014,
+                                         1.10876879, 1.42314426, 1.74725353, 2.24585584, 2.80869932, 3.62901786, 4.80816246, 
+                                         6.44931241, 8.32889344, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1])
+                        weight_bins = np.arange(0, 155, 5)
+                        weight_bins[-1] = 1000 # increase to cover up to 1TeV
+                        if yp < 1000:
+                            i_weight = np.digitize(yp, weight_bins) # find bin in spectrum
+                            w = weights[i_weight-1] # find corresponding weight
+                        else:
+                            print(f"Warning: momentum value: {yp} out of range, setting weight to 0")
+                            w = 0.0
+                        yield(x, yp, w)
                     else:
-                        yield(x, yE)
+                        yield(x, yp)
 
         return _generator

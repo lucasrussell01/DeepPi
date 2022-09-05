@@ -57,7 +57,7 @@ class TauLosses:
     @staticmethod
     @tf.function
     def MSE_momentum_v2(target, output):
-        loss = (output - target)**2 
+        loss = ((output - target)**2)/tf.math.maximum(tf.constant([2.0]), target)
         return loss
 
 
