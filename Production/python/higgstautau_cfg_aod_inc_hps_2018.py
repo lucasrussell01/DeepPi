@@ -127,6 +127,24 @@ process.options   = cms.untracked.PSet(
 # 
 ################################################################
 
+################################################################
+# Re-do PFTau reconstruction
+################################################################
+process.load("RecoTauTag/Configuration/RecoPFTauTag_cff")
+
+# embed new tauID trainings
+
+updatedTauName = "slimmedTausNewID" #name of pat::Tau collection with new tau-Ids
+import RecoTauTag.RecoTau.tools.runTauIdMVA as tauIdConfig
+
+tauIdEmbedder = tauIdConfig.TauIDEmbedder(process, cms, debug = False,
+                    updatedTauName = updatedTauName,
+                    toKeep = [
+                            "MVADM_2017_v1",
+                            ])
+
+tauIdEmbedder.runTauID()
+
 process.recHitAnalyzer = cms.EDAnalyzer('RecHitAnalyzer'
     , reducedEBRecHitCollection = cms.InputTag('reducedEcalRecHitsEB')
     , reducedEERecHitCollection = cms.InputTag('reducedEcalRecHitsEE')
@@ -147,7 +165,7 @@ process.recHitAnalyzer = cms.EDAnalyzer('RecHitAnalyzer'
     , PFEBRecHitCollection = cms.InputTag('particleFlowRecHitECAL:Cleaned')
     , PFHBHERecHitCollection = cms.InputTag('particleFlowRecHitHBHE:Cleaned')
     , gsfTracksCollection = cms.InputTag('electronGsfTracks')
-    , slimmedTausCollection = cms.InputTag('slimmedTaus')
+    , slimmedTausCollection = cms.InputTag('slimmedTausNewID')
 
     # Jet level cfg
     , nJets = cms.int32(-1)
@@ -156,7 +174,10 @@ process.recHitAnalyzer = cms.EDAnalyzer('RecHitAnalyzer'
     , z0PVCut  = cms.double(1000000)
     )
 
-process.recHitAnalyzerSequence = cms.Sequence(process.recHitAnalyzer)
+process.recHitAnalyzerSequence = cms.Sequence(
+                                              process.rerunMvaIsolationSequence+
+                                              getattr(process,updatedTauName)+
+                                              process.recHitAnalyzer)
 
 
 process.p = cms.Path(
