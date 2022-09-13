@@ -1,6 +1,6 @@
 hydra:
   run:
-    dir: outputs/${experiment_name}/DeepPi_v1/${now:%Y-%m-%d_%H-%M-%S}
+    dir: outputs/${experiment_name}/${training_cfg.Setup.model_name}/${now:%Y-%m-%d_%H-%M-%S}
 defaults:
   - ../configs@_global_.training_cfg: training
   - _self_
@@ -11,9 +11,9 @@ experiment_name: ???
 
 pretrained: null
 # pretrained:
-#   run_id : 6daf836007814378b081099af6f7b671 
-#   experiment_id: 10
-#   starting_model: DeepPi_v1_step_final.tf
+#   run_id : 7127c31917124a41be197dca8f961eca 
+#   experiment_id: 9
+#   starting_model: DeepPi_v2_step_final.tf
 
 # setup
 gpu_cfg:
