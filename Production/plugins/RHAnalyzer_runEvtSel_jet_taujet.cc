@@ -111,6 +111,11 @@ vector<float> vHPSTau_mass0_;
 vector<float> vHPSTau_mass1_;
 vector<float> vHPSTau_mass2_;
 
+vector<float> vHPSTau_tau_mva_dm_;
+vector<float> vHPSTau_tau_deeptau_id_;
+vector<float> vHPSTau_tau_deeptau_id_vs_mu_;
+vector<float> vHPSTau_tau_deeptau_id_vs_e_;
+
 typedef ROOT::Math::PtEtaPhiEVector PtEtaPhiELV;
 const double mass_pi = 0.13498;
 const double mass_rho = 0.7755;
@@ -216,6 +221,10 @@ void RecHitAnalyzer::branchesEvtSel_jet_taujet( TTree* tree, edm::Service<TFileS
   tree->Branch("mass0", &vHPSTau_mass0_);
   tree->Branch("mass1", &vHPSTau_mass1_);
   tree->Branch("mass2", &vHPSTau_mass2_);
+  tree->Branch("tau_mva_dm", &vHPSTau_tau_mva_dm_);
+  tree->Branch("tau_deeptau_id", &vHPSTau_tau_deeptau_id_);
+  tree->Branch("tau_deeptau_id_vs_mu", &vHPSTau_tau_deeptau_id_vs_mu_);
+  tree->Branch("tau_deeptau_id_vs_e", &vHPSTau_tau_deeptau_id_vs_e_);
 
 } // branchesEvtSel_jet_taujet()
 
@@ -310,6 +319,10 @@ bool RecHitAnalyzer::runEvtSel_jet_taujet( const edm::Event& iEvent, const edm::
   vHPSTau_mass0_.clear();
   vHPSTau_mass1_.clear();
   vHPSTau_mass2_.clear();
+  vHPSTau_tau_mva_dm_.clear();
+  vHPSTau_tau_deeptau_id_.clear();
+  vHPSTau_tau_deeptau_id_vs_mu_.clear();
+  vHPSTau_tau_deeptau_id_vs_e_.clear();
 
   int nJet = 0;
   // Loop over jets
@@ -994,6 +1007,12 @@ void RecHitAnalyzer::fillEvtSel_jet_taujet( const edm::Event& iEvent, const edm:
     float mass0=0;
     float mass1=0;
     float mass2=0;
+    float tau_mva_dm=-1;
+    float tau_deeptau_id=0;
+    float tau_deeptau_id_vs_mu=0;
+    float tau_deeptau_id_vs_e=0;
+
+
     if(slimmedTausH_) {
       float minDR=-1.;
       pat::Tau HPStau;
@@ -1011,6 +1030,26 @@ void RecHitAnalyzer::fillEvtSel_jet_taujet( const edm::Event& iEvent, const edm:
       }
       if(minDR>0) {
         //found a match so fill variables
+        // tauID discriminators
+        std::vector<std::string> vsj_wps = {"VVVLoose", "VVLoose", "VLoose", "Loose", "Medium", "Tight", "VTight", "VVTight"};
+        std::vector<std::string> vsj_wps_vs_mu = {"VLoose", "Loose", "Medium", "Tight"};
+        std::vector<std::string> vsj_wps_vs_e = {"VVVLoose", "VVLoose", "VLoose", "Loose", "Medium", "Tight", "VTight", "VVTight"};
+        for (auto id : vsj_wps) {
+          bool pass = HPStau.tauID("by"+id+"DeepTau2017v2p1VSjet");
+          if (pass) tau_deeptau_id++;
+        }    
+        for (auto id : vsj_wps_vs_mu) {
+          bool pass = HPStau.tauID("by"+id+"DeepTau2017v2p1VSmu");
+          if (pass) tau_deeptau_id_vs_mu++;
+        }
+        for (auto id : vsj_wps_vs_e) {
+          bool pass = HPStau.tauID("by"+id+"DeepTau2017v2p1VSe");
+          if (pass) tau_deeptau_id_vs_e++;
+        } 
+        tau_mva_dm = HPStau.tauID("MVADM2017v1");
+
+        // MVADM input variables
+
         tau_dm=HPStau.decayMode();
         tau_pt=HPStau.pt();
         tau_E=HPStau.energy();
@@ -1130,6 +1169,10 @@ void RecHitAnalyzer::fillEvtSel_jet_taujet( const edm::Event& iEvent, const edm:
     vHPSTau_mass0_.push_back(mass0);
     vHPSTau_mass1_.push_back(mass1);
     vHPSTau_mass2_.push_back(mass2);
+    vHPSTau_tau_mva_dm_.push_back(tau_mva_dm);
+    vHPSTau_tau_deeptau_id_.push_back(tau_deeptau_id);
+    vHPSTau_tau_deeptau_id_vs_mu_.push_back(tau_deeptau_id_vs_mu);
+    vHPSTau_tau_deeptau_id_vs_e_.push_back(tau_deeptau_id_vs_e);
   }//vJetIdxs
 
 
