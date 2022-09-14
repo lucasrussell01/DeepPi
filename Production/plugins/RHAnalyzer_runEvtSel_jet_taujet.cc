@@ -1099,7 +1099,7 @@ void RecHitAnalyzer::fillEvtSel_jet_taujet( const edm::Event& iEvent, const edm:
               HPSpi0_propagator.propagateToEcalEntrance(false); // propogate to ECAL entrance
               auto pi0_prop = HPSpi0_propagator.particle().vertex().Vect();
               pi0_releta = pi0_prop.eta()-jet_sum_eta2_;;
-              pi0_relphi = pi0_prop.phi()-jet_sum_eta2_;;
+              pi0_relphi = pi0_prop.phi()-jet_sum_phi2_;;
               }
           }
         } else {
@@ -1123,7 +1123,7 @@ void RecHitAnalyzer::fillEvtSel_jet_taujet( const edm::Event& iEvent, const edm:
             HPSpi0_propagator.propagateToEcalEntrance(false); // propogate to ECAL entrance
             auto pi0_prop = HPSpi0_propagator.particle().vertex().Vect();
             pi0_releta = pi0_prop.eta()-jet_sum_eta2_;;
-            pi0_relphi = pi0_prop.phi()-jet_sum_eta2_;;
+            pi0_relphi = pi0_prop.phi()-jet_sum_phi2_;;
           }
         }
         pi0_px = pi0.Px();
