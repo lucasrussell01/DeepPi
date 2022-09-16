@@ -91,6 +91,8 @@ vector<float> vHPSTau_strip_mass_;
 vector<float> vHPSTau_strip_pt_;
 vector<float> vHPSTau_pi0_dEta_;
 vector<float> vHPSTau_pi0_dPhi_;
+vector<float> vHPSTau_pi0_releta_;
+vector<float> vHPSTau_pi0_relphi_;
 
 // 1pr variables
 vector<float> vHPSTau_rho_mass_;
@@ -108,6 +110,11 @@ vector<float> vHPSTau_pi3_E_;
 vector<float> vHPSTau_mass0_;
 vector<float> vHPSTau_mass1_;
 vector<float> vHPSTau_mass2_;
+
+vector<float> vHPSTau_tau_mva_dm_;
+vector<float> vHPSTau_tau_deeptau_id_;
+vector<float> vHPSTau_tau_deeptau_id_vs_mu_;
+vector<float> vHPSTau_tau_deeptau_id_vs_e_;
 
 typedef ROOT::Math::PtEtaPhiEVector PtEtaPhiELV;
 const double mass_pi = 0.13498;
@@ -198,6 +205,8 @@ void RecHitAnalyzer::branchesEvtSel_jet_taujet( TTree* tree, edm::Service<TFileS
   tree->Branch("pi0_E", &vHPSTau_pi0_E_);
   tree->Branch("pi0_dEta", &vHPSTau_pi0_dEta_);
   tree->Branch("pi0_dPhi", &vHPSTau_pi0_dPhi_);
+  tree->Branch("HPSpi0_releta", &vHPSTau_pi0_releta_);
+  tree->Branch("HPSpi0_relphi", &vHPSTau_pi0_relphi_);
   tree->Branch("strip_mass", &vHPSTau_strip_mass_);
   tree->Branch("strip_pt", &vHPSTau_strip_pt_);
   tree->Branch("rho_mass", &vHPSTau_rho_mass_);
@@ -212,6 +221,10 @@ void RecHitAnalyzer::branchesEvtSel_jet_taujet( TTree* tree, edm::Service<TFileS
   tree->Branch("mass0", &vHPSTau_mass0_);
   tree->Branch("mass1", &vHPSTau_mass1_);
   tree->Branch("mass2", &vHPSTau_mass2_);
+  tree->Branch("tau_mva_dm", &vHPSTau_tau_mva_dm_);
+  tree->Branch("tau_deeptau_id", &vHPSTau_tau_deeptau_id_);
+  tree->Branch("tau_deeptau_id_vs_mu", &vHPSTau_tau_deeptau_id_vs_mu_);
+  tree->Branch("tau_deeptau_id_vs_e", &vHPSTau_tau_deeptau_id_vs_e_);
 
 } // branchesEvtSel_jet_taujet()
 
@@ -292,6 +305,8 @@ bool RecHitAnalyzer::runEvtSel_jet_taujet( const edm::Event& iEvent, const edm::
   vHPSTau_strip_pt_.clear();
   vHPSTau_pi0_dEta_.clear();
   vHPSTau_pi0_dPhi_.clear();
+  vHPSTau_pi0_releta_.clear();
+  vHPSTau_pi0_relphi_.clear();
   vHPSTau_rho_mass_.clear();
   vHPSTau_pi2_px_.clear();
   vHPSTau_pi2_py_.clear();
@@ -304,6 +319,10 @@ bool RecHitAnalyzer::runEvtSel_jet_taujet( const edm::Event& iEvent, const edm::
   vHPSTau_mass0_.clear();
   vHPSTau_mass1_.clear();
   vHPSTau_mass2_.clear();
+  vHPSTau_tau_mva_dm_.clear();
+  vHPSTau_tau_deeptau_id_.clear();
+  vHPSTau_tau_deeptau_id_vs_mu_.clear();
+  vHPSTau_tau_deeptau_id_vs_e_.clear();
 
   int nJet = 0;
   // Loop over jets
@@ -890,7 +909,8 @@ void RecHitAnalyzer::fillEvtSel_jet_taujet( const edm::Event& iEvent, const edm:
             neutral_relphi_crystal_indv.push_back(iphi_cont);
 
             // uncomment below to determine actual direction
-            //math::XYZVector direction = GetPi0Direction(match.second->vertex(), releta, relphi, jet_sum_eta2_, jet_sum_phi2_);
+            // math::XYZVector direction = GetPi0Direction(match.second->vertex(), releta, relphi, jet_sum_eta2_, jet_sum_phi2_);
+            // std::cout << "DIRECTION OUTPUT: " << direction << std::endl;
 
           }
       } else{
@@ -971,6 +991,8 @@ void RecHitAnalyzer::fillEvtSel_jet_taujet( const edm::Event& iEvent, const edm:
     float pi0_E=0;
     float pi0_dEta=0;
     float pi0_dPhi=0;
+    float pi0_releta=0;
+    float pi0_relphi=0;
     float strip_mass=0;
     float strip_pt=0;
     float rho_mass=0;
@@ -985,6 +1007,12 @@ void RecHitAnalyzer::fillEvtSel_jet_taujet( const edm::Event& iEvent, const edm:
     float mass0=0;
     float mass1=0;
     float mass2=0;
+    float tau_mva_dm=-1;
+    float tau_deeptau_id=0;
+    float tau_deeptau_id_vs_mu=0;
+    float tau_deeptau_id_vs_e=0;
+
+
     if(slimmedTausH_) {
       float minDR=-1.;
       pat::Tau HPStau;
@@ -1002,6 +1030,26 @@ void RecHitAnalyzer::fillEvtSel_jet_taujet( const edm::Event& iEvent, const edm:
       }
       if(minDR>0) {
         //found a match so fill variables
+        // tauID discriminators
+        std::vector<std::string> vsj_wps = {"VVVLoose", "VVLoose", "VLoose", "Loose", "Medium", "Tight", "VTight", "VVTight"};
+        std::vector<std::string> vsj_wps_vs_mu = {"VLoose", "Loose", "Medium", "Tight"};
+        std::vector<std::string> vsj_wps_vs_e = {"VVVLoose", "VVLoose", "VLoose", "Loose", "Medium", "Tight", "VTight", "VVTight"};
+        for (auto id : vsj_wps) {
+          bool pass = HPStau.tauID("by"+id+"DeepTau2017v2p1VSjet");
+          if (pass) tau_deeptau_id++;
+        }    
+        for (auto id : vsj_wps_vs_mu) {
+          bool pass = HPStau.tauID("by"+id+"DeepTau2017v2p1VSmu");
+          if (pass) tau_deeptau_id_vs_mu++;
+        }
+        for (auto id : vsj_wps_vs_e) {
+          bool pass = HPStau.tauID("by"+id+"DeepTau2017v2p1VSe");
+          if (pass) tau_deeptau_id_vs_e++;
+        } 
+        tau_mva_dm = HPStau.tauID("MVADM2017v1");
+
+        // MVADM input variables
+
         tau_dm=HPStau.decayMode();
         tau_pt=HPStau.pt();
         tau_E=HPStau.energy();
@@ -1042,6 +1090,17 @@ void RecHitAnalyzer::fillEvtSel_jet_taujet( const edm::Event& iEvent, const edm:
             pi0_dEta = std::fabs(pi0.eta() - a1.eta());
             pi0_dPhi = std::fabs(ROOT::Math::VectorUtil::DeltaPhi(pi0, a1));
 
+            if (tau_dm==11){
+              double magneticField = (magfield.product() ? magfield.product()->inTesla(GlobalPoint(0., 0., 0.)).z() : 0.0);
+              math::XYZTLorentzVector  pi0_p4(pi0.Px(),pi0.Py(),pi0.Pz(),pi0.E()); //setup 4-vector 
+              BaseParticlePropagator HPSpi0_propagator = BaseParticlePropagator(
+                  RawParticle(pi0_p4, math::XYZTLorentzVector(vtxs[0].position().x(), vtxs[0].position().y(), vtxs[0].position().z(), 0.),
+                              0.0),0.,0.,magneticField);
+              HPSpi0_propagator.propagateToEcalEntrance(false); // propogate to ECAL entrance
+              auto pi0_prop = HPSpi0_propagator.particle().vertex().Vect();
+              pi0_releta = pi0_prop.eta()-jet_sum_eta2_;;
+              pi0_relphi = pi0_prop.phi()-jet_sum_phi2_;;
+              }
           }
         } else {
           rho = getRho(HPStau, 1.0);
@@ -1054,6 +1113,18 @@ void RecHitAnalyzer::fillEvtSel_jet_taujet( const edm::Event& iEvent, const edm:
           pi_E = rho.first.E();
           pi0_dPhi = std::fabs(ROOT::Math::VectorUtil::DeltaPhi(pi, pi0));
           pi0_dEta = std::fabs(pi.eta() - pi0.eta());
+
+          if (tau_dm==1){
+            double magneticField = (magfield.product() ? magfield.product()->inTesla(GlobalPoint(0., 0., 0.)).z() : 0.0);
+            math::XYZTLorentzVector  pi0_p4(pi0.Px(),pi0.Py(),pi0.Pz(),pi0.E()); //setup 4-vector 
+            BaseParticlePropagator HPSpi0_propagator = BaseParticlePropagator(
+                RawParticle(pi0_p4, math::XYZTLorentzVector(vtxs[0].position().x(), vtxs[0].position().y(), vtxs[0].position().z(), 0.),
+                            0.0),0.,0.,magneticField);
+            HPSpi0_propagator.propagateToEcalEntrance(false); // propogate to ECAL entrance
+            auto pi0_prop = HPSpi0_propagator.particle().vertex().Vect();
+            pi0_releta = pi0_prop.eta()-jet_sum_eta2_;;
+            pi0_relphi = pi0_prop.phi()-jet_sum_phi2_;;
+          }
         }
         pi0_px = pi0.Px();
         pi0_py = pi0.Py();
@@ -1084,6 +1155,8 @@ void RecHitAnalyzer::fillEvtSel_jet_taujet( const edm::Event& iEvent, const edm:
     vHPSTau_strip_pt_.push_back(strip_pt);
     vHPSTau_pi0_dEta_.push_back(pi0_dEta);
     vHPSTau_pi0_dPhi_.push_back(pi0_dPhi);
+    vHPSTau_pi0_releta_.push_back(pi0_releta);
+    vHPSTau_pi0_relphi_.push_back(pi0_relphi);
     vHPSTau_rho_mass_.push_back(rho_mass);
     vHPSTau_pi2_px_.push_back(pi2_px);
     vHPSTau_pi2_py_.push_back(pi2_py);
@@ -1096,6 +1169,10 @@ void RecHitAnalyzer::fillEvtSel_jet_taujet( const edm::Event& iEvent, const edm:
     vHPSTau_mass0_.push_back(mass0);
     vHPSTau_mass1_.push_back(mass1);
     vHPSTau_mass2_.push_back(mass2);
+    vHPSTau_tau_mva_dm_.push_back(tau_mva_dm);
+    vHPSTau_tau_deeptau_id_.push_back(tau_deeptau_id);
+    vHPSTau_tau_deeptau_id_vs_mu_.push_back(tau_deeptau_id_vs_mu);
+    vHPSTau_tau_deeptau_id_vs_e_.push_back(tau_deeptau_id_vs_e);
   }//vJetIdxs
 
 
