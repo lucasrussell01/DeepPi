@@ -195,8 +195,14 @@ class DeepPiv2Model(keras.Model):
     def __init__(self, *args, use_weights = False, **kwargs):
         super().__init__(*args, **kwargs)
         self.use_weights = use_weights
-        self.Kin_loss = TauLosses.MSE_momentum_v2
+        self.Kin_loss = TauLosses.Kinematic_loss
         self.Kin_loss_tracker = keras.metrics.Mean(name="loss")
+        self.MAE_p = TauLosses.MAE_momentum
+        self.MAE_eta = TauLosses.MAE_eta
+        self.MAE_phi = TauLosses.MAE_phi
+        self.MAE_p_tracker = keras.metrics.Mean(name="MAE_momentum")
+        self.MAE_eta_tracker = keras.metrics.Mean(name="MAE_eta")
+        self.MAE_phi_tracker = keras.metrics.Mean(name="MAE_phi")
         if self.use_weights:
             self.Kin_raw_loss_tracker =  keras.metrics.Mean(name="raw_loss")
 
@@ -209,10 +215,10 @@ class DeepPiv2Model(keras.Model):
 
         # Forward pass:
         with tf.GradientTape() as tape:
-            y_pred = self(x, training=True)[:,0] # index to flatten
+            y_pred = self(x, training=True)#[:,0]
             loss_vec = self.Kin_loss(y, y_pred)
-            # tf.print(tf.reduce_sum(w))
-            raw_loss = tf.reduce_sum(tf.reduce_sum(loss_vec))/tf.cast(tf.shape(y)[0], dtype=tf.float32)
+            # since shape is 1 here:
+            raw_loss = loss_vec #tf.reduce_sum(tf.reduce_sum(loss_vec))/tf.cast(tf.shape(y)[0], dtype=tf.float32)
             if self.use_weights:
                 loss = tf.reduce_sum(tf.reduce_sum(tf.multiply(loss_vec, w)))/tf.reduce_sum(w)
             else:
@@ -225,8 +231,16 @@ class DeepPiv2Model(keras.Model):
         # Update trainable parameters
         self.optimizer.apply_gradients(zip(gradients, trainable_pars))
         
+        # Compute loss components (unweighted):
+        MAE_p = self.MAE_p(y, y_pred)
+        MAE_eta = self.MAE_eta(y, y_pred)
+        MAE_phi = self.MAE_phi(y, y_pred)
+
         # Update metrics
         self.Kin_loss_tracker.update_state(loss)
+        self.MAE_p_tracker.update_state(MAE_p)
+        self.MAE_eta_tracker.update_state(MAE_eta)
+        self.MAE_phi_tracker.update_state(MAE_phi)
         if self.use_weights:
             self.Kin_raw_loss_tracker.update_state(raw_loss)
 
@@ -244,16 +258,24 @@ class DeepPiv2Model(keras.Model):
 
         # Evaluate Model
         
-        y_pred = self(x, training=True)[:,0] # index to flatten
+        y_pred = self(x, training=True)#[:,0] flatten if only momentum
         loss_vec = self.Kin_loss(y, y_pred)
-        raw_loss = tf.reduce_sum(tf.reduce_sum(loss_vec))/tf.cast(tf.shape(y)[0], dtype=tf.float32)
+        raw_loss = loss_vec #tf.reduce_sum(tf.reduce_sum(loss_vec))/tf.cast(tf.shape(y)[0], dtype=tf.float32) # loss vec if not dividing/mult mom
         if self.use_weights:
             loss = tf.reduce_sum(tf.reduce_sum(tf.multiply(loss_vec, w)))/tf.reduce_sum(w)
         else:
             loss = raw_loss
         
+        # Compute loss components (unweighted):
+        MAE_p = self.MAE_p(y, y_pred)
+        MAE_eta = self.MAE_eta(y, y_pred)
+        MAE_phi = self.MAE_phi(y, y_pred)
+
         # Update the metrics 
         self.Kin_loss_tracker.update_state(loss)
+        self.MAE_p_tracker.update_state(MAE_p)
+        self.MAE_eta_tracker.update_state(MAE_eta)
+        self.MAE_phi_tracker.update_state(MAE_phi)
         if self.use_weights:
             self.Kin_raw_loss_tracker.update_state(raw_loss)
 
@@ -268,6 +290,9 @@ class DeepPiv2Model(keras.Model):
         # or at the start of `evaluate()`
         metrics = []
         metrics.append(self.Kin_loss_tracker) 
+        metrics.append(self.MAE_p_tracker)
+        metrics.append(self.MAE_eta_tracker)
+        metrics.append(self.MAE_phi_tracker)
         if self.use_weights:
             metrics.append(self.Kin_raw_loss_tracker)
         if self._is_compiled:
@@ -409,7 +434,7 @@ def create_v2_model(dataloader):
 
     if dataloader.use_HPS: # add HPS dense layers
         print("Warning: Using HPS mass variables")
-        input_HPS = Input(name="input_mass_vars", shape=(14))
+        input_HPS = Input(name="input_mass_vars", shape=(29))
         dense_mass1 = dense_block(input_HPS, 50, dropout=dropout_rate, n="_mass_1")
         dense_mass2 = dense_block(dense_mass1, 50, dropout=dropout_rate, n="_mass_2")
         dense_mass3 = dense_block(dense_mass2, 50, dropout=dropout_rate, n="_mass_3")
@@ -423,7 +448,7 @@ def create_v2_model(dataloader):
     dense_Kin3 = dense_block(dense_Kin2, flat_size, dropout=dropout_rate, n="_Kin_3")
     dense_Kin4 = dense_block(dense_Kin3, 100, dropout=dropout_rate, n="_Kin_4")
     # Kinematic output
-    outputKin= Dense(1, name="output_Kin")(dense_Kin4)
+    outputKin= Dense(3, name="output_Kin")(dense_Kin4)
 
     # create model
     if dataloader.use_HPS:
@@ -484,17 +509,17 @@ def run_training(model, data_loader):
         if data_loader.use_weights:
             print("Warning: Weights active")
             if data_loader.use_HPS:
-                input_shape = (((33, 33, 5), 14), None, None)
+                input_shape = (((33, 33, 5), 29), 3, None)
                 input_types = ((tf.float32, tf.float32), tf.float32, tf.float32)
             else:
-                input_shape = ((33, 33, 5), None, None)
+                input_shape = ((33, 33, 5), 3, None)
                 input_types = (tf.float32, tf.float32, tf.float32)
         else:
             if data_loader.use_HPS:
-                input_shape = (((33, 33, 5), 14), None)
+                input_shape = (((33, 33, 5), 29), 3)
                 input_types = ((tf.float32, tf.float32), tf.float32)
             else:
-                input_shape = ((33, 33, 5), None)
+                input_shape = ((33, 33, 5), 3)
                 input_types = (tf.float32, tf.float32)
 
     # datasets from generators

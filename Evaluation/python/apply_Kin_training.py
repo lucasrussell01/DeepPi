@@ -49,7 +49,7 @@ def get_pi0_phi(pos_xyz):
     return phi
 
 def test(x, model):
-    y_pred = model(x, training=False)[1][0] # take only kinematic output
+    y_pred = model(x, training=False)[0] # take kinematic output
     return np.array(y_pred)
 
 def get_HPS_eta(p_vect):
@@ -79,13 +79,18 @@ print(training_cfg)
 
 # Load evaluation dataset
 dataloader = DataLoader(training_cfg)
-gen_eval = dataloader.get_generator_v1(primary_set = True, Kin_evaluation=True)
+gen_eval = dataloader.get_generator_v2(primary_set = True, evaluation=True)
 
-if not training_cfg["Setup"]["kinematic"]:
-    raise Exception("This script should only be used to evaluate models trained with kinematic regression active")
 
-input_shape = ((33, 33, 5), 3, 3, None, None, 3,  2)
-input_types = (tf.float32, tf.float32, tf.float32, tf.float32, tf.float32, tf.float32, tf.float32)
+if training_cfg["Setup"]["HPS_features"]:
+    print("Warning: Model was trained with HPS vars")
+    input_shape = (((33, 33, 5), 29), None, 3, None, None, 3,  2)
+    input_types = ((tf.float32, tf.float32), tf.float32, tf.float32, tf.float32, tf.float32, tf.float32, tf.float32)
+else:
+    input_shape = ((33, 33, 5), None, 3, None, None, 3,  2)
+    input_types = (tf.float32, tf.float32, tf.float32, tf.float32, tf.float32, tf.float32, tf.float32)
+
+
 data_eval = tf.data.Dataset.from_generator(
     gen_eval, output_types = input_types, output_shapes = input_shape
     ).prefetch(tf.data.AUTOTUNE).batch(1).take(dataloader.n_batches)
@@ -108,12 +113,6 @@ rel_eta = []
 rel_eta_pred = []
 rel_phi = []
 rel_phi_pred = []
-pi0_x = []
-pi0_x_pred = []
-pi0_y = []
-pi0_y_pred = []
-pi0_z = []
-pi0_z_pred = []
 pi0_eta = []
 pi0_phi = []
 pi0_eta_pred = []
@@ -142,7 +141,6 @@ for elem in data_eval:
         rel_p_pred.append(y_pred[0])
         rel_eta_pred.append(y_pred[1])
         rel_phi_pred.append(y_pred[2])
-        # Get xyz predictions
         eta_orig = jetpos[0] + y[1]
         eta_orig_pred = jetpos[0] + y_pred[1]
         phi_orig = jetpos[1] + y[2]
@@ -151,12 +149,6 @@ for elem in data_eval:
         pos_pred = pos_xyz(eta_orig_pred, phi_orig_pred)
         pi0 = pi0_xyz(pos, np.array(PV))[0]
         pi0_pred = pi0_xyz(pos_pred, np.array(PV))[0]
-        pi0_x.append(pi0[0])
-        pi0_y.append(pi0[1])
-        pi0_z.append(pi0[2])
-        pi0_x_pred.append(pi0_pred[0])
-        pi0_y_pred.append(pi0_pred[1])
-        pi0_z_pred.append(pi0_pred[2])
         pi0_eta.append(get_pi0_eta(pi0))
         pi0_phi.append(get_pi0_phi(pi0))
         pi0_eta_pred.append(get_pi0_eta(pi0_pred))
@@ -183,12 +175,6 @@ df["releta"] = rel_eta
 df["releta_pred"] = rel_eta_pred
 df["relphi"] = rel_phi
 df["relphi_pred"] = rel_phi_pred
-df["pi0_x"] = pi0_x
-df["pi0_x_pred"] = pi0_x_pred
-df["pi0_y"] = pi0_y
-df["pi0_y_pred"] = pi0_y_pred
-df["pi0_z"] = pi0_z
-df["pi0_z_pred"] = pi0_z_pred
 df["pi0_phi"] = pi0_phi
 df["pi0_eta"] = pi0_eta
 df["pi0_phi_pred"] = pi0_phi_pred
@@ -211,8 +197,3 @@ df.to_pickle(savepath)
 
 print("Predictions saved in artifacts/predictions")
 
-
-# test = pos_xyz(0.88, 2.75)
-# print(test)
-# boop = pi0_xyz(test, np.array([0.01, 0.02, -1.2]))
-# print(boop)

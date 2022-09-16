@@ -281,6 +281,8 @@ class image_plotter:
                 
                 pad = 16 # need to add pad to index
                 if truthDM[i]==1 or truthDM[i]==2 or truthDM[i]==11:
+                        
+                    print("Info: Truth DM is: ", truthDM[i], " HPS reconstructed tau as DM: ", np.array(self.rhTree.tau_dm)[i])
                     rel_total_neutral_ieta = np.array(gen_total_neutral_ieta[i]) - centre_eta + pad #+ shift # images look better without shift
                     rel_total_neutral_iphi = np.array(gen_total_neutral_iphi[i]) - centre_phi + pad
                     
@@ -291,18 +293,31 @@ class image_plotter:
                         if rel_neutral_iphi[n]<0:
                             rel_neutral_iphi[n] += 360
             
-                    print("$\pi^0$ coords: ", rel_neutral_iphi, rel_neutral_ieta)
+                    # print("$\pi^0$ coords: ", rel_neutral_iphi, rel_neutral_ieta)
                     ax[0][0].plot(rel_neutral_iphi, rel_neutral_ieta, linestyle="", marker = "*", label = "Gen $\pi^0$", markersize=12)
                     ax[1][0].plot(rel_neutral_iphi, rel_neutral_ieta, linestyle="", marker = "*", label = "Gen $\pi^0$", markersize=12)
                     ax[1][1].plot(rel_neutral_iphi, rel_neutral_ieta, linestyle="", marker = "*", label = "Gen $\pi^0$", markersize=12)
                     ax[0][1].plot(rel_neutral_iphi, rel_neutral_ieta, linestyle="", marker = "*", label = "Gen $\pi^0$", markersize=12)
                     ax[2][0].plot(rel_neutral_iphi, rel_neutral_ieta, linestyle="", marker = "*", label = "Gen $\pi^0$", markersize=12)
                     
-                    ax[0][0].plot(rel_total_neutral_iphi, rel_total_neutral_ieta, linestyle="", marker = "x", label = "total neutral", markersize=12, color='black')
-                    ax[1][0].plot(rel_total_neutral_iphi, rel_total_neutral_ieta, linestyle="", marker = "x", label = "total neutral", markersize=12, color='black')
-                    ax[1][1].plot(rel_total_neutral_iphi, rel_total_neutral_ieta, linestyle="", marker = "x", label = "total neutral", markersize=12, color='black')
-                    ax[0][1].plot(rel_total_neutral_iphi, rel_total_neutral_ieta, linestyle="", marker = "x", label = "total neutral", markersize=12, color='black')
-                    ax[2][0].plot(rel_total_neutral_iphi, rel_total_neutral_ieta, linestyle="", marker = "x", label = "total neutral", markersize=12, color='black')
+                    if np.array(self.rhTree.tau_dm)[i] == 1:
+                        HPS_eta = np.array(self.rhTree.HPSpi0_releta)[i]/0.0174 + 16.5
+                        HPS_phi = np.array(self.rhTree.HPSpi0_relphi)[i]/0.0174 + 16.5
+                        # print("releta: ", np.array(self.rhTree.HPSpi0_releta)[i]/0.0174)
+                        # print("relphi: ", np.array(self.rhTree.HPSpi0_relphi)[i]/0.0174)
+                        ax[0][0].plot(HPS_phi, HPS_eta, linestyle="", marker = "o", label = "HPS pi0", color='grey')
+                        ax[0][1].plot(HPS_phi, HPS_eta, linestyle="", marker = "o", label = "HPS pi0", color='grey')
+                        ax[1][0].plot(HPS_phi, HPS_eta, linestyle="", marker = "o", label = "HPS pi0", color='grey')
+                        ax[1][1].plot(HPS_phi, HPS_eta, linestyle="", marker = "o", label = "HPS pi0", color='grey')
+                        ax[2][0].plot(HPS_phi, HPS_eta, linestyle="", marker = "o", label = "HPS pi0", color='grey')
+                    else:    
+                        print("Warning, no reco pi0 as HPS DM: ", np.array(self.rhTree.tau_dm)[i])
+
+                    ax[0][0].plot(16.5, 16.5, linestyle="", marker = "x", label = "Image Centre", markersize=12, color='black')
+                    ax[1][0].plot(16.5, 16.5, linestyle="", marker = "x", label = "Image Centre", markersize=12, color='black')
+                    ax[1][1].plot(16.5, 16.5, linestyle="", marker = "x", label = "Image Centre", markersize=12, color='black')
+                    ax[0][1].plot(16.5, 16.5, linestyle="", marker = "x", label = "Image Centre", markersize=12, color='black')
+                    ax[2][0].plot(16.5, 16.5, linestyle="", marker = "x", label = "Image Centre", markersize=12, color='black')
                 
                 if truthDM[i]!=-1:
                     rel_charged_ieta = np.array(gen_charged_ieta[i]) - centre_eta + pad #+ shift
@@ -311,7 +326,7 @@ class image_plotter:
                         if rel_charged_iphi[n]<0:
                             rel_charged_iphi[n] += 360
                             
-                    print("$\pi^\pm$ coords: ", rel_charged_iphi, rel_charged_ieta)
+                    # print("$\pi^\pm$ coords: ", rel_charged_iphi, rel_charged_ieta)
                     ax[0][0].plot(rel_charged_iphi, rel_charged_ieta, linestyle="", marker = "*", label = "Gen $\pi^\pm$", markersize=12)
                     ax[0][1].plot(rel_charged_iphi, rel_charged_ieta, linestyle="", marker = "*", label = "Gen $\pi^\pm$", markersize=12)
                     ax[1][0].plot(rel_charged_iphi, rel_charged_ieta, linestyle="", marker = "*", label = "Gen $\pi^\pm$", markersize=12)
