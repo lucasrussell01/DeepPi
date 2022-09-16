@@ -32,8 +32,11 @@ class cm_plotter:
                                                  np.where(self.df['truthDM']==2)[0]))
         self.axis_lab = ["0 $\pi^0$", "1 $\pi^0$", "2 $\pi^0$"]
 
-    def plot_cm(self):
-        cm = confusion_matrix(self.df["truth"], self.df["max_pred"], normalize='true')
+    def plot_cm(self, type="efficiency"):
+        if type=="efficiency":
+            cm = confusion_matrix(self.df["truth"], self.df["max_pred"], normalize='true') 
+        elif type=="purity":
+            cm = confusion_matrix(self.df["truth"], self.df["max_pred"], normalize='pred') 
         # print(cm)
         plt.figure(figsize=(8,6.4))
         plt.axhline(y = 0, color='k',linewidth = 3)
@@ -69,8 +72,11 @@ class cm_plotter:
         plt.text(0.4, -0.05, "Work in progess ", fontsize=18, fontstyle="italic")
         plt.show()
     
-    def plot_cm_oneP(self):
-        cm = confusion_matrix(self.df["truth"][self.where_oneprong], self.df["max_pred"][self.where_oneprong], normalize='true')
+    def plot_cm_oneP(self, type="efficiency"):
+        if type=="efficiency":
+            cm = confusion_matrix(self.df["truth"][self.where_oneprong], self.df["max_pred"][self.where_oneprong], normalize='true')
+        elif type=="purity":
+            cm = confusion_matrix(self.df["truth"][self.where_oneprong], self.df["max_pred"][self.where_oneprong], normalize='pred')
         # print(cm)
         plt.figure(figsize=(8,6.4))
         plt.axhline(y = 0, color='k',linewidth = 3)
@@ -85,16 +91,22 @@ class cm_plotter:
         plt.text(0.4, -0.05, "Work in progess ", fontsize=18, fontstyle="italic")
         plt.show()
     
-    def plot_cm_threeP(self):
-        cm = confusion_matrix(self.df["truth"][self.where_threeprong], self.df["max_pred"][self.where_threeprong], normalize='true')
+    def plot_cm_threeP(self, type="efficiency"):
+
+        threeP_pred = np.array(self.df["max_pred"][self.where_threeprong])
+        threeP_pred[np.where(threeP_pred==2)[0]] = 1
+        if type=="efficiency":
+            cm = confusion_matrix(self.df["truth"][self.where_threeprong], threeP_pred, normalize='true')
+        elif type=="purity":
+            cm = confusion_matrix(self.df["truth"][self.where_threeprong], threeP_pred, normalize='pred')
         # print(cm)
         plt.figure(figsize=(8,6.4))
         plt.axhline(y = 0, color='k',linewidth = 3)
-        plt.axhline(y = 3, color = 'k', linewidth = 3)
+        plt.axhline(y = 2, color = 'k', linewidth = 3)
         plt.axvline(x = 0, color = 'k',linewidth = 3)
-        plt.axvline(x = 3, color = 'k', linewidth = 3)
+        plt.axvline(x = 2, color = 'k', linewidth = 3)
         plt.text(0.03, -0.05, "CMS ", fontsize=18, fontweight="bold")
-        sn.heatmap(cm, annot=True, cmap='Blues', xticklabels = self.axis_lab, yticklabels = self.axis_lab, annot_kws={"fontsize":12})
+        sn.heatmap(cm, annot=True, cmap='Blues', xticklabels = ["0 $\pi^0$", "$\geq$ 1 $\pi^0$"], yticklabels = ["0 $\pi^0$", "1 $\pi^0$"], annot_kws={"fontsize":12})
         plt.ylabel("True Label")
         plt.xlabel("Predicted Label")
         plt.title("Three Prong DMs", loc='right')
