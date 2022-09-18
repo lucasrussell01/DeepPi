@@ -12,28 +12,37 @@ class TauLosses:
     @staticmethod
     @tf.function
     def Kinematic_loss(target, output):
-        a = 0.0001 # energy factor
-        b = 1 # eta factor
-        c = 1 # phi factor
-        loss = a*(output[:, 0] - target[:, 0])**2 + b*(output[:, 1] - target[:, 1])**2 + c*(output[:, 2] - target[:, 2])**2
+        loss = TauLosses.MAE_eta(target, output) + TauLosses.MAE_phi(target, output) #+ TauLosses.MAE_momentum(target, output) 
         return loss
 
     @staticmethod
     @tf.function
-    def MSE_momentum(target, output):
-        loss = (output[:, 0] - target[:, 0])**2 
+    def MAE_momentum(target, output):
+        loss = tf.keras.losses.mean_absolute_error(target[:, 0], output[:, 0])
         return loss
     
     @staticmethod
     @tf.function
+    def MAE_eta(target, output):
+        loss = tf.keras.losses.mean_absolute_error(target[:, 1], output[:, 1])
+        return loss
+
+    @staticmethod
+    @tf.function
+    def MAE_phi(target, output):
+        loss = tf.keras.losses.mean_absolute_error(target[:, 2], output[:, 2])
+        return loss
+
+    @staticmethod
+    @tf.function
     def MSE_eta(target, output):
-        loss = (output[:, 1] - target[:, 1])**2 
+        loss = tf.keras.losses.mean_squared_error(target[:, 1], output[:, 1])#*tf.math.maximum(tf.constant([2.0]), target[:, 0]) # shape: 1
         return loss
 
     @staticmethod
     @tf.function
     def MSE_phi(target, output):
-        loss = (output[:, 2] - target[:, 2])**2 
+        loss = tf.keras.losses.mean_squared_error(target[:, 2], output[:, 2])#*tf.math.maximum(tf.constant([2.0]), target[:, 0]) # shape: 1
         return loss
 
     @staticmethod
@@ -57,7 +66,7 @@ class TauLosses:
     @staticmethod
     @tf.function
     def MSE_momentum_v2(target, output):
-        loss = ((output - target)**2)/tf.math.maximum(tf.constant([2.0]), target)
+        loss = tf.keras.losses.mean_absolute_error(target, output)/tf.math.maximum(tf.constant([2.0]), target)
         return loss
 
 

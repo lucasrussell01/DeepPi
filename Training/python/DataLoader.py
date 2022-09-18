@@ -108,7 +108,7 @@ class DataLoader:
 
         return _generator
 
-    def get_generator_v2(self, primary_set = True, show_progress = False, evaluation = False):
+    def get_generator_v2(self, primary_set = True, show_progress = False, evaluation = False, mom_evaluation=False):
 
         _files = self.train_files if primary_set else self.val_files
         print(("Training" if primary_set else "Validation") + " file list loaded" )
@@ -146,17 +146,34 @@ class DataLoader:
                         addTracks = 70*addTracks/np.sum(addTracks)
                     x = (np.stack([Tracks, ECAL, PF_HCAL, PF_ECAL, addTracks], axis=-1))
                     if self.use_HPS:
-                        x_mass = (np.stack([df["tau_dm"][i], df["tau_pt"][i], df["tau_E"][i], df["tau_eta"][i], df["tau_mass"][i],
-                        df["pi0_dEta"][i], df["pi0_dPhi"][i], df["strip_mass"][i], df["strip_pt"][i], 
-                        df["rho_mass"][i], df["mass0"][i], df["mass1"][i], df["mass2"][i], df["pi0_E"][i]], axis=-1))
+                        # x_mass = (np.stack([df["tau_dm"][i], df["tau_pt"][i], df["tau_E"][i], df["tau_eta"][i], df["tau_mass"][i],
+                        # df["pi0_dEta"][i], df["pi0_dPhi"][i], df["strip_mass"][i], df["strip_pt"][i], 
+                        # df["rho_mass"][i], df["mass0"][i], df["mass1"][i], df["mass2"][i], df["pi0_E"][i]], axis=-1))
+                        x_mass = (np.stack([df["tau_dm"][i], df["tau_pt"][i], df["tau_E"][i], df["tau_eta"][i], df["tau_mass"][i], df["pi_px"][i], 
+                                 df["pi_py"][i], df["pi_pz"][i], df["pi_E"][i], df["pi0_px"][i], df["pi0_py"][i], df["pi0_pz"][i], df["pi0_E"][i], 
+                                 df["pi0_dEta"][i], df["pi0_dPhi"][i], df["strip_mass"][i], df["strip_pt"][i], df["rho_mass"][i], df["pi2_px"][i], 
+                                 df["pi2_py"][i], df["pi2_pz"][i], df["pi2_E"][i], df["pi3_px"][i], df["pi3_py"][i], df["pi3_pz"][i], df["pi3_E"][i], 
+                                 df["mass0"][i], df["mass1"][i], df["mass2"][i]], axis=-1))
+
                         x = tuple([x, x_mass])
                     yp = df["relp"][i][0] # pi0 momentum
+                    yeta = df["releta"][i][0]
+                    yphi = df["relphi"][i][0]
+                    yKin = (yp, yeta, yphi)
                     if evaluation:
                         PV = df["PV"][i]
                         HPSDM = df["tau_dm"][i]
                         HPS_pi0 = [df["pi0_px"][i], df["pi0_py"][i], df["pi0_pz"][i]]
                         jet = [df["jet_eta"][i], df["jet_phi"][i]]
+                        yield(x, yKin, PV, DM, HPSDM, HPS_pi0, jet)   
+                    elif mom_evaluation:
+                        PV = df["PV"][i]
+                        HPSDM = df["tau_dm"][i]
+                        HPS_pi0 = [df["pi0_px"][i], df["pi0_py"][i], df["pi0_pz"][i]]
+                        jet = [df["jet_eta"][i], df["jet_phi"][i]]
                         yield(x, yp, PV, DM, HPSDM, HPS_pi0, jet)
+                    elif yp>200:
+                        continue
                     elif self.use_weights:
                         weights = np.array([1.35282914, 0.42862416, 0.40479484, 0.45116552, 0.54597761, 0.66752737, 0.8515014,
                                          1.10876879, 1.42314426, 1.74725353, 2.24585584, 2.80869932, 3.62901786, 4.80816246, 
@@ -169,8 +186,8 @@ class DataLoader:
                         else:
                             print(f"Warning: momentum value: {yp} out of range, setting weight to 0")
                             w = 0.0
-                        yield(x, yp, w)
+                        yield(x, yKin, w)
                     else:
-                        yield(x, yp)
+                        yield(x, yKin)
 
         return _generator
