@@ -24,15 +24,14 @@ args = parser.parse_args()
 
 
 
-
 sample = args.sample #"GluGluHToTauTau_M125", "DYJetsToLL-LO"
 if sample == "GluGluHToTauTau_M125":
-    alias = "ggHTT_" + args.split
+    alias = "ggHTT_powheg_" + args.split
 elif sample == "GluGluHToTauTau_M-125":
     alias = "ggHTT_madgraph_" + args.split
 else:
     alias = "unkwn"
-path_to_filelist = "/home/hep/lcr119/DeepPi/Analysis/scripts/HPS_2308_MC_106X_" + sample + ".dat"
+path_to_filelist = "/vols/cms/lcr119/CMSSW_10_6_19/src/DeepPi/Analysis/scripts/MVA_1509_MC_106X_" + sample + ".dat"
 
 
 # Max number of events to process #int(rhTree.GetEntries())
@@ -40,7 +39,7 @@ n_tau_target = args.n_tau # Max number of taus to select
 plot = False
 
 shard = 0 # number of file if split into several required
-save_folder = args.save_path + "v2Images"
+save_folder = args.save_path + "Images_MVA"
 savepath = save_folder + "/" + alias + "_" + str(shard) + ".pkl"
 # check if directory exists
 if not os.path.exists(save_folder):
@@ -53,27 +52,47 @@ with open(path_to_filelist) as f:
     lines = [line.rstrip('\n') for line in lines]
     if sample == "GluGluHToTauTau_M125":
         if args.split == "A":
-            files = lines[:125]
+            files = lines[:50]
         elif args.split == "B":
-            files = lines[125:250]
+            files = lines[50:100]
         elif args.split == "C":
-            files = lines[250:375]
+            files = lines[100:150]
         elif args.split == "D":
-            files = lines[375:500]
+            files = lines[150:200]
         elif args.split == "E":
-            files = lines[500:]
+            files = lines[200:250]
+        elif args.split == "F":
+            files = lines[250:300]
+        elif args.split == "G":
+            files = lines[300:350]
+        elif args.split == "H":
+            files = lines[350:400]
+        elif args.split == "I":
+            files = lines[400:450]
+        elif args.split == "J":
+            files = lines[450:500]
+        elif args.split == "K":
+            files = lines[500:550]
+        elif args.split == "L":
+            files = lines[550:600]
+        elif args.split == "M":
+            files = lines[600:]
         else: 
             raise Exception("Split not recognised")
     elif sample == "GluGluHToTauTau_M-125":
         if args.split == "A":
-            files = lines[:75]
+            files = lines[:50]
         elif args.split == "B":
-            files = lines[75:150]
+            files = lines[50:100]
         elif args.split == "C":
-            files = lines[150:225]
+            files = lines[100:150]
         elif args.split == "D":
-            files = lines[225:300]
+            files = lines[150:200]
         elif args.split == "E":
+            files = lines[200:250]
+        elif args.split == "F":
+            files = lines[250:300]
+        elif args.split == "G":
             files = lines[300:]
         else: 
             raise Exception("Split not recognised")
@@ -132,12 +151,22 @@ DM_list = []
 releta_list = []
 relphi_list = []
 relp_list = []
+prong_releta_list = []
+prong_relphi_list = []
+prong_relp_list = []
+# MVA information
+MVA_DM_list = []
+deeptauVSjet_list = []
+deeptauVSmu_list = []
+deeptauVSe_list = []
 # centre of image
 jet_eta_list = []
 jet_phi_list = []
 # PV information:
 PV_list = []
 # HPS variables:
+list_pi0_releta = []
+list_pi0_relphi = []
 list_tau_dm = []
 list_tau_pt = []
 list_tau_E = []
@@ -179,7 +208,7 @@ os.system('~/scripts/t-notify.sh Beginning image creation')
 file_pbar = tqdm(total = len(files))
 
 for f in files:
-    file = "root://gfe02.grid.hep.ph.ic.ac.uk:1097/store/user/lrussell/DetectorImages_HPS2308_MC_106X_2018/" + f
+    file = "root://gfe02.grid.hep.ph.ic.ac.uk:1097/store/user/lrussell/DetectorImages_MVA_MC_106X_2018/" + f
     
     Rfile = R.TFile.Open(file, "READ")
     rhTree = Rfile.Get("recHitAnalyzer/RHTree")
@@ -206,6 +235,10 @@ for f in files:
         releta = np.array(rhTree.jet_neutral_indv_releta, dtype=object)
         relphi = np.array(rhTree.jet_neutral_indv_relphi, dtype=object)
         relp = np.array(rhTree.jet_neutral_indv_relp, dtype=object)
+        # Load prong kinematics
+        prong_releta = np.array(rhTree.jet_charged_indv_releta, dtype=object)
+        prong_relphi = np.array(rhTree.jet_charged_indv_relphi, dtype=object)
+        prong_relp = np.array(rhTree.jet_charged_indv_relp, dtype=object)
         # Primary vertex:
         PV = np.array(rhTree.PrimaryVertex)
         # Iterate over the taus in the event
@@ -233,10 +266,19 @@ for f in files:
                 releta_list.append(np.array(releta[i]))
                 relphi_list.append(np.array(relphi[i]))
                 relp_list.append(np.array(relp[i]))
+                prong_releta_list.append(np.array(prong_releta[i]))
+                prong_relphi_list.append(np.array(prong_relphi[i]))
+                prong_relp_list.append(np.array(prong_relp[i]))
                 PV_list.append(PV)
                 jet_eta_list.append(np.array(rhTree.jet_centre2_eta)[i])
                 jet_phi_list.append(np.array(rhTree.jet_centre2_phi)[i])
+                MVA_DM_list.append(np.array(rhTree.tau_mva_dm)[i])
+                deeptauVSjet_list.append(np.array(rhTree.tau_deeptau_id)[i])
+                deeptauVSmu_list.append(np.array(rhTree.tau_deeptau_id_vs_mu)[i])
+                deeptauVSe_list.append(np.array(rhTree.tau_deeptau_id_vs_e)[i])
                 # add HPS variables:
+                list_pi0_releta.append(np.array(rhTree.HPSpi0_releta)[i])
+                list_pi0_relphi.append(np.array(rhTree.HPSpi0_relphi)[i])
                 list_tau_dm.append(np.array(rhTree.tau_dm)[i])
                 list_tau_pt.append(np.array(rhTree.tau_pt)[i])
                 list_tau_E.append(np.array(rhTree.tau_E)[i])
@@ -278,39 +320,48 @@ for f in files:
                     df["releta"] = releta_list
                     df["relphi"] = relphi_list
                     df["relp"] = relp_list
+                    df["prong_releta"] = prong_releta_list
+                    df["prong_relphi"] = prong_relphi_list
+                    df["prong_relp"] = prong_relp_list
                     df["PV"] = PV_list
                     df["jet_eta"] = jet_eta_list
                     df["jet_phi"] = jet_phi_list
+                    df["MVA_DM"] = MVA_DM_list
+                    df["deeptauVSjet"] = deeptauVSjet_list
+                    df["deeptauVSmu"] = deeptauVSmu_list
+                    df["deeptauVSe"] = deeptauVSjet_list
                     # HPS variables:
-                    df["tau_dm"] = list_tau_dm
-                    df["tau_pt"] = list_tau_pt
-                    df["tau_E"] = list_tau_E
-                    df["tau_eta"] = list_tau_eta
-                    df["tau_mass"] = list_tau_mass
-                    df["pi_px"] = list_pi_px
-                    df["pi_py"] = list_pi_py
-                    df["pi_pz"] = list_pi_pz
-                    df["pi_E"] = list_pi_E
-                    df["pi0_px"] = list_pi0_px
-                    df["pi0_py"] = list_pi0_py
-                    df["pi0_pz"] = list_pi0_pz
-                    df["pi0_E"] = list_pi0_E
-                    df["pi0_dEta"] = list_pi0_dEta
-                    df["pi0_dPhi"] = list_pi0_dPhi
-                    df["strip_mass"] = list_strip_mass
-                    df["strip_pt"] = list_strip_pt
-                    df["rho_mass"] = list_rho_mass
-                    df["pi2_px"] = list_pi2_px
-                    df["pi2_py"] = list_pi2_py
-                    df["pi2_pz"] = list_pi2_pz
-                    df["pi2_E"] = list_pi2_E
-                    df["pi3_px"] = list_pi3_px
-                    df["pi3_py"] = list_pi3_py
-                    df["pi3_pz"] = list_pi3_pz
-                    df["pi3_E"] = list_pi3_E
-                    df["mass0"] = list_mass0
-                    df["mass1"] = list_mass1
-                    df["mass2"] = list_mass2
+                    df["HPS_pi0_releta"] = list_pi0_releta
+                    df["HPS_pi0_relphi"] = list_pi0_relphi
+                    df["HPS_tau_dm"] = list_tau_dm
+                    df["HPS_tau_pt"] = list_tau_pt
+                    df["HPS_tau_E"] = list_tau_E
+                    df["HPS_tau_eta"] = list_tau_eta
+                    df["HPS_tau_mass"] = list_tau_mass
+                    df["HPS_pi_px"] = list_pi_px
+                    df["HPS_pi_py"] = list_pi_py
+                    df["HPS_pi_pz"] = list_pi_pz
+                    df["HPS_pi_E"] = list_pi_E
+                    df["HPS_pi0_px"] = list_pi0_px
+                    df["HPS_pi0_py"] = list_pi0_py
+                    df["HPS_pi0_pz"] = list_pi0_pz
+                    df["HPS_pi0_E"] = list_pi0_E
+                    df["HPS_pi0_dEta"] = list_pi0_dEta
+                    df["HPS_pi0_dPhi"] = list_pi0_dPhi
+                    df["HPS_strip_mass"] = list_strip_mass
+                    df["HPS_strip_pt"] = list_strip_pt
+                    df["HPS_rho_mass"] = list_rho_mass
+                    df["HPS_pi2_px"] = list_pi2_px
+                    df["HPS_pi2_py"] = list_pi2_py
+                    df["HPS_pi2_pz"] = list_pi2_pz
+                    df["HPS_pi2_E"] = list_pi2_E
+                    df["HPS_pi3_px"] = list_pi3_px
+                    df["HPS_pi3_py"] = list_pi3_py
+                    df["HPS_pi3_pz"] = list_pi3_pz
+                    df["HPS_pi3_E"] = list_pi3_E
+                    df["HPS_mass0"] = list_mass0
+                    df["HPS_mass1"] = list_mass1
+                    df["HPS_mass2"] = list_mass2
                     print("Saving dataframe at: ", savepath)
                     df.to_pickle(savepath)
                     shard+=1 # new shard
@@ -318,14 +369,16 @@ for f in files:
                     # os.system('~/scripts/t-notify.sh shard saved')
                     print("After event: ", event)
                     # delete lists and df to reduce memory leakage
-                    del df
+                    del df, list_pi0_releta, list_pi0_relphi, image
                     del Tracks_list, ECAL_list, PF_HCAL_list, PF_ECAL_list, addTracks_list, DM_list
-                    del releta_list, relphi_list, relp_list, jet_eta_list, jet_phi_list, PV_list
+                    del MVA_DM_list, releta_list, relphi_list, relp_list, jet_eta_list, jet_phi_list, PV_list
                     del list_tau_dm, list_tau_pt, list_tau_E, list_tau_eta, list_tau_mass, list_pi_px 
                     del list_pi_py, list_pi_pz, list_pi_E, list_pi0_px, list_pi0_py, list_pi0_pz, list_pi0_E
                     del list_pi0_dEta, list_pi0_dPhi, list_strip_mass, list_strip_pt, list_rho_mass 
                     del list_pi2_px, list_pi2_py, list_pi2_pz, list_pi2_E, list_pi3_px, list_pi3_py
                     del list_pi3_pz, list_pi3_E, list_mass0, list_mass1, list_mass2 
+                    del prong_releta_list, prong_relphi_list, prong_relp_list
+                    del deeptauVSe_list, deeptauVSmu_list, deeptauVSjet_list
                     gc.collect() # collect released memory
                     # initialise lists again
                     Tracks_list = []
@@ -336,10 +389,19 @@ for f in files:
                     DM_list = []
                     releta_list = []
                     relphi_list = []
-                    relp_list = []
+                    relp_list = []           
+                    prong_releta_list = []
+                    prong_relphi_list = []
+                    prong_relp_list = []
                     PV_list = []
+                    MVA_DM_list = []                
+                    deeptauVSjet_list = []
+                    deeptauVSmu_list = []
+                    deeptauVSe_list = []
                     jet_eta_list = []
                     jet_phi_list = []
+                    list_pi0_releta = []
+                    list_pi0_relphi = []
                     list_tau_dm = []
                     list_tau_pt = []
                     list_tau_E = []
@@ -380,7 +442,9 @@ for f in files:
     print("Changing file")
     Rfile.Close()
     del Rfile
-    gc.collect()
+    del ECAL_barrel, Tracks_barrel, PF_HCAL_barrel, PF_ECAL_barrel, addTracks_barrel
+    del ieta, iphi, releta, relphi, relp, prong_releta, prong_relphi, prong_relp
+    gc.collect() # collect released memory
                
 
 savepath = save_folder + "/" + alias + "_" + str(shard) + "_end.pkl"
@@ -394,38 +458,47 @@ df["DM"] = DM_list
 df["releta"] = releta_list
 df["relphi"] = relphi_list
 df["relp"] = relp_list
+df["prong_releta"] = prong_releta_list
+df["prong_relphi"] = prong_relphi_list
+df["prong_relp"] = prong_relp_list
 df["PV"] = PV_list
+df["MVA_DM"] = MVA_DM_list
+df["deeptauVSjet"] = deeptauVSjet_list
+df["deeptauVSmu"] = deeptauVSmu_list
+df["deeptauVSe"] = deeptauVSjet_list
 df["jet_eta"] = jet_eta_list
 df["jet_phi"] = jet_phi_list
-df["tau_dm"] = list_tau_dm
-df["tau_pt"] = list_tau_pt
-df["tau_E"] = list_tau_E
-df["tau_eta"] = list_tau_eta
-df["tau_mass"] = list_tau_mass
-df["pi_px"] = list_pi_px
-df["pi_py"] = list_pi_py
-df["pi_pz"] = list_pi_pz
-df["pi_E"] = list_pi_E
-df["pi0_px"] = list_pi0_px
-df["pi0_py"] = list_pi0_py
-df["pi0_pz"] = list_pi0_pz
-df["pi0_E"] = list_pi0_E
-df["pi0_dEta"] = list_pi0_dEta
-df["pi0_dPhi"] = list_pi0_dPhi
-df["strip_mass"] = list_strip_mass
-df["strip_pt"] = list_strip_pt
-df["rho_mass"] = list_rho_mass
-df["pi2_px"] = list_pi2_px
-df["pi2_py"] = list_pi2_py
-df["pi2_pz"] = list_pi2_pz
-df["pi2_E"] = list_pi2_E
-df["pi3_px"] = list_pi3_px
-df["pi3_py"] = list_pi3_py
-df["pi3_pz"] = list_pi3_pz
-df["pi3_E"] = list_pi3_E
-df["mass0"] = list_mass0
-df["mass1"] = list_mass1
-df["mass2"] = list_mass2
+df["HPS_pi0_releta"] = list_pi0_releta
+df["HPS_pi0_relphi"] = list_pi0_relphi
+df["HPS_tau_dm"] = list_tau_dm
+df["HPS_tau_pt"] = list_tau_pt
+df["HPS_tau_E"] = list_tau_E
+df["HPS_tau_eta"] = list_tau_eta
+df["HPS_tau_mass"] = list_tau_mass
+df["HPS_pi_px"] = list_pi_px
+df["HPS_pi_py"] = list_pi_py
+df["HPS_pi_pz"] = list_pi_pz
+df["HPS_pi_E"] = list_pi_E
+df["HPS_pi0_px"] = list_pi0_px
+df["HPS_pi0_py"] = list_pi0_py
+df["HPS_pi0_pz"] = list_pi0_pz
+df["HPS_pi0_E"] = list_pi0_E
+df["HPS_pi0_dEta"] = list_pi0_dEta
+df["HPS_pi0_dPhi"] = list_pi0_dPhi
+df["HPS_strip_mass"] = list_strip_mass
+df["HPS_strip_pt"] = list_strip_pt
+df["HPS_rho_mass"] = list_rho_mass
+df["HPS_pi2_px"] = list_pi2_px
+df["HPS_pi2_py"] = list_pi2_py
+df["HPS_pi2_pz"] = list_pi2_pz
+df["HPS_pi2_E"] = list_pi2_E
+df["HPS_pi3_px"] = list_pi3_px
+df["HPS_pi3_py"] = list_pi3_py
+df["HPS_pi3_pz"] = list_pi3_pz
+df["HPS_pi3_E"] = list_pi3_E
+df["HPS_mass0"] = list_mass0
+df["HPS_mass1"] = list_mass1
+df["HPS_mass2"] = list_mass2
 print("Saving dataframe at ", savepath)
 df.to_pickle(savepath)
 

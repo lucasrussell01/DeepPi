@@ -462,8 +462,10 @@ std::pair<PtEtaPhiELV, PtEtaPhiELV> RecHitAnalyzer::getRho(const pat::Tau tau, d
       gammas = strip_pairs[0].second;
     }
   }
-  if ((tau.decayMode() == 1 || tau.decayMode() == 2) && !strip_pairs.empty())
+  if ((tau.decayMode() == 1 || tau.decayMode() == 2) && !strip_pairs.empty()){
+    std::cout<< "Strip pairs size: " << strip_pairs.size() << std::endl;
     pi0 = getPi0(strip_pairs[0].second, true);
+  }
   else {
     pi0 = getPi0(gammas, true);
   }
@@ -1100,9 +1102,17 @@ void RecHitAnalyzer::fillEvtSel_jet_taujet( const edm::Event& iEvent, const edm:
               auto pi0_prop = HPSpi0_propagator.particle().vertex().Vect();
               pi0_releta = pi0_prop.eta()-jet_sum_eta2_;;
               pi0_relphi = pi0_prop.phi()-jet_sum_phi2_;;
+              if (truthDM==2){
+                std::cout<< "*****************************************************************" << std::endl;
+                std::cout<< "INFO: gen DM 2 reconstructed by HPS as DM 11" << std::endl;
+                std::cout << "Pi0 energy: " << pi0.E() << " eta: " << pi0_prop.eta() << " phi: " << pi0_prop.phi() << std::endl;
+              }
               }
           }
         } else {
+          if (truthDM==2){
+            std::cout<< "*****************************************************************" << std::endl;
+          }
           rho = getRho(HPStau, 1.0);
           pi = rho.first;
           pi0 = rho.second;
@@ -1124,6 +1134,11 @@ void RecHitAnalyzer::fillEvtSel_jet_taujet( const edm::Event& iEvent, const edm:
             auto pi0_prop = HPSpi0_propagator.particle().vertex().Vect();
             pi0_releta = pi0_prop.eta()-jet_sum_eta2_;;
             pi0_relphi = pi0_prop.phi()-jet_sum_phi2_;;
+            if (truthDM==2){
+              // std::cout<< "*****************************************************************" << std::endl;
+              std::cout<< "INFO: gen DM 2 reconstructed by HPS as DM 1" << std::endl;
+              std::cout << "Pi0 energy: " << pi0.E() << " eta: " << pi0_prop.eta() << " phi: " << pi0_prop.phi() << " releta: " << pi0_releta << " relphi: " << pi0_relphi << std::endl;
+            }
           }
         }
         pi0_px = pi0.Px();
@@ -1133,9 +1148,27 @@ void RecHitAnalyzer::fillEvtSel_jet_taujet( const edm::Event& iEvent, const edm:
 
         PtEtaPhiELV gammas_vector;
         strip_pt = pi0.pt();
-        for (const auto& g : gammas_)
+        for (const auto& g : gammas_){
           gammas_vector += g->p4();
-        strip_mass = gammas_vector.M(); 
+          double magneticField = (magfield.product() ? magfield.product()->inTesla(GlobalPoint(0., 0., 0.)).z() : 0.0);
+          math::XYZTLorentzVector  gamma_p4(g->p4().px(),g->p4().py(),g->p4().pz(),g->p4().E()); //setup 4-vector 
+          BaseParticlePropagator gamma_propagator = BaseParticlePropagator(
+              RawParticle(gamma_p4, math::XYZTLorentzVector(vtxs[0].position().x(), vtxs[0].position().y(), vtxs[0].position().z(), 0.),
+                          g->charge()),0.,0.,magneticField);
+          gamma_propagator.propagateToEcalEntrance(false); // propogate to ECAL entrance
+          auto gamma_prop = gamma_propagator.particle().vertex().Vect();
+          if (truthDM==2){
+            std::cout << "Gamma energy: " << g->p4().E() << " eta: " << gamma_prop.eta() << " phi: " << gamma_prop.phi()  << " releta: " << gamma_prop.eta()-jet_sum_eta2_ << " relphi: " << gamma_prop.phi()-jet_sum_phi2_ << std::endl;
+          }
+          // std::cout << "Gamma energy: " << g->p4().E() << " mass: " << g->p4().M() << std::endl;
+        }    
+        strip_mass = gammas_vector.M();
+        if (truthDM==2){
+          std::cout << "Strip energy: " << gammas_vector.E()  << std::endl;
+          std::cout << "---------------------------------------------" << std::endl;
+        } 
+        
+        
       }
     }
     vHPSTau_dm_.push_back(tau_dm);

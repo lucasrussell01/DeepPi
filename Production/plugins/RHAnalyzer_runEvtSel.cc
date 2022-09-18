@@ -61,7 +61,12 @@ bool RecHitAnalyzer::runEvtSel ( const edm::Event& iEvent, const edm::EventSetup
   edm::Handle<reco::PhotonCollection> photons;
   //edm::Handle<pat::PhotonCollection> photons;
   iEvent.getByToken( photonCollectionT_, photons );
-
+  
+  // add eventid printout
+  if (eventId_ == 15967931){
+    std::cout<< "Attention! Found event 15967931" << std::endl;
+  }
+  
   int nPhoTrg = 0;
 
   // Perform photon pre-selection
