@@ -84,7 +84,7 @@ gen_eval = dataloader.get_generator_v2(primary_set = True, evaluation=True)
 
 if training_cfg["Setup"]["HPS_features"]:
     print("Warning: Model was trained with HPS vars")
-    input_shape = (((33, 33, 5), 29), None, 3, None, None, 3,  2)
+    input_shape = (((33, 33, 5), 31), None, 3, None, None, 3,  2)
     input_types = ((tf.float32, tf.float32), tf.float32, tf.float32, tf.float32, tf.float32, tf.float32, tf.float32)
 else:
     input_shape = ((33, 33, 5), None, 3, None, None, 3,  2)

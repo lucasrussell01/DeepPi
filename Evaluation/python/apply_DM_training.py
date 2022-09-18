@@ -16,7 +16,7 @@ parser = argparse.ArgumentParser(description='Generate DM predictions for DeepPi
 parser.add_argument('--expID', required=True, type=str, help="Experiment ID")
 parser.add_argument('--runID', required=True, type=str, help="Run ID")
 parser.add_argument('--n_tau', required=False, default = 50000, type=int, help="n_tau")
-parser.add_argument('--HPS', required=False, default = "False", type=str, help="use HPS taus only")
+parser.add_argument('--HPS', required=False, default = "True", type=str, help="use HPS taus only")
 
 args = parser.parse_args()
 
@@ -29,17 +29,25 @@ runID = args.runID
 
 path_to_artifacts = path_to_mlflow + expID + "/" + runID + "/artifacts"
 
-def test(data, model):
-        # Unpack the data
-        x, y, yHPSDM = data
-        y_pred = model(x, training=False) 
-        return (y, y_pred)
+def test(x, model):
+    y_pred = model(x, training=False) 
+    return (y_pred)
+
+def DMtopi0(DM): # convert DM to 0, 1 or 2 pi0s
+    if DM == 0 or DM == 10:
+        return 0
+    elif DM == 1 or DM ==11:
+        return 1
+    elif DM == 2:
+        return 2
+    elif DM == -1:
+        return -1
 
 # Load training cfg
 with open(f'{path_to_artifacts}/input_cfg/training_cfg.yaml') as file:
     training_cfg = yaml.full_load(file)
     print("Training Config Loaded")
-training_cfg["Setup"]["input_dir"] = '/vols/cms/lcr119/Images/v2Images/Evaluation'
+training_cfg["Setup"]["input_dir"] = '/vols/cms/lcr119/Images/Images_MVA/Evaluation'
 training_cfg["Setup"]["n_batches"] = args.n_tau # 250k is full because batch size 1
 training_cfg["Setup"]["n_batches_val"] = 0
 training_cfg["Setup"]["val_split"] = 0
@@ -51,11 +59,11 @@ dataloader = DataLoader(training_cfg)
 gen_eval = dataloader.get_generator_v1(primary_set = True, DM_evaluation=True)
 
 if training_cfg["Setup"]["HPS_features"]:
-    input_shape = (((33, 33, 5), 13), None, None)
-    input_types = ((tf.float32, tf.float32), tf.float32, tf.float32)
+    input_shape = (((33, 33, 5), 31), None, None, None)
+    input_types = ((tf.float32, tf.float32), tf.float32, tf.float32, tf.float32)
 else:
-    input_shape = ((33, 33, 5), None, None)
-    input_types = (tf.float32, tf.float32, tf.float32)
+    input_shape = ((33, 33, 5), None, None, None)
+    input_types = (tf.float32, tf.float32, tf.float32, tf.float32)
 data_eval = tf.data.Dataset.from_generator(
     gen_eval, output_types = input_types, output_shapes = input_shape
     ).prefetch(tf.data.AUTOTUNE).batch(1).take(dataloader.n_batches)
@@ -69,25 +77,26 @@ with open(f'{path_to_artifacts}/input_cfg/metric_names.json') as f:
 model = load_model(path_to_model, {name: lambda _: None for name in metric_names.keys()})
 print("Model loaded")
 
-full_pred = []
+# full_pred = []
 truth = []
 truthDM = []
-max_pred = []
+CNN_pred = []
+HPS_pred = []
+MVA_pred = []
 
 pbar = tqdm(total = dataloader.n_batches)
 
 i = 0
 for elem in data_eval:
-    x, yDM, yHPSDM = elem
-    if args.HPS=="True"and yHPSDM==-1:
+    x, y, yHPSDM, yMVADM = elem
+    if args.HPS=="True"and yHPSDM not in [0, 1, 2, 10, 11]:
         continue
     else:
-        y, y_pred = test(elem, model)
+        y_pred = test(x, model)
         if training_cfg["Setup"]["kinematic"]:
             y_pred = y_pred[0] # take only DM output
 
-        # below is code for if dataloader in eval mode
-        full_pred.append(y_pred)
+        # full_pred.append(y_pred)
         if y == 0 or y ==10:
             truth.append(0)
         elif y == 1 or y == 11:
@@ -97,16 +106,20 @@ for elem in data_eval:
         else:
             raise RuntimeError("Unknown DM")
         truthDM.append(int(y))
-        max_pred.append(int(np.where(y_pred[0] == np.max(y_pred[0]))[0]))
+        CNN_pred.append(int(np.where(y_pred[0] == np.max(y_pred[0]))[0]))
+        HPS_pred.append(DMtopi0(np.array(yHPSDM)[0]))
+        MVA_pred.append(DMtopi0(np.array(yMVADM)[0]))
     i+=1
     if i%10 ==0:
         pbar.update(10)
 
 df = pd.DataFrame()
-df["truth"] = truth
-df["max_pred"] = max_pred
 df["truthDM"] = truthDM
-df["full_pred"] = full_pred
+df["truth"] = truth
+df["CNN_pred"] = CNN_pred
+df["MVA_pred"] = MVA_pred
+df["HPS_pred"] = HPS_pred
+# df["full_pred"] = full_pred
 
 print(df)
 
@@ -116,9 +129,9 @@ save_folder = path_to_artifacts + "/predictions"
 if not os.path.exists(save_folder):
     os.makedirs(save_folder)
 if args.HPS=="True":
-    savepath = save_folder + "/pred_ggH_HPS_only.pkl"
+    savepath = save_folder + "/pred_DM_HPS_only.pkl"
 else:
-    savepath = save_folder + "/pred_ggH.pkl"
+    savepath = save_folder + "/pred_DM.pkl"
 
 df.to_pickle(savepath)
 

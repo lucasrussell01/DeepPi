@@ -46,65 +46,68 @@ class DataLoader:
         n_batches = self.n_batches if primary_set else self.n_batches_val
 
         def _generator():
-            counter = 0
-            while counter<n_batches:
-                for j in range(len(_files)):
-                    df = pd.read_pickle(_files[j])
-                    for i in range(len(df)):
-                        # Image inputs
-                        Tracks = df["Tracks"][i]
-                        ECAL = df["ECAL"][i]
-                        PF_HCAL = df["PF_HCAL"][i]
-                        PF_ECAL = df["PF_ECAL"][i]
-                        addTracks = df["addTracks"][i]
-                        # Clip outliers to max determined from 99.7%:
-                        if np.sum(Tracks)>200:
-                            Tracks = 200*Tracks/np.sum(Tracks)
-                        if np.sum(ECAL)>200:
-                            ECAL = 200*ECAL/np.sum(ECAL)
-                        if np.sum(PF_HCAL)>150:
-                            PF_HCAL = 150*PF_HCAL/np.sum(PF_HCAL)
-                        if np.sum(PF_ECAL)>200:
-                            PF_ECAL = 200*PF_ECAL/np.sum(PF_ECAL)
-                        if np.sum(addTracks)>70:
-                            addTracks = 70*addTracks/np.sum(addTracks)
-                        x = (np.stack([Tracks, ECAL, PF_HCAL, PF_ECAL, addTracks], axis=-1))
-                        if self.use_HPS:
-                            x_mass = (np.stack([df["tau_dm"][i], df["tau_pt"][i], df["tau_E"][i], df["tau_eta"][i], df["tau_mass"][i],
-                            df["pi0_dEta"][i], df["pi0_dPhi"][i], df["strip_mass"][i], df["strip_pt"][i], 
-                            df["rho_mass"][i], df["mass0"][i], df["mass1"][i], df["mass2"][i]], axis=-1))
-                            x = tuple([x, x_mass])
-                        DM = df["DM"][i]
+            for j in range(len(_files)):
+                df = pd.read_pickle(_files[j])
+                for i in range(len(df)):
+                    # Image inputs
+                    Tracks = df["Tracks"][i]
+                    ECAL = df["ECAL"][i]
+                    PF_HCAL = df["PF_HCAL"][i]
+                    PF_ECAL = df["PF_ECAL"][i]
+                    addTracks = df["addTracks"][i]
+                    # Clip outliers to max determined from 99.7%:
+                    if np.sum(Tracks)>200:
+                        Tracks = 200*Tracks/np.sum(Tracks)
+                    if np.sum(ECAL)>200:
+                        ECAL = 200*ECAL/np.sum(ECAL)
+                    if np.sum(PF_HCAL)>150:
+                        PF_HCAL = 150*PF_HCAL/np.sum(PF_HCAL)
+                    if np.sum(PF_ECAL)>200:
+                        PF_ECAL = 200*PF_ECAL/np.sum(PF_ECAL)
+                    if np.sum(addTracks)>70:
+                        addTracks = 70*addTracks/np.sum(addTracks)
+                    x = (np.stack([Tracks, ECAL, PF_HCAL, PF_ECAL, addTracks], axis=-1))
+                    if self.use_HPS:
+                        # x_mass = (np.stack([df["HPS_tau_dm"][i], df["HPS_tau_pt"][i], df["HPS_tau_E"][i], df["HPS_tau_eta"][i], df["HPS_tau_mass"][i],
+                        # df["HPS_pi0_dEta"][i], df["HPS_pi0_dPhi"][i], df["HPS_strip_mass"][i], df["HPS_strip_pt"][i], 
+                        # df["HPS_rho_mass"][i], df["HPS_mass0"][i], df["HPS_mass1"][i], df["HPS_mass2"][i]], axis=-1))
+                        x_mass = (np.stack([df["HPS_tau_dm"][i], df["HPS_tau_pt"][i], df["HPS_tau_E"][i], df["HPS_tau_eta"][i], df["HPS_tau_mass"][i], df["HPS_pi_px"][i], 
+                                df["HPS_pi_py"][i], df["HPS_pi_pz"][i], df["HPS_pi_E"][i], df["HPS_pi0_px"][i], df["HPS_pi0_py"][i], df["HPS_pi0_pz"][i], df["HPS_pi0_E"][i], 
+                                df["HPS_pi0_dEta"][i], df["HPS_pi0_dPhi"][i], df["HPS_strip_mass"][i], df["HPS_strip_pt"][i], df["HPS_rho_mass"][i], df["HPS_pi2_px"][i], 
+                                df["HPS_pi2_py"][i], df["HPS_pi2_pz"][i], df["HPS_pi2_E"][i], df["HPS_pi3_px"][i], df["HPS_pi3_py"][i], df["HPS_pi3_pz"][i], df["HPS_pi3_E"][i], 
+                                df["HPS_mass0"][i], df["HPS_mass1"][i], df["HPS_mass2"][i], df["HPS_pi0_releta"][i], df["HPS_pi0_relphi"][i]], axis=-1))
+                        x = tuple([x, x_mass])
+                    DM = df["DM"][i]
+                    if self.regress_kinematic:
+                        max_index = np.where(df["relp"][i] == np.max(df["relp"][i]))[0] # find leading neutral
+                        yKin = (df["relp"][i][max_index][0], df["releta"][i][max_index][0], df["relphi"][i][max_index][0])
+                    if DM_evaluation:
+                        yDM = DM
+                        HPSDM = df["HPS_tau_dm"][i]
+                        MVADM = df["MVA_DM"][i]
+                        yield(x, yDM, HPSDM, MVADM)
+                    elif Kin_evaluation:
+                        PV = df["PV"][i]
+                        HPSDM = df["HPS_tau_dm"][i]
+                        HPS_pi0 = [df["HPS_pi0_px"][i], df["HPS_pi0_py"][i], df["HPS_pi0_pz"][i]]
+                        jet = [df["jet_eta"][i], df["jet_phi"][i]]
+                        yield(x, yKin, PV, DM, HPSDM, HPS_pi0, jet)
+                    else:
+                        if DM == 0 or DM == 10:
+                            yDM = tf.one_hot(0, 3) # no pi0
+                            w = 0
+                        elif DM ==1 or DM ==11:
+                            yDM = tf.one_hot(1, 3) # one pi0
+                            w = 1
+                        elif DM == 2:
+                            yDM = tf.one_hot(2, 3) # two pi0
+                            w = 0
+                        else: 
+                            raise RuntimeError(f"Unknown DM {DM}")
                         if self.regress_kinematic:
-                            max_index = np.where(df["relp"][i] == np.max(df["relp"][i]))[0] # find leading neutral
-                            yKin = (df["relp"][i][max_index][0], df["releta"][i][max_index][0], df["relphi"][i][max_index][0])
-                        if DM_evaluation:
-                            yDM = DM
-                            HPSDM = df["tau_dm"][i]
-                            yield(x, yDM, HPSDM)
-                        elif Kin_evaluation:
-                            PV = df["PV"][i]
-                            HPSDM = df["tau_dm"][i]
-                            HPS_pi0 = [df["pi0_px"][i], df["pi0_py"][i], df["pi0_pz"][i]]
-                            jet = [df["jet_eta"][i], df["jet_phi"][i]]
-                            yield(x, yKin, PV, DM, HPSDM, HPS_pi0, jet)
+                            yield (x, yDM, yKin, w)
                         else:
-                            if DM == 0 or DM == 10:
-                                yDM = tf.one_hot(0, 3) # no pi0
-                                w = 0
-                            elif DM ==1 or DM ==11:
-                                yDM = tf.one_hot(1, 3) # one pi0
-                                w = 1
-                            elif DM == 2:
-                                yDM = tf.one_hot(2, 3) # two pi0
-                                w = 0
-                            else: 
-                                raise RuntimeError(f"Unknown DM {DM}")
-                            if self.regress_kinematic:
-                                yield (x, yDM, yKin, w)
-                            else:
-                                yield (x, yDM)
-                        counter += 1
+                            yield (x, yDM)
 
         return _generator
 
@@ -121,10 +124,11 @@ class DataLoader:
         def _generator():
             for j in range(len(_files)):
                 df = pd.read_pickle(_files[j])
+                # tf.print("Processing file: ", _files[j])
                 for i in range(len(df)):
                     DM = df["DM"][i]
                     if self.use_HPS:
-                        HPSDM = df["tau_dm"][i] # use HPS DM for cuts
+                        HPSDM = df["HPS_tau_dm"][i] # use HPS DM for cuts
                     if DM != 1 and DM != 11: # v2 train only on 1 pi0 taus for now
                         continue
                     # Image inputs
@@ -149,11 +153,11 @@ class DataLoader:
                         # x_mass = (np.stack([df["tau_dm"][i], df["tau_pt"][i], df["tau_E"][i], df["tau_eta"][i], df["tau_mass"][i],
                         # df["pi0_dEta"][i], df["pi0_dPhi"][i], df["strip_mass"][i], df["strip_pt"][i], 
                         # df["rho_mass"][i], df["mass0"][i], df["mass1"][i], df["mass2"][i], df["pi0_E"][i]], axis=-1))
-                        x_mass = (np.stack([df["tau_dm"][i], df["tau_pt"][i], df["tau_E"][i], df["tau_eta"][i], df["tau_mass"][i], df["pi_px"][i], 
-                                 df["pi_py"][i], df["pi_pz"][i], df["pi_E"][i], df["pi0_px"][i], df["pi0_py"][i], df["pi0_pz"][i], df["pi0_E"][i], 
-                                 df["pi0_dEta"][i], df["pi0_dPhi"][i], df["strip_mass"][i], df["strip_pt"][i], df["rho_mass"][i], df["pi2_px"][i], 
-                                 df["pi2_py"][i], df["pi2_pz"][i], df["pi2_E"][i], df["pi3_px"][i], df["pi3_py"][i], df["pi3_pz"][i], df["pi3_E"][i], 
-                                 df["mass0"][i], df["mass1"][i], df["mass2"][i]], axis=-1))
+                        x_mass = (np.stack([df["HPS_tau_dm"][i], df["HPS_tau_pt"][i], df["HPS_tau_E"][i], df["HPS_tau_eta"][i], df["HPS_tau_mass"][i], df["HPS_pi_px"][i], 
+                                 df["HPS_pi_py"][i], df["HPS_pi_pz"][i], df["HPS_pi_E"][i], df["HPS_pi0_px"][i], df["HPS_pi0_py"][i], df["HPS_pi0_pz"][i], df["HPS_pi0_E"][i], 
+                                 df["HPS_pi0_dEta"][i], df["HPS_pi0_dPhi"][i], df["HPS_strip_mass"][i], df["HPS_strip_pt"][i], df["HPS_rho_mass"][i], df["HPS_pi2_px"][i], 
+                                 df["HPS_pi2_py"][i], df["HPS_pi2_pz"][i], df["HPS_pi2_E"][i], df["HPS_pi3_px"][i], df["HPS_pi3_py"][i], df["HPS_pi3_pz"][i], df["HPS_pi3_E"][i], 
+                                 df["HPS_mass0"][i], df["HPS_mass1"][i], df["HPS_mass2"][i], df["HPS_pi0_releta"][i], df["HPS_pi0_relphi"][i]], axis=-1))
 
                         x = tuple([x, x_mass])
                     yp = df["relp"][i][0] # pi0 momentum
@@ -162,13 +166,13 @@ class DataLoader:
                     yKin = (yp, yeta, yphi)
                     if evaluation:
                         PV = df["PV"][i]
-                        HPSDM = df["tau_dm"][i]
+                        HPSDM = df["HPS_tau_dm"][i]
                         HPS_pi0 = [df["pi0_px"][i], df["pi0_py"][i], df["pi0_pz"][i]]
                         jet = [df["jet_eta"][i], df["jet_phi"][i]]
                         yield(x, yKin, PV, DM, HPSDM, HPS_pi0, jet)   
                     elif mom_evaluation:
                         PV = df["PV"][i]
-                        HPSDM = df["tau_dm"][i]
+                        HPSDM = df["HPS_tau_dm"][i]
                         HPS_pi0 = [df["pi0_px"][i], df["pi0_py"][i], df["pi0_pz"][i]]
                         jet = [df["jet_eta"][i], df["jet_phi"][i]]
                         yield(x, yp, PV, DM, HPSDM, HPS_pi0, jet)

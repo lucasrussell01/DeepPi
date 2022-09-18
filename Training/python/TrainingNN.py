@@ -31,9 +31,9 @@ class DeepPiv1Model(keras.Model):
         self.DM_loss_tracker = keras.metrics.Mean(name="DM_loss")
         if self.regress_kinematic:       
             self.Kin_loss = TauLosses.Kinematic_loss
-            self.MSE_p = TauLosses.MSE_momentum
-            self.MSE_eta = TauLosses.MSE_eta
-            self.MSE_phi = TauLosses.MSE_phi
+            self.MSE_p = TauLosses.MAE_momentum
+            self.MSE_eta = TauLosses.MAE_eta
+            self.MSE_phi = TauLosses.MAE_phi
             self.RMSE_p = TauLosses.RMSE_momentum
             self.RMSE_eta = TauLosses.RMSE_eta
             self.RMSE_phi = TauLosses.RMSE_phi
@@ -58,7 +58,6 @@ class DeepPiv1Model(keras.Model):
             x, yDM = data
         n_tau = tf.shape(yDM)[0]
 
-        
         if self.regress_kinematic: # If kinematic regression active
             # Forward Pass:
             with tf.GradientTape() as DM_tape, tf.GradientTape() as Kin_tape:
@@ -99,11 +98,9 @@ class DeepPiv1Model(keras.Model):
                 y_predDM = self(x, training=True)
                 DM_loss_vec = self.DM_loss(yDM, y_predDM)
                 DM_loss = tf.reduce_sum(DM_loss_vec)/tf.cast(n_tau, dtype=tf.float32)
-        
             # Compute gradients
             trainable_pars = self.trainable_variables
             gradients = DM_tape.gradient(DM_loss, trainable_pars)
-
             # Update trainable parameters
             self.optimizer.apply_gradients(zip(gradients, trainable_pars))
         
@@ -366,7 +363,7 @@ def create_v1_model(dataloader):
 
     if dataloader.use_HPS: # add HPS dense layers
         print("Warning: Using HPS mass variables")
-        input_HPS = Input(name="input_mass_vars", shape=(13))
+        input_HPS = Input(name="input_mass_vars", shape=(31)) # 13
         dense_mass1 = dense_block(input_HPS, 50, dropout=dropout_rate, n="_mass_1")
         dense_mass2 = dense_block(dense_mass1, 50, dropout=dropout_rate, n="_mass_2")
         dense_mass3 = dense_block(dense_mass2, 50, dropout=dropout_rate, n="_mass_3")
@@ -434,7 +431,7 @@ def create_v2_model(dataloader):
 
     if dataloader.use_HPS: # add HPS dense layers
         print("Warning: Using HPS mass variables")
-        input_HPS = Input(name="input_mass_vars", shape=(29))
+        input_HPS = Input(name="input_mass_vars", shape=(31))
         dense_mass1 = dense_block(input_HPS, 50, dropout=dropout_rate, n="_mass_1")
         dense_mass2 = dense_block(dense_mass1, 50, dropout=dropout_rate, n="_mass_2")
         dense_mass3 = dense_block(dense_mass2, 50, dropout=dropout_rate, n="_mass_3")
@@ -469,7 +466,7 @@ def compile_v1_model(model, regress_kinematic=False):
         metrics = {'DM_loss': '', 'Kin_loss': '', 'DM_accuracy': '', 'MSE_momentum': '', 'MSE_eta': '', 'MSE_phi': '',}
     else:
         print("Warning: Training without kinematic regression")
-        metrics = {'DM_loss': '', 'DM_accuracy': ''}
+        metrics = {}
     mlflow.log_dict(metrics, 'input_cfg/metric_names.json')
 
 def compile_v2_model(model, use_weights = False):
@@ -496,7 +493,7 @@ def run_training(model, data_loader):
             input_shape = ((33, 33, 5), None, 3, None)
             input_types = (tf.float32, tf.float32, tf.float32, tf.float32)
         elif data_loader.use_HPS:
-            input_shape = (((33, 33, 5), 13), None)
+            input_shape = (((33, 33, 5), 31), None)
             input_types = ((tf.float32, tf.float32), tf.float32)
         else:
             input_shape = ((33, 33, 5), None)
@@ -509,14 +506,14 @@ def run_training(model, data_loader):
         if data_loader.use_weights:
             print("Warning: Weights active")
             if data_loader.use_HPS:
-                input_shape = (((33, 33, 5), 29), 3, None)
+                input_shape = (((33, 33, 5), 31), 3, None)
                 input_types = ((tf.float32, tf.float32), tf.float32, tf.float32)
             else:
                 input_shape = ((33, 33, 5), 3, None)
                 input_types = (tf.float32, tf.float32, tf.float32)
         else:
             if data_loader.use_HPS:
-                input_shape = (((33, 33, 5), 29), 3)
+                input_shape = (((33, 33, 5), 31), 3)
                 input_types = ((tf.float32, tf.float32), tf.float32)
             else:
                 input_shape = ((33, 33, 5), 3)
