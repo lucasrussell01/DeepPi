@@ -167,7 +167,7 @@ class DataLoader:
                     if evaluation:
                         PV = df["PV"][i]
                         HPSDM = df["HPS_tau_dm"][i]
-                        HPS_pi0 = [df["pi0_px"][i], df["pi0_py"][i], df["pi0_pz"][i]]
+                        HPS_pi0 = [df["HPS_pi0_px"][i], df["HPS_pi0_py"][i], df["HPS_pi0_pz"][i]]
                         jet = [df["jet_eta"][i], df["jet_phi"][i]]
                         yield(x, yKin, PV, DM, HPSDM, HPS_pi0, jet)   
                     elif mom_evaluation:

@@ -255,6 +255,9 @@ class image_plotter:
                 sumstr = "$\Sigma$E: " + str(round(np.sum(ECAL_crop),2)) + " GeV"
                 ax[0][1].text(0.07, 0.07, sumstr, fontsize=18, transform=ax[0][1].transAxes)
                 
+                sumstr = "$\Sigma$E: " + str(round(np.sum(PFECAL_crop),2)) + " GeV"
+                ax[1][0].text(0.07, 0.07, sumstr, fontsize=18, transform=ax[1][1].transAxes)
+
                 sumstr = "$\Sigma$E: " + str(round(np.sum(PFHCAL_crop),2)) + " GeV"
                 ax[1][0].text(0.07, 0.07, sumstr, fontsize=18, transform=ax[1][0].transAxes)
                 
@@ -381,3 +384,293 @@ class image_plotter:
 
                 plt.show()
         
+    def save_tau(self, Tracks, ECAL, PFECAL, PFHCAL, FailedTracks, event, DM = [0, 1, 2, 10, 11, -1]):
+        self.rhTree.GetEntry(event)
+        
+        centres = self.centre(event)
+        truthDM = np.array(self.rhTree.jet_truthDM)
+        neutral_ECAL = np.array(self.rhTree.neutralsum_ECAL)
+        jet_pt = np.array(self.rhTree.jetPt)
+        truthLabel = np.array(self.rhTree.jet_truthLabel) 
+            
+        # Load neutral gen positions
+        gen_neutral_ieta = np.array(self.rhTree.jet_neutral_indv_releta_crystal, dtype=object)
+        gen_neutral_iphi = np.array(self.rhTree.jet_neutral_indv_relphi_crystal, dtype=object)
+        # Load charged gen positions
+        gen_charged_ieta = np.array(self.rhTree.jet_charged_indv_releta_crystal, dtype=object)
+        gen_charged_iphi = np.array(self.rhTree.jet_charged_indv_relphi_crystal, dtype=object)
+        # Load total neutral gen position
+        gen_total_neutral_ieta = np.array(self.rhTree.jet_neutral_releta_crystal, dtype=object)
+        gen_total_neutral_iphi = np.array(self.rhTree.jet_neutral_relphi_crystal, dtype=object) 
+
+        for i in range(len(truthDM)):
+            if truthDM[i] in DM:
+                
+                ptcharged_elem = np.array(np.array(self.rhTree.jet_charged_indv_p)[i]) # gen momentum
+                ptneutral_elem = np.array(np.array(self.rhTree.jet_neutral_indv_p)[i])
+                p_total_neutral_elem = np.array(self.rhTree.jet_neutral_relp)[i]
+                mass_total_neutral_elem = np.array(self.rhTree.jet_neutral_relmass)[i]
+                
+                centre_phi = int(centres[0][i]) 
+                centre_eta = int(centres[1][i]) 
+                
+                if centre_phi>=360:
+                    continue
+                    
+                print("Event Number: ", event, " Phi centre: ", centre_phi, " Eta centre: ", centre_eta)
+                
+                Tracks_crop, ECAL_crop, PFECAL_crop, PFHCAL_crop, FailedTracks_crop, shift  = self.crop_image(Tracks, ECAL, PFECAL, PFHCAL, FailedTracks, centre_eta, centre_phi)
+
+                ##################################################################################
+                plt.figure(figsize=(5,4.5))
+                plt.pcolormesh( Tracks_crop, cmap=newcmp, norm = colors.LogNorm(vmin=1e-5, vmax=np.max(ECAL)))
+                plt.xlabel("i$\phi$")
+                plt.ylabel("i$\eta$")
+                plt.text(1, 30, "Tracks @ECAL", fontsize=14, fontweight="bold")
+                sumstr = "$\Sigma$E: " + str(round(np.sum(Tracks_crop),2)) + " GeV"
+                plt.text(1, 1, sumstr, fontsize=18)
+                plt.xlim(0, 33)
+                plt.ylim(0, 33)
+                pad = 16 # need to add pad to index
+                if truthDM[i]!=-1:
+                    rel_charged_ieta = np.array(gen_charged_ieta[i]) - centre_eta + pad #+ shift
+                    rel_charged_iphi = np.array(gen_charged_iphi[i]) - centre_phi + pad
+                    for n in range(len(rel_charged_iphi)):
+                        if rel_charged_iphi[n]<0:
+                            rel_charged_iphi[n] += 360           
+                    plt.plot(rel_charged_iphi, rel_charged_ieta, linestyle="", marker = "*", label = "Gen $\pi^\pm$", markersize=12)
+                if truthDM[i]==1 or truthDM[i]==2 or truthDM[i]==11:
+                    print("Info: Truth DM is: ", truthDM[i], " HPS reconstructed tau as DM: ", np.array(self.rhTree.tau_dm)[i])
+                    rel_total_neutral_ieta = np.array(gen_total_neutral_ieta[i]) - centre_eta + pad #+ shift # images look better without shift
+                    rel_total_neutral_iphi = np.array(gen_total_neutral_iphi[i]) - centre_phi + pad
+                    rel_neutral_ieta = np.array(gen_neutral_ieta[i]) - centre_eta + pad #+ shift
+                    rel_neutral_iphi = np.array(gen_neutral_iphi[i]) - centre_phi + pad
+                    for n in range(len(rel_neutral_iphi)):
+                        if rel_neutral_iphi[n]<0:
+                            rel_neutral_iphi[n] += 360
+                    plt.plot(rel_neutral_iphi, rel_neutral_ieta, linestyle="", marker = "*", label = "Gen $\pi^0$", markersize=12)
+                    if np.array(self.rhTree.tau_dm)[i] == 1:
+                        HPS_eta = np.array(self.rhTree.HPSpi0_releta)[i]/0.0174 + 16.5
+                        HPS_phi = np.array(self.rhTree.HPSpi0_relphi)[i]/0.0174 + 16.5
+                        plt.plot(HPS_phi, HPS_eta, linestyle="", marker = "o", label = "HPS pi0", color='grey')
+                    else:    
+                        print("Warning, no reco pi0 as HPS DM: ", np.array(self.rhTree.tau_dm)[i])
+                plt.legend()
+                plt.savefig(f"/vols/cms/lcr119/Plots/Tracks/Event_{event}_{i}_Tracks.pdf", bbox_inches="tight")
+                plt.show()
+                ##################################################################################
+                plt.figure(figsize=(5,4.5))
+                cbar = plt.pcolormesh(ECAL_crop, cmap=newcmp, norm = colors.LogNorm(vmin=1e-5, vmax=np.max(ECAL)))
+                plt.xlabel("i$\phi$")
+                plt.ylabel("i$\eta$")
+                plt.text(1, 30, "ECAL RecHits", fontsize=14, fontweight="bold")
+                sumstr = "$\Sigma$E: " + str(round(np.sum(ECAL_crop),2)) + " GeV"
+                plt.text(1, 1, sumstr, fontsize=18)
+                plt.xlim(0, 33)
+                plt.ylim(0, 33)
+                pad = 16 # need to add pad to index
+                if truthDM[i]!=-1:
+                    rel_charged_ieta = np.array(gen_charged_ieta[i]) - centre_eta + pad #+ shift
+                    rel_charged_iphi = np.array(gen_charged_iphi[i]) - centre_phi + pad
+                    for n in range(len(rel_charged_iphi)):
+                        if rel_charged_iphi[n]<0:
+                            rel_charged_iphi[n] += 360           
+                    plt.plot(rel_charged_iphi, rel_charged_ieta, linestyle="", marker = "*", label = "Gen $\pi^\pm$", markersize=12)
+                if truthDM[i]==1 or truthDM[i]==2 or truthDM[i]==11:
+                    print("Info: Truth DM is: ", truthDM[i], " HPS reconstructed tau as DM: ", np.array(self.rhTree.tau_dm)[i])
+                    rel_total_neutral_ieta = np.array(gen_total_neutral_ieta[i]) - centre_eta + pad #+ shift # images look better without shift
+                    rel_total_neutral_iphi = np.array(gen_total_neutral_iphi[i]) - centre_phi + pad
+                    rel_neutral_ieta = np.array(gen_neutral_ieta[i]) - centre_eta + pad #+ shift
+                    rel_neutral_iphi = np.array(gen_neutral_iphi[i]) - centre_phi + pad
+                    for n in range(len(rel_neutral_iphi)):
+                        if rel_neutral_iphi[n]<0:
+                            rel_neutral_iphi[n] += 360
+                    plt.plot(rel_neutral_iphi, rel_neutral_ieta, linestyle="", marker = "*", label = "Gen $\pi^0$", markersize=12)
+                    if np.array(self.rhTree.tau_dm)[i] == 1:
+                        HPS_eta = np.array(self.rhTree.HPSpi0_releta)[i]/0.0174 + 16.5
+                        HPS_phi = np.array(self.rhTree.HPSpi0_relphi)[i]/0.0174 + 16.5
+                        plt.plot(HPS_phi, HPS_eta, linestyle="", marker = "o", label = "HPS pi0", color='grey')
+                    else:    
+                        print("Warning, no reco pi0 as HPS DM: ", np.array(self.rhTree.tau_dm)[i])
+                plt.savefig(f"/vols/cms/lcr119/Plots/ECALRechit/Event_{event}_{i}_ECAL.pdf", bbox_inches="tight")
+                plt.show()
+                ###################################################
+                plt.figure(figsize=(5,4.5))
+                plt.pcolormesh( PFECAL_crop, cmap=newcmp, norm = colors.LogNorm(vmin=1e-5, vmax=np.max(ECAL)))
+                plt.xlabel("i$\phi$")
+                plt.ylabel("i$\eta$")
+                plt.text(1, 30, "PF ECAL Energy", fontsize=14, fontweight="bold")
+                sumstr = "$\Sigma$E: " + str(round(np.sum(PFECAL_crop),2)) + " GeV"
+                plt.text(1, 1, sumstr, fontsize=18)
+                plt.xlim(0, 33)
+                plt.ylim(0, 33)
+                pad = 16 # need to add pad to index
+                if truthDM[i]!=-1:
+                    rel_charged_ieta = np.array(gen_charged_ieta[i]) - centre_eta + pad #+ shift
+                    rel_charged_iphi = np.array(gen_charged_iphi[i]) - centre_phi + pad
+                    for n in range(len(rel_charged_iphi)):
+                        if rel_charged_iphi[n]<0:
+                            rel_charged_iphi[n] += 360           
+                    plt.plot(rel_charged_iphi, rel_charged_ieta, linestyle="", marker = "*", label = "Gen $\pi^\pm$", markersize=12)
+                if truthDM[i]==1 or truthDM[i]==2 or truthDM[i]==11:
+                    print("Info: Truth DM is: ", truthDM[i], " HPS reconstructed tau as DM: ", np.array(self.rhTree.tau_dm)[i])
+                    rel_total_neutral_ieta = np.array(gen_total_neutral_ieta[i]) - centre_eta + pad #+ shift # images look better without shift
+                    rel_total_neutral_iphi = np.array(gen_total_neutral_iphi[i]) - centre_phi + pad
+                    rel_neutral_ieta = np.array(gen_neutral_ieta[i]) - centre_eta + pad #+ shift
+                    rel_neutral_iphi = np.array(gen_neutral_iphi[i]) - centre_phi + pad
+                    for n in range(len(rel_neutral_iphi)):
+                        if rel_neutral_iphi[n]<0:
+                            rel_neutral_iphi[n] += 360
+                    plt.plot(rel_neutral_iphi, rel_neutral_ieta, linestyle="", marker = "*", label = "Gen $\pi^0$", markersize=12)
+                    if np.array(self.rhTree.tau_dm)[i] == 1:
+                        HPS_eta = np.array(self.rhTree.HPSpi0_releta)[i]/0.0174 + 16.5
+                        HPS_phi = np.array(self.rhTree.HPSpi0_relphi)[i]/0.0174 + 16.5
+                        plt.plot(HPS_phi, HPS_eta, linestyle="", marker = "o", label = "HPS pi0", color='grey')
+                    else:    
+                        print("Warning, no reco pi0 as HPS DM: ", np.array(self.rhTree.tau_dm)[i])
+                plt.savefig(f"/vols/cms/lcr119/Plots/PFECAL/Event_{event}_{i}_PFECAL.pdf", bbox_inches="tight")
+                plt.show()
+                ##################################################################################
+                plt.figure(figsize=(5,4.5))
+                plt.pcolormesh( PFHCAL_crop, cmap=newcmp, norm = colors.LogNorm(vmin=1e-5, vmax=np.max(ECAL)))
+                plt.xlabel("i$\phi$")
+                plt.ylabel("i$\eta$")
+                plt.text(1, 30, "PF HCAL Energy", fontsize=14, fontweight="bold")
+                sumstr = "$\Sigma$E: " + str(round(np.sum(PFHCAL_crop),2)) + " GeV"
+                plt.text(1, 1, sumstr, fontsize=18)
+                plt.xlim(0, 33)
+                plt.ylim(0, 33)
+                pad = 16 # need to add pad to index
+                if truthDM[i]!=-1:
+                    rel_charged_ieta = np.array(gen_charged_ieta[i]) - centre_eta + pad #+ shift
+                    rel_charged_iphi = np.array(gen_charged_iphi[i]) - centre_phi + pad
+                    for n in range(len(rel_charged_iphi)):
+                        if rel_charged_iphi[n]<0:
+                            rel_charged_iphi[n] += 360           
+                    plt.plot(rel_charged_iphi, rel_charged_ieta, linestyle="", marker = "*", label = "Gen $\pi^\pm$", markersize=12)
+                if truthDM[i]==1 or truthDM[i]==2 or truthDM[i]==11:
+                    print("Info: Truth DM is: ", truthDM[i], " HPS reconstructed tau as DM: ", np.array(self.rhTree.tau_dm)[i])
+                    rel_total_neutral_ieta = np.array(gen_total_neutral_ieta[i]) - centre_eta + pad #+ shift # images look better without shift
+                    rel_total_neutral_iphi = np.array(gen_total_neutral_iphi[i]) - centre_phi + pad
+                    rel_neutral_ieta = np.array(gen_neutral_ieta[i]) - centre_eta + pad #+ shift
+                    rel_neutral_iphi = np.array(gen_neutral_iphi[i]) - centre_phi + pad
+                    for n in range(len(rel_neutral_iphi)):
+                        if rel_neutral_iphi[n]<0:
+                            rel_neutral_iphi[n] += 360
+                    plt.plot(rel_neutral_iphi, rel_neutral_ieta, linestyle="", marker = "*", label = "Gen $\pi^0$", markersize=12)
+                    if np.array(self.rhTree.tau_dm)[i] == 1:
+                        HPS_eta = np.array(self.rhTree.HPSpi0_releta)[i]/0.0174 + 16.5
+                        HPS_phi = np.array(self.rhTree.HPSpi0_relphi)[i]/0.0174 + 16.5
+                        plt.plot(HPS_phi, HPS_eta, linestyle="", marker = "o", label = "HPS pi0", color='grey')
+                    else:    
+                        print("Warning, no reco pi0 as HPS DM: ", np.array(self.rhTree.tau_dm)[i])
+                plt.savefig(f"/vols/cms/lcr119/Plots/PFHCAL/Event_{event}_{i}_PFHCAL.pdf", bbox_inches="tight")
+                plt.show()
+                ########################################################################
+                plt.figure(figsize=(5,4.5))
+                plt.pcolormesh( FailedTracks_crop, cmap=newcmp, norm = colors.LogNorm(vmin=1e-5, vmax=np.max(ECAL)))
+                plt.xlabel("i$\phi$")
+                plt.ylabel("i$\eta$")
+                plt.text(1, 30, "Additional Tracks @ECAL", fontsize=14, fontweight="bold")
+                sumstr = "$\Sigma$E: " + str(round(np.sum(FailedTracks_crop),2)) + " GeV"
+                plt.text(1, 1, sumstr, fontsize=18)
+                plt.xlim(0, 33)
+                plt.ylim(0, 33)
+                pad = 16 # need to add pad to index
+                if truthDM[i]!=-1:
+                    rel_charged_ieta = np.array(gen_charged_ieta[i]) - centre_eta + pad #+ shift
+                    rel_charged_iphi = np.array(gen_charged_iphi[i]) - centre_phi + pad
+                    for n in range(len(rel_charged_iphi)):
+                        if rel_charged_iphi[n]<0:
+                            rel_charged_iphi[n] += 360           
+                    plt.plot(rel_charged_iphi, rel_charged_ieta, linestyle="", marker = "*", label = "Gen $\pi^\pm$", markersize=12)
+                if truthDM[i]==1 or truthDM[i]==2 or truthDM[i]==11:
+                    print("Info: Truth DM is: ", truthDM[i], " HPS reconstructed tau as DM: ", np.array(self.rhTree.tau_dm)[i])
+                    rel_total_neutral_ieta = np.array(gen_total_neutral_ieta[i]) - centre_eta + pad #+ shift # images look better without shift
+                    rel_total_neutral_iphi = np.array(gen_total_neutral_iphi[i]) - centre_phi + pad
+                    rel_neutral_ieta = np.array(gen_neutral_ieta[i]) - centre_eta + pad #+ shift
+                    rel_neutral_iphi = np.array(gen_neutral_iphi[i]) - centre_phi + pad
+                    for n in range(len(rel_neutral_iphi)):
+                        if rel_neutral_iphi[n]<0:
+                            rel_neutral_iphi[n] += 360
+                    plt.plot(rel_neutral_iphi, rel_neutral_ieta, linestyle="", marker = "*", label = "Gen $\pi^0$", markersize=12)
+                    if np.array(self.rhTree.tau_dm)[i] == 1:
+                        HPS_eta = np.array(self.rhTree.HPSpi0_releta)[i]/0.0174 + 16.5
+                        HPS_phi = np.array(self.rhTree.HPSpi0_relphi)[i]/0.0174 + 16.5
+                        plt.plot(HPS_phi, HPS_eta, linestyle="", marker = "o", label = "HPS pi0", color='grey')
+                    else:    
+                        print("Warning, no reco pi0 as HPS DM: ", np.array(self.rhTree.tau_dm)[i])
+                plt.savefig(f"/vols/cms/lcr119/Plots/addTracks/Event_{event}_{i}_addTracks.pdf", bbox_inches="tight")
+                plt.show()
+
+
+                # ax[0][2].axis("off")
+                # ax[1][2].axis("off")
+                # ax[2][1].axis("off")
+                # ax[2][2].axis("off")
+                
+                # ax[0][0].set_xlim(0, 33)
+                # ax[0][0].set_ylim(0, 33)
+                # ax[0][1].set_xlim(0, 33)
+                # ax[0][1].set_ylim(0, 33)
+                # ax[1][1].set_xlim(0, 33)
+                # ax[1][1].set_ylim(0, 33)
+                # ax[1][0].set_xlim(0, 33)
+                # ax[1][0].set_ylim(0, 33)
+                # ax[2][0].set_xlim(0, 33)
+                # ax[2][0].set_ylim(0, 33)
+         
+                # print gen info below:
+                
+                fig, ax = plt.subplots(figsize=(5,4.5))
+
+                plt.colorbar(cbar, ax = [ax],location='left')
+                
+                l = 0.05
+                Truthstr = "Gen Truth: " + str(truthLabel[i])
+                ax.text(l, 0.86+0.05, Truthstr, fontsize=16, transform=ax.transAxes)
+                DMstr = "Decay Mode: " + str(truthDM[i])
+                ax.text(l, 0.79+0.05, DMstr, fontsize=16, transform=ax.transAxes)
+                ECALstr = "PF $\gamma$ ECAL: " + str(round(neutral_ECAL[i], 2)) + " GeV"
+                ax.text(l, 0.65+0.05, ECALstr, fontsize=16, transform=ax.transAxes)
+                ax.axis("off")
+                if len(ptcharged_elem)==1:
+                    if ptcharged_elem != -1:
+                        ptctxt = "Charged prongs: " 
+                        ax.text(l, 0.58+0.05, ptctxt, fontsize=16, transform=ax.transAxes)
+                        ptctxt = "$E$ :"  + str(round(ptcharged_elem[0], 2)) + " GeV" 
+                        ax.text(l, 0.51+0.05, ptctxt, fontsize=16, transform=ax.transAxes)
+                elif len(ptcharged_elem)==3:
+                    ptctxt = "Charged prongs: " 
+                    ax.text(l, 0.58+0.05, ptctxt, fontsize=16, transform=ax.transAxes)
+                    ptctxt = "$E$ :"  + str(round(ptcharged_elem[0], 2)) + " GeV " 
+                    ax.text(l, 0.51+0.05, ptctxt, fontsize=16, transform=ax.transAxes)
+                    ptctxt = "$E$ :"  + str(round(ptcharged_elem[1], 2)) + " GeV " 
+                    ax.text(l, 0.44+0.05, ptctxt, fontsize=16, transform=ax.transAxes)
+                    ptctxt = "$E$ :"  + str(round(ptcharged_elem[2], 2)) + " GeV  "
+                    ax.text(l, 0.37+0.05, ptctxt, fontsize=16, transform=ax.transAxes)
+                if ptneutral_elem[0]!= -1:
+                    if len(ptneutral_elem)==1:
+                        ptctxt = "Neutral pions: " 
+                        ax.text(l, 0.3+0.05, ptctxt, fontsize=16, transform=ax.transAxes)
+                        ptctxt = "$E$: "  + str(round(ptneutral_elem[0], 2)) + " GeV  " 
+                        ax.text(l, 0.23+0.05, ptctxt, fontsize=16, transform=ax.transAxes)
+                    elif len(ptneutral_elem)==2:
+                        ptctxt = "Neutral pions: " 
+                        ax.text(l, 0.3+0.05, ptctxt, fontsize=16, transform=ax.transAxes)
+                        ptctxt = "$E$ :"  + str(round(ptneutral_elem[0], 2)) + " GeV  "
+                        ax.text(l, 0.23+0.05, ptctxt, fontsize=16, transform=ax.transAxes)
+                        ptctxt = "$E$ :"  + str(round(ptneutral_elem[1], 2)) + " GeV " 
+                        ax.text(l, 0.16+0.05, ptctxt, fontsize=16, transform=ax.transAxes)
+                if mass_total_neutral_elem>0.:
+                    ptctxt = "Total neutral:" 
+                    ax.text(l, 0.09+0.05, ptctxt, fontsize=16, transform=ax.transAxes)
+                    ptctxt = "$E$: "  + str(round(p_total_neutral_elem, 2)) + " GeV  " 
+                    ax.text(l, 0.02+0.05, ptctxt, fontsize=16, transform=ax.transAxes)
+                    massctxt = "$Mass$: "  + str(round(mass_total_neutral_elem, 2)) + " GeV  " 
+                    ax.text(l, -0.05+0.05, massctxt, fontsize=16, transform=ax.transAxes)
+                        
+                # ax[0][0].legend() 
+                plt.savefig(f"/vols/cms/lcr119/Plots/Info/Event_{event}_{i}_info.pdf", bbox_inches="tight")
+                
+                plt.show()
