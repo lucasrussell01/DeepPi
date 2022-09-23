@@ -183,3 +183,33 @@ then inside TrainingNN.py there is a "run_training" function  that calls the get
 and modify loss function as you like
 also change the output layer e.g "outputKin" to number of nodes you want in creat_vX_model in TrainingNN.py 
 
+
+# evaluation for DM calssification
+`cd Evaluation/python`
+
+these scripts are provided:
+
+apply_DM_training.py: applies the DM classification model to a evaluation sample 
+apply_Kin_training.py: applies the kinematic models to a evaluation sample
+kinematic_pred_distrib.py: plots the evaluated kinematic models e.g plots of eta, phi, and momentum distributions  
+monitor_metrics.py: plots the metrics e.g loss, accuracy etc..
+confusion_matrix.py:  plots efficiency and purity matrices for SM classification
+
+at the moment need to modify the directory by hand inside appli\*training.py scripts by changing "input_dir"
+is shapes or types of inputs and outputs have been modified also need to change these by hand by modifying "training_cfg" 
+
+apply model for DM classification:
+`python apply_DM_training.py --expID=2 --runID=f27c2b7c4c7343e7aa0db74aeec1b924 --n_tau=10000` 
+
+
+apply model for Kinematic regression:
+`python apply_Kin_training.py --expID=2 --runID=f27c2b7c4c7343e7aa0db74aeec1b924 --n_tau=10000` 
+
+
+make plots:
+
+for now use juypter notebook inside Evaluation/notebooks
+
+
+
+
