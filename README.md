@@ -1,52 +1,67 @@
 # DeepPi
-End to end reconstruction of neutral pions produced in hadronic tau decays for analysis of the CP structure of the Higgs boson. 
 
-Draft README document. 
+End to end reconstruction of neutral pions produced in hadronic tau decays for analysis of the CP structure of the Higgs boson.This repository currently includes two training configurations: `DeepPi_v1` for decay mode classification (counting the number of pi0s), and `DeepPi_v2` for regression of kinematic properties of DM1/11 taus. This code uses low level input features, Reduced ECAL RecHits, which are available in the AOD data tier.
+
+General guidelines for different areas:
 - Production of RHTree ROOT tuples in `Production` (run with `cmsenv`)
 - Tools to convert to dataframes/images in `Analysis` (best to run with `tau-ml`)
-- NN Training and DataLoading in `Training` (run with `tau-ml`)
-- NN Evaluation in `Evaluation` (run with `tau-ml`)
+- Neural Network Training (and DataLoading) in `Training` (run with `tau-ml`)
+- Neural Network Evaluation in `Evaluation` (run with `tau-ml`)
+
+## Note on environments:
 
 When using `cmsenv` for tuple production, it is recommended to only compile from the `Production` folder as python files in other areas may not be compatible with Python 2 and can cause compilation errors.
 
-To install/activate `tau-ml` conda environment run `source env.sh conda`.
+To install/activate `tau-ml` conda environment run `source env.sh conda` from the central DeepPi folder.
 
-Parts of the code in this repository were originally written by DeepTau developpers and Micheal Andrews.
+Parts of the code that you will find here were adapted from MLAnalyzer (Micheal Andrews), TauMLTools (CMS Tau POG developers) and the Imperial College Higgs->TauTau repository, many thanks to all who contributed.
 
 
 -------
+# ROOT Tuple production
 
-# running ntuples
+The first step towards producing input images for the neural network is generating ROOT ntuples using the DeepPi produced in  the `Production` area.
 
-# setup CMSSW and DeepPi0 repository
-#....
+
+## setup CMSSW and DeepPi0 repository
+
 #Luca(s) add this
 
-#compile code:
-compile code from within the production folder:
+For this step you should be working with the `cmsenv` environment.
+
+### Compile code:
+Compile code from within the production folder:
 `cd Production`
 `scram b -j8`
 
-# running ntuples locally
-this config is used to produce ntuples: python/higgstautau_cfg_aod_inc_hps_2018.py
-run it using cmsRun
+### Running ntuples locally:
+This configuration file is used to produce ntuples: `python/higgstautau_cfg_aod_inc_hps_2018.py`
+To run it locally for individual files, use `cmsRun`.
 
-# produce ntuples for all samples using crab:
+### Running ntuples using crab:
+To produce ntuples for all samples, jobs can be submitted using crab:
 `cd python`
 `python ../crab/crab_DeepPi.py --output_folder=DetectorImages_MVA --year=2018 --mc`
+where the `output_folder` argument specifies where in your personal dcache space you want to files to be outputted to.
 
-# producing input images
+
+# Producing input images
+
+Once ROOT tuples are produced, they must be processed to extract true taus, and form the `pickle` dataframes that are used as inputs for training. For maximal efficiency, this step should also be performed with the `cmsenv` environemnt active.
+
+Switch to the `Analysis` area.:
 `cd ../../Analysis`
 
-# after crab jobs have finished get the list of the files in the dcache area:
+### Get list of files:
+After crab jobs have finished get the list of the files in the dcache area:
 `./scripts/get_filelists.sh store/user/lrussell/DetectorImages_MVA_MC_106X_2018/ HPS_2209`
+you must change the name of the directory to the dcache directory where you stored the output from the crab jobs.
 
-change the name of the directory to the dcache directory where you stored the output from the crab jobs
-
-then produce images using
+Produce input images using:
 `python python/GenerateImages.py --n_tau=-1 --sample=GluGluHToTauTau_M125 --split=L --save_path=Images`
-changing split option to dataset split name (A,B,C,D....)
-each split takes ~8 hours tpo run
+Changing split option to dataset split name (A,B,C,D....). Datasets are split into groups of 50 files and each assigned a letter, this is done as there is an issue with memory leakage if more files than this are processed simultaneously.
+NB: each split should take around 8 hours to run.
+
 #TODO: make as script to run this stage as batch jobs 
 
 #TODO: Lucas inside GenerateImages.py the paths to the filelists and the output folder are hard coded. For the time being modify these by hand "path_to_filelist". Add option for this
