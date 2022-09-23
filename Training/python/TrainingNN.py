@@ -423,7 +423,7 @@ def create_v2_model(dataloader):
     conv11 = conv_block(conv10, 9, dropout=dropout_rate,n=11) #11
     conv12 = conv_block(conv11, 9, dropout=dropout_rate, n=12) #9
     conv13 = conv_block(conv12, 9, dropout=dropout_rate, n=13) #7
-    conv14 = conv_block(conv13, 9, dropout=dropout_rate, n=14) #5
+    conv14 = conv_block(conv13, 9, dropout=dropout_rate, n=14) #5 # NB: the second input is the number of filters
 
     # Flatten inputs
     flat = Flatten(name="flatten")(conv14) # 75

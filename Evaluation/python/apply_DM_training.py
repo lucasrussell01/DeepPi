@@ -59,8 +59,8 @@ dataloader = DataLoader(training_cfg)
 gen_eval = dataloader.get_generator_v1(primary_set = True, DM_evaluation=True)
 
 if training_cfg["Setup"]["HPS_features"]:
-    input_shape = (((33, 33, 5), 31), None, None, None)
-    input_types = ((tf.float32, tf.float32), tf.float32, tf.float32, tf.float32)
+    input_shape = (((33, 33, 5), 31), None, None, None, None, None, None)
+    input_types = ((tf.float32, tf.float32), tf.float32, tf.float32, tf.float32, tf.float32, tf.float32, tf.float32)
 else:
     input_shape = ((33, 33, 5), None, None, None)
     input_types = (tf.float32, tf.float32, tf.float32, tf.float32)
@@ -83,13 +83,16 @@ truthDM = []
 CNN_pred = []
 HPS_pred = []
 MVA_pred = []
+VSjet = []
+VSmu = []
+VSe = []
 
 pbar = tqdm(total = dataloader.n_batches)
 
 i = 0
 for elem in data_eval:
-    x, y, yHPSDM, yMVADM = elem
-    if args.HPS=="True"and yHPSDM not in [0, 1, 2, 10, 11]:
+    x, y, yHPSDM, yMVADM, vsj, vse, vsmu = elem
+    if args.HPS=="True"and yHPSDM not in [0, 1, 2, 10, 11] or yMVADM==-1:
         continue
     else:
         y_pred = test(x, model)
@@ -109,6 +112,10 @@ for elem in data_eval:
         CNN_pred.append(int(np.where(y_pred[0] == np.max(y_pred[0]))[0]))
         HPS_pred.append(DMtopi0(np.array(yHPSDM)[0]))
         MVA_pred.append(DMtopi0(np.array(yMVADM)[0]))
+        VSjet.append(np.array(vsj)[0])
+        VSe.append(np.array(vse)[0])
+        VSmu.append(np.array(vsmu)[0])
+
     i+=1
     if i%10 ==0:
         pbar.update(10)
@@ -119,6 +126,9 @@ df["truth"] = truth
 df["CNN_pred"] = CNN_pred
 df["MVA_pred"] = MVA_pred
 df["HPS_pred"] = HPS_pred
+df["VSjet"] = VSjet
+df["VSe"] = VSe
+df["VSmu"] = VSmu
 # df["full_pred"] = full_pred
 
 print(df)

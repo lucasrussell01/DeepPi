@@ -19,7 +19,7 @@ class metric_plotter:
         with open(f'{self.path_to_mlflow}{self.expID}/{self.runID}/artifacts/input_cfg/hydra/config.yaml') as file:
             self.cfg = yaml.full_load(file)
 
-    def plot_metric(self, metric_name, verbose=False):
+    def plot_metric(self, metric_name, verbose=False, save=False):
         metric = []
         val_metric = []
         # if started from pre trained model, load those params
@@ -62,7 +62,7 @@ class metric_plotter:
             for e in file:
                 vals = e.split(" ")
                 val_metric.append(float(vals[1]))
-        epochs = range(len(metric))
+        epochs = range(1, len(metric)+1)
         if verbose:
             print("Training: ", metric)
             print("Validation: ", val_metric)
@@ -71,5 +71,7 @@ class metric_plotter:
         plt.plot(epochs, val_metric, marker="o", color="red", label = metric_name + " (Validation)")
         plt.xlabel("Epoch")
         plt.legend()
+        if save:
+            plt.savefig(f"/vols/cms/lcr119/Plots/etaphi/{metric_name}.pdf", bbox_inches="tight")
         plt.show()
         # plt.savefig(f"{path_to_metrics}/{metric_name}.pdf")

@@ -40,15 +40,15 @@ class cm_plotter:
         # print(cm)
         plt.figure(figsize=(8,6.4))
         plt.axhline(y = 0, color='k',linewidth = 3)
-        if pred!="MVA_pred":
-            plt.axhline(y = 3, color = 'k', linewidth = 3)
-        else:
-            plt.axhline(y = 4, color = 'k', linewidth = 3)
+        # if pred!="MVA_pred":
+        plt.axhline(y = 3, color = 'k', linewidth = 3)
+        # else:
+            # plt.axhline(y = 4, color = 'k', linewidth = 3)
         plt.axvline(x = 0, color = 'k',linewidth = 3)
-        if pred!="MVA_pred":
-            plt.axvline(x = 3, color = 'k', linewidth = 3)
-        else:
-            plt.axvline(x = 4, color = 'k', linewidth = 3)
+        # if pred!="MVA_pred":
+        plt.axvline(x = 3, color = 'k', linewidth = 3)
+        # else:
+            # plt.axvline(x = 4, color = 'k', linewidth = 3)
         if pred=="MVA_pred":
             sn.heatmap(cm, annot=True, cmap='Blues', xticklabels = ["0 $\pi^0$", "1 $\pi^0$", "2 $\pi^0$", "other"], yticklabels = ["0 $\pi^0$", "1 $\pi^0$", "2 $\pi^0$", "other"], annot_kws={"fontsize":12})
         else:
@@ -69,25 +69,27 @@ class cm_plotter:
         # print(cm)
         plt.figure(figsize=(8,6.4))
         plt.axhline(y = 0, color='k',linewidth = 3)
-        if pred!="MVA_pred":
-            plt.axhline(y = 3, color = 'k', linewidth = 3)
-        else:
-            plt.axhline(y = 4, color = 'k', linewidth = 3)
+        # if pred!="MVA_pred":
+        plt.axhline(y = 3, color = 'k', linewidth = 3)
+        # else:
+        #     plt.axhline(y = 4, color = 'k', linewidth = 3)
         plt.axvline(x = 0, color = 'k',linewidth = 3)
-        if pred!="MVA_pred":
-            plt.axvline(x = 3, color = 'k', linewidth = 3)
-        else:
-            plt.axvline(x = 4, color = 'k', linewidth = 3)
-        if pred=="MVA_pred":
-            sn.heatmap(cm, annot=True, cmap='Blues', xticklabels = ["0 $\pi^0$", "1 $\pi^0$", "2 $\pi^0$", "other"], yticklabels = ["0 $\pi^0$", "1 $\pi^0$", "2 $\pi^0$", "other"], annot_kws={"fontsize":12})
-        else:
-            sn.heatmap(cm, annot=True, cmap='Blues', xticklabels = self.axis_lab, yticklabels = self.axis_lab, annot_kws={"fontsize":12})
+        # if pred!="MVA_pred":
+        plt.axvline(x = 3, color = 'k', linewidth = 3)
+        # else:
+        #     plt.axvline(x = 4, color = 'k', linewidth = 3)
+        # if pred=="MVA_pred":
+        #     sn.heatmap(cm, annot=True, cmap='Blues', xticklabels = ["0 $\pi^0$", "1 $\pi^0$", "2 $\pi^0$", "other"], yticklabels = ["0 $\pi^0$", "1 $\pi^0$", "2 $\pi^0$", "other"], annot_kws={"fontsize":12})
+        # else:
+        sn.heatmap(cm, annot=True, cmap='Blues', xticklabels = self.axis_lab, yticklabels = self.axis_lab, annot_kws={"fontsize":12})
         plt.ylabel("True Label")
         plt.xlabel("Predicted Label")
         plt.title("Single Prong DMs", loc='right')
         plt.text(0.03, -0.05, pred, fontsize=18, fontweight="bold")
         # plt.text(0.03, -0.05, "CMS ", fontsize=18, fontweight="bold")
         # plt.text(0.4, -0.05, "Work in progess ", fontsize=18, fontstyle="italic")
+        
+        # plt.savefig(f"/vols/cms/lcr119/Plots/CMs/{pred}_one_prong_{type}.pdf", bbox_inches="tight")
         plt.show()
     
     def plot_cm_threeP(self, pred="CNN_pred", type="efficiency"):
@@ -101,23 +103,24 @@ class cm_plotter:
         # print(cm)
         plt.figure(figsize=(8,6.4))
         plt.axhline(y = 0, color='k',linewidth = 3)
-        if pred!="MVA_pred":
-            plt.axvline(x = 2, color = 'k', linewidth = 3)
-        else:
-            plt.axvline(x = 3, color = 'k', linewidth = 3)
+        # if pred!="MVA_pred":
+        plt.axvline(x = 2, color = 'k', linewidth = 3)
+        # else:
+            # plt.axvline(x = 3, color = 'k', linewidth = 3)
         plt.axvline(x = 0, color = 'k',linewidth = 3)
-        if pred!="MVA_pred":
-            plt.axhline(y = 2, color = 'k', linewidth = 3)
-        else:
-            plt.axhline(y = 3, color = 'k', linewidth = 3)
-        if pred=="MVA_pred":
-            sn.heatmap(cm, annot=True, cmap='Blues', xticklabels = ["0 $\pi^0$", "$\geq$ 1 $\pi^0$", "other"], yticklabels = ["0 $\pi^0$", " 1 $\pi^0$","other"], annot_kws={"fontsize":12})
-        else:
-            sn.heatmap(cm, annot=True, cmap='Blues', xticklabels = ["0 $\pi^0$", "$\geq$ 1 $\pi^0$"], yticklabels = ["0 $\pi^0$", "1 $\pi^0$"], annot_kws={"fontsize":12})
+        # if pred!="MVA_pred":
+        plt.axhline(y = 2, color = 'k', linewidth = 3)
+        # else:
+            # plt.axhline(y = 3, color = 'k', linewidth = 3)
+        # if pred=="MVA_pred":
+        #     sn.heatmap(cm, annot=True, cmap='Blues', xticklabels = ["0 $\pi^0$", "$\geq$ 1 $\pi^0$", "other"], yticklabels = ["0 $\pi^0$", " 1 $\pi^0$","other"], annot_kws={"fontsize":12})
+        # else:
+        sn.heatmap(cm, annot=True, cmap='Blues', xticklabels = ["0 $\pi^0$", "$\geq$ 1 $\pi^0$"], yticklabels = ["0 $\pi^0$", "1 $\pi^0$"], annot_kws={"fontsize":12})
         plt.ylabel("True Label")
         plt.xlabel("Predicted Label")
         plt.title("Three Prong DMs", loc='right')
         plt.text(0.03, -0.05, pred, fontsize=18, fontweight="bold")
+        # plt.savefig(f"/vols/cms/lcr119/Plots/CMs/{pred}_three_prong_{type}.pdf", bbox_inches="tight")
         # plt.text(0.03, -0.05, "CMS ", fontsize=18, fontweight="bold")
         # plt.text(0.4, -0.05, "Work in progess ", fontsize=18, fontstyle="italic")
         plt.show()

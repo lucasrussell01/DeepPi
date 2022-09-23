@@ -84,10 +84,10 @@ gen_eval = dataloader.get_generator_v2(primary_set = True, evaluation=True)
 
 if training_cfg["Setup"]["HPS_features"]:
     print("Warning: Model was trained with HPS vars")
-    input_shape = (((33, 33, 5), 31), None, 3, None, None, 3,  2)
+    input_shape = (((33, 33, 5), 31), None, 3, None, None, 5,  2)
     input_types = ((tf.float32, tf.float32), tf.float32, tf.float32, tf.float32, tf.float32, tf.float32, tf.float32)
 else:
-    input_shape = ((33, 33, 5), None, 3, None, None, 3,  2)
+    input_shape = ((33, 33, 5), None, 3, None, None, 5,  2)
     input_types = (tf.float32, tf.float32, tf.float32, tf.float32, tf.float32, tf.float32, tf.float32)
 
 
@@ -120,6 +120,10 @@ pi0_phi_pred = []
 pi0_eta_HPS = []
 pi0_phi_HPS = []
 pi0_p_HPS = []
+rel_eta_HPS = []
+rel_phi_HPS = []
+pi0_eta_HPSPV = []
+pi0_phi_HPSPV = []
 
 # Generate predictions
 i = 0
@@ -142,20 +146,28 @@ for elem in data_eval:
         rel_eta_pred.append(y_pred[1])
         rel_phi_pred.append(y_pred[2])
         eta_orig = jetpos[0] + y[1]
-        eta_orig_pred = jetpos[0] + y_pred[1]
+        eta_orig_pred = jetpos[0] + y_pred[1] #CNN
+        eta_orig_HPS = jetpos[0] + HPS_pi0[3]
         phi_orig = jetpos[1] + y[2]
         phi_orig_pred = jetpos[1] + y_pred[2]
+        phi_orig_HPS = jetpos[1] + HPS_pi0[4]
         pos = pos_xyz(eta_orig, phi_orig)
-        pos_pred = pos_xyz(eta_orig_pred, phi_orig_pred)
+        pos_pred = pos_xyz(eta_orig_pred, phi_orig_pred) # CNN 
+        pos_HPS = pos_xyz(eta_orig_HPS, phi_orig_HPS)
         pi0 = pi0_xyz(pos, np.array(PV))[0]
         pi0_pred = pi0_xyz(pos_pred, np.array(PV))[0]
+        pi0_HPS_ = pi0_xyz(pos_HPS, np.array(PV))[0] # HPS
         pi0_eta.append(get_pi0_eta(pi0))
         pi0_phi.append(get_pi0_phi(pi0))
+        pi0_eta_HPSPV.append(get_pi0_eta(pi0_HPS_))
+        pi0_phi_HPSPV.append(get_pi0_phi(pi0_HPS_))
         pi0_eta_pred.append(get_pi0_eta(pi0_pred))
         pi0_phi_pred.append(get_pi0_phi(pi0_pred))
         pi0_eta_HPS.append(get_HPS_eta(HPS_pi0))
         pi0_phi_HPS.append(get_HPS_phi(HPS_pi0))
         pi0_p_HPS.append(get_HPS_p(HPS_pi0))
+        rel_eta_HPS.append(HPS_pi0[3])
+        rel_phi_HPS.append(HPS_pi0[4])
         i+=1
         if i%10 ==0:
             pbar.update(10)
@@ -182,6 +194,10 @@ df["pi0_eta_pred"] = pi0_eta_pred
 df["pi0_eta_HPS"] = pi0_eta_HPS
 df["pi0_phi_HPS"] = pi0_phi_HPS
 df["pi0_p_HPS"] = pi0_p_HPS
+df["rel_eta_HPS"] = rel_eta_HPS
+df["rel_phi_HPS"] = rel_phi_HPS
+df["pi0_eta_HPSPV"] = pi0_eta_HPSPV
+df["pi0_phi_HPSPV"] = pi0_phi_HPSPV
 
 
 print(df)
@@ -191,7 +207,7 @@ print("Predictions computed")
 save_folder = path_to_artifacts + "/predictions"
 if not os.path.exists(save_folder):
     os.makedirs(save_folder)
-savepath = save_folder + "/kinematic_pred_ggH.pkl"
+savepath = save_folder + "/debug_kinematic_pred_ggH.pkl"
 
 df.to_pickle(savepath)
 
