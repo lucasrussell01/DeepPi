@@ -25,34 +25,41 @@ The first step towards producing input images for the neural network is generati
 
 ## Setup CMSSW and DeepPi0 repository
 
-To have access the the BDT scores previously used for DM classification by the `HIG-20-006` Analysis, you need to install a custom CMSSW environment. This code is designed to run in a modified version of `CMSSW_10_6_19`, first setup your environment:\\
+To have access the the BDT scores previously used for DM classification by the `HIG-20-006` Analysis, you need to install a custom CMSSW environment. This code is designed to run in a modified version of `CMSSW_10_6_19`, first setup your environment:
+
 `scramv1 project CMSSW CMSSW_10_6_19`
 
-Navigate to the `src` directory:\\
+Navigate to the `src` directory:
+
 `cd CMSSW_10_6_19/src/`
 
-Enter the `cmsenv environemnt: \\
+Enter the `cmsenv environment: 
+
 `cmsenv`
 
-Intialise the are for git:\\
+Intialise the are for git:
+
 `git cms-addpkg FWCore/Version`
 
 This command will have created two remote repositories, `official-cmssw` and `my-cmssw`. It will also have created and switched to a new branch, `from-CMSSW_10_6_19`.
 
-Add and pull the remote branch from the pre-configured `ICHiggsToTauTau` github:\\
+Add and pull the remote branch from the pre-configured `ICHiggsToTauTau` github:
+
 ```
 git remote add ic-cmssw git@github.com:gputtley/cmssw.git
 git pull ic-cmssw from-CMSSW_10_6_19
 ```
 
-You must then compile the code:\\
+You must then compile the code:
+
 ```
 scram b -j8
 ```
 
 Your custom CMSSW environment is now set up! 
 
-Finally clone this repository into the src folder:\\ 
+Finally clone this repository into the src folder:
+
 `git clone git@github.com:lucasrussell01/DeepPi.git`
 
 ## Run ntuple production
@@ -68,15 +75,22 @@ scram b -j8
 ```
 
 ### Running ntuples locally:
-This configuration file is used to produce ntuples: \\
+
+This configuration file is used to produce ntuples: 
+
 `python/higgstautau_cfg_aod_inc_hps_2018.py`
 
 To run it locally for individual files, use `cmsRun`.
 
 ### Running ntuples using crab:
+
 To produce ntuples for all samples, jobs can be submitted using crab:
-`cd python`
-`python ../crab/crab_DeepPi.py --output_folder=DetectorImages_MVA --year=2018 --mc`
+
+```
+cd python
+python ../crab/crab_DeepPi.py --output_folder=DetectorImages_MVA --year=2018 --mc
+```
+
 where the `output_folder` argument specifies where in your personal dcache space you want to files to be outputted to.
 
 
@@ -84,7 +98,7 @@ where the `output_folder` argument specifies where in your personal dcache space
 
 Once ROOT tuples are produced, they must be processed to extract true taus, and form the `pickle` dataframes that are used as inputs for training. For maximal efficiency, this step should also be performed with the `cmsenv` environemnt active.
 
-Switch to the `Analysis` area.:
+Switch to the `Analysis` area:
 `cd ../../Analysis`
 
 ### Get list of files:
@@ -92,8 +106,10 @@ After crab jobs have finished get the list of the files in the dcache area:
 `./scripts/get_filelists.sh store/user/lrussell/DetectorImages_MVA_MC_106X_2018/ HPS_2209`
 you must change the name of the directory to the dcache directory where you stored the output from the crab jobs.
 
-Produce input images using:
+###Produce input images using:
+
 `python python/GenerateImages.py --n_tau=-1 --sample=GluGluHToTauTau_M125 --split=L --save_path=Images`
+
 Changing split option to dataset split name (A,B,C,D....). Datasets are split into groups of 50 files and each assigned a letter, this is done as there is an issue with memory leakage if more files than this are processed simultaneously.
 NB: each split should take around 8 hours to run.
 
@@ -105,27 +121,38 @@ NB: each split should take around 8 hours to run.
 
 # Training:
 
-work in DeepPi0 directory:
-`cd ..`
-`source env.sh conda`
+For neural network training you must work in the `tau-ml` environemnt, to install this, go to the `DeepPi` directory and source the environment:
 
-file to configure training is: Training/configs/training.yaml
-update options in this file or specify them as command line arguments e.g change input file directory 
+```
+cd ..
+source env.sh conda
+```
 
-to run with all option as specified in training.yaml:
+Next, navigate to the `Training/python` folder:
 
-`cd Training/python`
-`python TrainingNN.py experiment_name=training`
+` cd Training/python `
 
-"experiment_name" is used to group models together
- 
 
-or to change and option in training.yaml:
-need to specific a model_name. At the moment there are 2 options:
+The file to configure training is: `Training/configs/training.yaml`
+
+You can either update options in this file directly or specify them as command line arguments when runnign training (e.g change input file directory).
+
+Note that to choose which model to train (kinematic regression or DM classification) a `model_name` is specified. At the moment there are 2 options:
 'DeepPi_v1' = DM classification
 'DeepPi_v2' = kinematic regression
 
+To run with all of the options as specified in `training.yaml`:
+
+`python TrainingNN.py experiment_name=training`
+
+where "experiment_name" is used to define an experiment ID, which is useful for keeping track of models/grouping several similar runs together.
+ 
+
+To run with changes to options in `training.yaml`:
+
 `python TrainingNN.py experiment_name=training training_cfg.Setup.n_tau=50`
+
+where in this example the number of taus per batch was modified to 50.
 
 #to run on interactive GPU node:'
 
