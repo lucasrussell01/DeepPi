@@ -23,19 +23,54 @@ Parts of the code that you will find here were adapted from MLAnalyzer (Micheal 
 The first step towards producing input images for the neural network is generating ROOT ntuples using the DeepPi produced in  the `Production` area.
 
 
-## setup CMSSW and DeepPi0 repository
+## Setup CMSSW and DeepPi0 repository
 
-#Luca(s) add this
+To have access the the BDT scores previously used for DM classification by the `HIG-20-006` Analysis, you need to install a custom CMSSW environment. This code is designed to run in a modified version of `CMSSW_10_6_19`, first setup your environment:\\
+`scramv1 project CMSSW CMSSW_10_6_19`
+
+Navigate to the `src` directory:\\
+`cd CMSSW_10_6_19/src/`
+
+Enter the `cmsenv environemnt: \\
+`cmsenv`
+
+Intialise the are for git:\\
+`git cms-addpkg FWCore/Version`
+
+This command will have created two remote repositories, `official-cmssw` and `my-cmssw`. It will also have created and switched to a new branch, `from-CMSSW_10_6_19`.
+
+Add and pull the remote branch from the pre-configured `ICHiggsToTauTau` github:\\
+```
+git remote add ic-cmssw git@github.com:gputtley/cmssw.git
+git pull ic-cmssw from-CMSSW_10_6_19
+```
+
+You must then compile the code:\\
+```
+scram b -j8
+```
+
+Your custom CMSSW environment is now set up! 
+
+Finally clone this repository into the src folder:\\ 
+`git clone git@github.com:lucasrussell01/DeepPi.git`
+
+## Run ntuple production
 
 For this step you should be working with the `cmsenv` environment.
 
 ### Compile code:
 Compile code from within the production folder:
-`cd Production`
-`scram b -j8`
+
+```
+cd Production
+scram b -j8
+```
 
 ### Running ntuples locally:
-This configuration file is used to produce ntuples: `python/higgstautau_cfg_aod_inc_hps_2018.py`
+This configuration file is used to produce ntuples: \\
+`python/higgstautau_cfg_aod_inc_hps_2018.py`
+
 To run it locally for individual files, use `cmsRun`.
 
 ### Running ntuples using crab:
