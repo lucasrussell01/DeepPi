@@ -31,7 +31,7 @@ elif sample == "GluGluHToTauTau_M-125":
     alias = "ggHTT_madgraph_" + args.split
 else:
     alias = "unkwn"
-path_to_filelist = "/vols/cms/lcr119/CMSSW_10_6_19/src/DeepPi/Analysis/scripts/MVA_1509_MC_106X_" + sample + ".dat"
+path_to_filelist = "/vols/cms/dw515/workareas/cp/CMSSW_10_6_19/src/DeepPi/Analysis/HPS_2209_MC_106X_" + sample + ".dat"
 
 
 # Max number of events to process #int(rhTree.GetEntries())
@@ -39,7 +39,7 @@ n_tau_target = args.n_tau # Max number of taus to select
 plot = False
 
 shard = 0 # number of file if split into several required
-save_folder = args.save_path + "Images_MVA"
+save_folder = args.save_path
 savepath = save_folder + "/" + alias + "_" + str(shard) + ".pkl"
 # check if directory exists
 if not os.path.exists(save_folder):
