@@ -303,7 +303,7 @@ class image_plotter:
                     ax[0][1].plot(rel_neutral_iphi, rel_neutral_ieta, linestyle="", marker = "*", label = "Gen $\pi^0$", markersize=12)
                     ax[2][0].plot(rel_neutral_iphi, rel_neutral_ieta, linestyle="", marker = "*", label = "Gen $\pi^0$", markersize=12)
                     
-                    if np.array(self.rhTree.tau_dm)[i] == 1:
+                    if np.array(self.rhTree.tau_dm)[i] == 1 or np.array(self.rhTree.tau_dm)[i] == 11:
                         HPS_eta = np.array(self.rhTree.HPSpi0_releta)[i]/0.0174 + 16.5
                         HPS_phi = np.array(self.rhTree.HPSpi0_relphi)[i]/0.0174 + 16.5
                         # print("releta: ", np.array(self.rhTree.HPSpi0_releta)[i]/0.0174)
@@ -449,7 +449,7 @@ class image_plotter:
                         if rel_neutral_iphi[n]<0:
                             rel_neutral_iphi[n] += 360
                     plt.plot(rel_neutral_iphi, rel_neutral_ieta, linestyle="", marker = "*", label = "Gen $\pi^0$", markersize=12)
-                    if np.array(self.rhTree.tau_dm)[i] == 1:
+                    if np.array(self.rhTree.tau_dm)[i] == 1 or np.array(self.rhTree.tau_dm)[i] == 11:
                         HPS_eta = np.array(self.rhTree.HPSpi0_releta)[i]/0.0174 + 16.5
                         HPS_phi = np.array(self.rhTree.HPSpi0_relphi)[i]/0.0174 + 16.5
                         plt.plot(HPS_phi, HPS_eta, linestyle="", marker = "o", label = "HPS pi0", color='grey')
@@ -463,35 +463,35 @@ class image_plotter:
                 cbar = plt.pcolormesh(ECAL_crop, cmap=newcmp, norm = colors.LogNorm(vmin=1e-5, vmax=np.max(ECAL)))
                 plt.xlabel("i$\phi$")
                 plt.ylabel("i$\eta$")
-                plt.text(1, 30, "ECAL RecHits", fontsize=14, fontweight="bold")
+                plt.text(1, 30, "ECAL RecHits (Reduced)", fontsize=14, fontweight="bold")
                 sumstr = "$\Sigma$E: " + str(round(np.sum(ECAL_crop),2)) + " GeV"
                 plt.text(1, 1, sumstr, fontsize=18)
                 plt.xlim(0, 33)
                 plt.ylim(0, 33)
                 pad = 16 # need to add pad to index
-                if truthDM[i]!=-1:
-                    rel_charged_ieta = np.array(gen_charged_ieta[i]) - centre_eta + pad #+ shift
-                    rel_charged_iphi = np.array(gen_charged_iphi[i]) - centre_phi + pad
-                    for n in range(len(rel_charged_iphi)):
-                        if rel_charged_iphi[n]<0:
-                            rel_charged_iphi[n] += 360           
-                    plt.plot(rel_charged_iphi, rel_charged_ieta, linestyle="", marker = "*", label = "Gen $\pi^\pm$", markersize=12)
-                if truthDM[i]==1 or truthDM[i]==2 or truthDM[i]==11:
-                    print("Info: Truth DM is: ", truthDM[i], " HPS reconstructed tau as DM: ", np.array(self.rhTree.tau_dm)[i])
-                    rel_total_neutral_ieta = np.array(gen_total_neutral_ieta[i]) - centre_eta + pad #+ shift # images look better without shift
-                    rel_total_neutral_iphi = np.array(gen_total_neutral_iphi[i]) - centre_phi + pad
-                    rel_neutral_ieta = np.array(gen_neutral_ieta[i]) - centre_eta + pad #+ shift
-                    rel_neutral_iphi = np.array(gen_neutral_iphi[i]) - centre_phi + pad
-                    for n in range(len(rel_neutral_iphi)):
-                        if rel_neutral_iphi[n]<0:
-                            rel_neutral_iphi[n] += 360
-                    plt.plot(rel_neutral_iphi, rel_neutral_ieta, linestyle="", marker = "*", label = "Gen $\pi^0$", markersize=12)
-                    if np.array(self.rhTree.tau_dm)[i] == 1:
-                        HPS_eta = np.array(self.rhTree.HPSpi0_releta)[i]/0.0174 + 16.5
-                        HPS_phi = np.array(self.rhTree.HPSpi0_relphi)[i]/0.0174 + 16.5
-                        plt.plot(HPS_phi, HPS_eta, linestyle="", marker = "o", label = "HPS pi0", color='grey')
-                    else:    
-                        print("Warning, no reco pi0 as HPS DM: ", np.array(self.rhTree.tau_dm)[i])
+                # if truthDM[i]!=-1:
+                #     rel_charged_ieta = np.array(gen_charged_ieta[i]) - centre_eta + pad #+ shift
+                #     rel_charged_iphi = np.array(gen_charged_iphi[i]) - centre_phi + pad
+                #     for n in range(len(rel_charged_iphi)):
+                #         if rel_charged_iphi[n]<0:
+                #             rel_charged_iphi[n] += 360           
+                #     plt.plot(rel_charged_iphi, rel_charged_ieta, linestyle="", marker = "*", label = "Gen $\pi^\pm$", markersize=12)
+                # if truthDM[i]==1 or truthDM[i]==2 or truthDM[i]==11:
+                #     print("Info: Truth DM is: ", truthDM[i], " HPS reconstructed tau as DM: ", np.array(self.rhTree.tau_dm)[i])
+                #     rel_total_neutral_ieta = np.array(gen_total_neutral_ieta[i]) - centre_eta + pad #+ shift # images look better without shift
+                #     rel_total_neutral_iphi = np.array(gen_total_neutral_iphi[i]) - centre_phi + pad
+                #     rel_neutral_ieta = np.array(gen_neutral_ieta[i]) - centre_eta + pad #+ shift
+                #     rel_neutral_iphi = np.array(gen_neutral_iphi[i]) - centre_phi + pad
+                #     for n in range(len(rel_neutral_iphi)):
+                #         if rel_neutral_iphi[n]<0:
+                #             rel_neutral_iphi[n] += 360
+                #     plt.plot(rel_neutral_iphi, rel_neutral_ieta, linestyle="", marker = "*", label = "Gen $\pi^0$", markersize=12)
+                #     if np.array(self.rhTree.tau_dm)[i] == 1:
+                #         HPS_eta = np.array(self.rhTree.HPSpi0_releta)[i]/0.0174 + 16.5
+                #         HPS_phi = np.array(self.rhTree.HPSpi0_relphi)[i]/0.0174 + 16.5
+                #         plt.plot(HPS_phi, HPS_eta, linestyle="", marker = "o", label = "HPS pi0", color='grey')
+                #     else:    
+                #         print("Warning, no reco pi0 as HPS DM: ", np.array(self.rhTree.tau_dm)[i])
                 plt.savefig(f"/vols/cms/lcr119/Plots/ECALRechit/Event_{event}_{i}_ECAL.pdf", bbox_inches="tight")
                 plt.show()
                 ###################################################

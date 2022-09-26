@@ -355,5 +355,230 @@ class error_plotter:
         # # plt.savefig(f"/vols/cms/lcr119/Plots/Momentum/PCESTD.pdf", bbox_inches="tight")
         # plt.show()
 
+    def compare_profile_releta(self, distrib, min_p=0, save_indv = False):
 
+
+        eta_range = np.arange(np.min(self.df["releta"]), np.max(self.df["releta"]), 0.1) #np.arange(0, 60, 5),np.arange(60, 80, 5), 
+
+
+        eta = self.df["releta"]
+        eta_pred = self.df["releta_pred"]
+        eta_HPS = self.df["rel_eta_HPS"]
+
+        eta_centre = eta_range[:-1] + np.diff(eta_range)/2
+        width = np.diff(eta_range)
+        mean_err = []
+        mean_HPS_err = []
+        std = []
+        std_HPS = []
+        viqr = []
+        viqr_HPS = []
+        mean_pce = []
+        mean_HPS_pce = []
+        pce_iqr = []
+        HPS_pce_iqr = []
+        pce_std = []
+        HPS_pce_std = []
+        for i in range(len(eta_range)-1):
+
+            # print(f"Processing energies between {p_range[i]} and {p_range[i+1]}")
+            if min_p ==0:
+                df_slice = self.df.loc[(self.df["releta"] >= eta_range[i]) & (self.df["releta"] < eta_range[i+1])]
+            else:
+                print("Minimum p value is: ", min_p)
+                dfcap = self.df.loc[self.df["relp"]>min_p]
+                df_slice = dfcap[(dfcap["releta"] >= eta_range[i]) & (dfcap["releta"] < eta_range[i+1])]
+            if distrib=="eta":
+                err = df_slice["releta"] - df_slice["releta_pred"]
+                HPS_err = df_slice["releta"] - df_slice["rel_eta_HPS"]
+                lab = "$\eta$-$\eta_{pred}$"
+                pce = err/df_slice["releta"]
+                HPS_pce = HPS_err/df_slice["releta"]
+            elif distrib=="phi":
+                err = df_slice["pi0_phi"] - df_slice["pi0_phi_pred"]
+                HPS_err = df_slice["pi0_phi"] - df_slice["pi0_phi_HPS"]
+                lab = "$\phi$-$\phi_{pred}$"
+                pce = err/df_slice["pi0_phi"]
+                HPS_pce = HPS_err/df_slice["pi0_phi"]
+                
+            mean_err.append(np.mean(err))
+            mean_HPS_err.append(np.mean(HPS_err))
+            std.append(np.std(err))
+            std_HPS.append(np.std(HPS_err))
+            viqr.append(iqr(err)) # replace with IQR
+            viqr_HPS.append(iqr(HPS_err))
+            mean_pce.append(np.mean(pce))
+            mean_HPS_pce.append(np.mean(HPS_pce))
+            pce_iqr.append(iqr(pce))
+            HPS_pce_iqr.append(iqr(HPS_pce))
+            pce_std.append(np.std(pce))
+            HPS_pce_std.append(np.std(HPS_pce))
+
+        fig, ax1 = plt.subplots(1, 1, figsize=(6,6))
+        ax1.minorticks_on()
+        ax1.grid()
         
+        ax1.errorbar(eta_centre, (mean_err), xerr=width/2, marker = "o", linestyle="", label = f"CNN")
+        ax1.errorbar(eta_centre, (mean_HPS_err), xerr=width/2, marker = "o", linestyle="", label = f"HPS")
+        ax1.legend()
+        ax1.set_ylabel(f"Mean {lab}")
+        ax1.set_xlabel(r"eta")
+        # ax1.set_xlim(0, 150)
+        # ax1.set_ylim(-10, 15)
+        # plt.savefig(f"/vols/cms/lcr119/Plots/etaphi/{distrib}MEAN.pdf", bbox_inches="tight")
+        plt.show()
+
+        fig, (ax1, ax2) = plt.subplots(2, 1, sharex="col", gridspec_kw={'height_ratios': [6, 1]}, figsize=(6,6))
+        fig.subplots_adjust(hspace=0.05) 
+        ax1.minorticks_on()
+        ax1.grid()
+        ax1.errorbar(eta_centre, viqr, xerr=width/2, marker = "o", linestyle="", label = f"CNN")
+        ax1.errorbar(eta_centre, viqr_HPS, xerr=width/2, marker = "o", linestyle="", label = f"HPS")
+        # ax1.errorbar([200], [1], xerr=[1], label = "CNN/HPS Ratio", marker="o", linestyle="", color="black")
+        ax1.legend()
+        ax1.set_ylabel(f"IQR {lab}")
+        ax2.set_xlabel(r"eta")
+        ax2.grid()
+        # ax2.set_ylim(0.4, 1)
+
+        ax2.errorbar(eta_centre, np.array(viqr)/np.array(viqr_HPS), xerr=width/2, marker="o", linestyle="", color="black")
+        ax2.set_ylabel("CNN/HPS")
+        
+        # if distrib=="phi":
+        #     ax1.set_ylim(0, 0.05)
+        # ax1.set_xlim(0, 150)
+        # plt.savefig(f"/vols/cms/lcr119/Plots/etaphi/{distrib}IQR.pdf", bbox_inches="tight")
+        plt.show()
+
+        fig, (ax1, ax2) = plt.subplots(2, 1, sharex="col", gridspec_kw={'height_ratios': [6, 1]}, figsize=(6,6))
+        fig.subplots_adjust(hspace=0.05) 
+        ax1.minorticks_on()
+        ax1.grid()
+        ax1.errorbar(eta_centre, std, xerr=width/2, marker = "o", linestyle="", label = f"CNN")
+        ax1.errorbar(eta_centre, std_HPS, xerr=width/2, marker = "o", linestyle="", label = f"HPS")
+        # ax1.errorbar([200], [1], xerr=[1], label = "CNN/HPS Ratio", marker="o", linestyle="", color="black")
+        # ax1.scatter([200], [1], label = "CNN/HPS Ratio", color="black")
+        ax1.legend()
+        ax1.set_ylabel(f"Standard dev. {lab}")
+        ax2.set_xlabel(r"$\pi^0$ Momentum")
+        ax2.grid()
+        # ax2.set_ylim(0.55, 1)
+        ax2.errorbar(eta_centre, np.array(std)/np.array(std_HPS), xerr=width/2, marker="o", linestyle="", color="black")
+        # ax1.set_xlim(0, 150)
+        ax2.set_ylabel("CNN/HPS")
+        # if distrib=="phi":
+            # ax1.set_ylim(0, 0.5)
+        # plt.savefig(f"/vols/cms/lcr119/Plots/Momentum/STD.pdf", bbox_inches="tight")
+        plt.show()
+
+
+    def compare_profile_eta(self, distrib, min_p=0, save_indv = False):
+
+
+        eta_range = np.arange(np.min(self.df["pi0_eta"]), np.max(self.df["pi0_eta"]), 0.1) #np.arange(0, 60, 5),np.arange(60, 80, 5), 
+
+        eta_centre = eta_range[:-1] + np.diff(eta_range)/2
+        width = np.diff(eta_range)
+        mean_err = []
+        mean_HPS_err = []
+        std = []
+        std_HPS = []
+        viqr = []
+        viqr_HPS = []
+        mean_pce = []
+        mean_HPS_pce = []
+        pce_iqr = []
+        HPS_pce_iqr = []
+        pce_std = []
+        HPS_pce_std = []
+        for i in range(len(eta_range)-1):
+
+            # print(f"Processing energies between {p_range[i]} and {p_range[i+1]}")
+            if min_p ==0:
+                df_slice = self.df.loc[(self.df["pi0_eta"] >= eta_range[i]) & (self.df["pi0_eta"] < eta_range[i+1])]
+            else:
+                print("Minimum p value is: ", min_p)
+                dfcap = self.df.loc[self.df["relp"]>min_p]
+                df_slice = dfcap[(dfcap["pi0_eta"] >= eta_range[i]) & (dfcap["pi0_eta"] < eta_range[i+1])]
+            if distrib=="eta":
+                err = df_slice["pi0_eta"] - df_slice["pi0_eta_pred"]
+                HPS_err = df_slice["pi0_eta"] - df_slice["pi0_eta_HPS"]
+                lab = "$\eta$-$\eta_{pred}$"
+                pce = err/df_slice["pi0_eta"]
+                HPS_pce = HPS_err/df_slice["pi0_eta"]
+            elif distrib=="phi":
+                err = df_slice["pi0_phi"] - df_slice["pi0_phi_pred"]
+                HPS_err = df_slice["pi0_phi"] - df_slice["pi0_phi_HPS"]
+                lab = "$\phi$-$\phi_{pred}$"
+                pce = err/df_slice["pi0_phi"]
+                HPS_pce = HPS_err/df_slice["pi0_phi"]
+                
+            mean_err.append(np.mean(err))
+            mean_HPS_err.append(np.mean(HPS_err))
+            std.append(np.std(err))
+            std_HPS.append(np.std(HPS_err))
+            viqr.append(iqr(err)) # replace with IQR
+            viqr_HPS.append(iqr(HPS_err))
+            mean_pce.append(np.mean(pce))
+            mean_HPS_pce.append(np.mean(HPS_pce))
+            pce_iqr.append(iqr(pce))
+            HPS_pce_iqr.append(iqr(HPS_pce))
+            pce_std.append(np.std(pce))
+            HPS_pce_std.append(np.std(HPS_pce))
+
+        fig, ax1 = plt.subplots(1, 1, figsize=(6,6))
+        ax1.minorticks_on()
+        ax1.grid()
+        
+        ax1.errorbar(eta_centre, (mean_err), xerr=width/2, marker = "o", linestyle="", label = f"CNN")
+        ax1.errorbar(eta_centre, (mean_HPS_err), xerr=width/2, marker = "o", linestyle="", label = f"HPS")
+        ax1.legend()
+        ax1.set_ylabel(f"Mean {lab}")
+        ax1.set_xlabel(r"eta")
+        # ax1.set_xlim(0, 150)
+        # ax1.set_ylim(-10, 15)
+        # plt.savefig(f"/vols/cms/lcr119/Plots/etaphi/{distrib}MEAN.pdf", bbox_inches="tight")
+        plt.show()
+
+        fig, (ax1, ax2) = plt.subplots(2, 1, sharex="col", gridspec_kw={'height_ratios': [6, 1]}, figsize=(6,6))
+        fig.subplots_adjust(hspace=0.05) 
+        ax1.minorticks_on()
+        ax1.grid()
+        ax1.errorbar(eta_centre, viqr, xerr=width/2, marker = "o", linestyle="", label = f"CNN")
+        ax1.errorbar(eta_centre, viqr_HPS, xerr=width/2, marker = "o", linestyle="", label = f"HPS")
+        # ax1.errorbar([200], [1], xerr=[1], label = "CNN/HPS Ratio", marker="o", linestyle="", color="black")
+        ax1.legend()
+        ax1.set_ylabel(f"IQR {lab}")
+        ax2.set_xlabel(r"eta")
+        ax2.grid()
+        # ax2.set_ylim(0.4, 1)
+
+        ax2.errorbar(eta_centre, np.array(viqr)/np.array(viqr_HPS), xerr=width/2, marker="o", linestyle="", color="black")
+        ax2.set_ylabel("CNN/HPS")
+        
+        # if distrib=="phi":
+        #     ax1.set_ylim(0, 0.05)
+        # ax1.set_xlim(0, 150)
+        # plt.savefig(f"/vols/cms/lcr119/Plots/etaphi/{distrib}IQR.pdf", bbox_inches="tight")
+        plt.show()
+
+        fig, (ax1, ax2) = plt.subplots(2, 1, sharex="col", gridspec_kw={'height_ratios': [6, 1]}, figsize=(6,6))
+        fig.subplots_adjust(hspace=0.05) 
+        ax1.minorticks_on()
+        ax1.grid()
+        ax1.errorbar(eta_centre, std, xerr=width/2, marker = "o", linestyle="", label = f"CNN")
+        ax1.errorbar(eta_centre, std_HPS, xerr=width/2, marker = "o", linestyle="", label = f"HPS")
+        # ax1.errorbar([200], [1], xerr=[1], label = "CNN/HPS Ratio", marker="o", linestyle="", color="black")
+        # ax1.scatter([200], [1], label = "CNN/HPS Ratio", color="black")
+        ax1.legend()
+        ax1.set_ylabel(f"Standard dev. {lab}")
+        ax2.set_xlabel(r"$\pi^0$ Momentum")
+        ax2.grid()
+        # ax2.set_ylim(0.55, 1)
+        ax2.errorbar(eta_centre, np.array(std)/np.array(std_HPS), xerr=width/2, marker="o", linestyle="", color="black")
+        # ax1.set_xlim(0, 150)
+        ax2.set_ylabel("CNN/HPS")
+        # if distrib=="phi":
+            # ax1.set_ylim(0, 0.5)
+        # plt.savefig(f"/vols/cms/lcr119/Plots/Momentum/STD.pdf", bbox_inches="tight")
+        plt.show()
