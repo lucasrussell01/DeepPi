@@ -107,6 +107,7 @@ print("Model loaded")
 
 pbar = tqdm(total = dataloader.n_batches)
 
+genDM = []
 rel_p = []
 rel_p_pred = []
 rel_eta = []
@@ -139,6 +140,7 @@ for elem in data_eval:
     elif HPSDM == 1 or HPSDM == 11: # make sure HPS has reco tau as same DM? 
         y_pred = test(x, model)
         y = np.array(y)[0]
+        genDM.append(np.array(DM)[0])
         rel_p.append(y[0])
         rel_eta.append(y[1])
         rel_phi.append(y[2])
@@ -181,6 +183,7 @@ print(f"Total of {len(rel_p)} DM 1 or 11 taus evaluated")
 
 
 df = pd.DataFrame()
+df["DM"] = genDM
 df["relp"] = rel_p 
 df["relp_pred"] = rel_p_pred
 df["releta"] = rel_eta
@@ -207,7 +210,7 @@ print("Predictions computed")
 save_folder = path_to_artifacts + "/predictions"
 if not os.path.exists(save_folder):
     os.makedirs(save_folder)
-savepath = save_folder + "/debug_kinematic_pred_ggH.pkl"
+savepath = save_folder + "/kinematic_pred_ggH.pkl"
 
 df.to_pickle(savepath)
 

@@ -5,13 +5,23 @@ from scipy.stats import iqr
 
 class error_plotter:
 
-    def __init__(self, expID, runID):
+    def __init__(self, expID, runID, DM=[1, 11]):
         self.expID = expID
         self.runID = runID
         path_to_mlflow = "../../Training/python/mlruns/"
-        self.path_to_pred = path_to_mlflow + self.expID + "/" + self.runID + "/artifacts/predictions/debug_kinematic_pred_ggH.pkl"
-        self.df = pd.read_pickle(self.path_to_pred)
-    
+        self.path_to_pred = path_to_mlflow + self.expID + "/" + self.runID + "/artifacts/predictions/kinematic_pred_ggH.pkl"
+        
+        if DM==[1, 11]:
+            self.df = pd.read_pickle(self.path_to_pred)
+            print(len(self.df["DM"]))
+        elif DM == [1]:
+            self.df = pd.read_pickle(self.path_to_pred).loc[pd.read_pickle(self.path_to_pred)["DM"]==1]
+            print(len(self.df["DM"]))
+        elif DM == [11]:
+            self.df = pd.read_pickle(self.path_to_pred).loc[pd.read_pickle(self.path_to_pred)["DM"]==11]
+            print(len(self.df["DM"]))
+        print(f"Included decay modes: {DM}")
+
     def gen_momentum(self, density=False):
         p = self.df["relp"]
         plt.figure()
@@ -25,32 +35,10 @@ class error_plotter:
         plt.show()
         return hist
 
-    def plot_image(self, entry):
-        plt.figure()
-        plt.xlim(-0.2871, 0.2971)
-        plt.ylim(-0.2871, 0.2971)
-        print(f"Pi0 momentum for this entry is: ", self.df["relp"][entry])
-        plt.scatter(self.df["relphi"][entry], self.df["releta"][entry], label="True position")
-        plt.scatter(self.df["relphi_pred"][entry], self.df["releta_pred"][entry], label="CNN pred")
-        plt.scatter(self.df["rel_phi_HPS"][entry], self.df["rel_eta_HPS"][entry], label="HPS pred")
-        plt.legend()
-        plt.show()
-
-        plt.figure()
-        plt.xlim(self.df["relphi"][entry]-0.02, self.df["relphi"][entry]+0.02)
-        plt.ylim(self.df["releta"][entry]-0.02, self.df["releta"][entry]+0.02)
-        plt.title("ZOOM")
-        plt.scatter(self.df["relphi"][entry], self.df["releta"][entry], label="True position")
-        plt.scatter(self.df["relphi_pred"][entry], self.df["releta_pred"][entry], label="CNN pred")
-        plt.scatter(self.df["rel_phi_HPS"][entry], self.df["rel_eta_HPS"][entry], label="HPS pred")
-        plt.legend()
-        plt.show()
-        
-
     def compare_momentum(self):
         p = self.df["relp"]
         p_pred = self.df["relp_pred"]
-        p_HPS = self.df["pi0_p_HPS"]
+        p_HPS = self.df["pi0_p_HPSPV"]
         err = p-p_pred
         HPS_err = p - p_HPS
         w = 1
@@ -71,31 +59,23 @@ class error_plotter:
             print("Momentum capped between: ", p_range)
             eta = df["pi0_eta"]
             eta_pred = df["pi0_eta_pred"]
-            eta_HPS = df["pi0_eta_HPS"]
+            eta_HPS = df["pi0_eta_HPSPV"]
         else:
             eta = self.df["pi0_eta"]
             eta_pred = self.df["pi0_eta_pred"]
-            eta_HPS = self.df["pi0_eta_HPS"]
-            eta_HPSPV = self.df["pi0_eta_HPSPV"]
+            eta_HPS = self.df["pi0_eta_HPSPV"]
         err = eta-eta_pred
         HPS_err = eta - eta_HPS
-        HPSPV_err = eta- eta_HPSPV
         w = 0.001
         bins = np.arange(np.min(err), np.max(err)+w, w)
         plt.figure()
         plt.hist(HPS_err, bins = bins, histtype="step", color = "red", label= f"HPS $\mu$={np.mean(HPS_err):.4f} IQR={iqr(HPS_err):.4f}")
-        # plt.hist(HPSPV_err, bins = bins, histtype="step", color = "green", label= f"HPSPV $\mu$={np.mean(HPSPV_err):.4f} IQR={iqr(HPSPV_err):.4f}")
         plt.hist(err, bins = bins, histtype="step", color = "blue", label= f"CNN $\mu$={np.mean(err):.4f} IQR={iqr(err):.4f}")
         plt.legend()
         plt.xlabel(r"$\eta$-$\eta_{pred}$")
         plt.xlim(-0.02, 0.02)
         # plt.ylim(0, 75000)
         plt.savefig(f"/vols/cms/lcr119/Plots/etaphi/eta.pdf", bbox_inches="tight")
-        plt.show()
-        plt.figure()
-        diff = np.arange(-0.001, 0.001, 0.0001)
-        plt.hist(eta_HPS-eta_HPSPV, bins=diff, histtype="step")
-        plt.title("HPS-HPS PV")
         plt.show()
 
     def compare_releta(self, p_range = None):
@@ -141,28 +121,206 @@ class error_plotter:
     def compare_phi(self):
         phi = self.df["pi0_phi"]
         phi_pred = self.df["pi0_phi_pred"]
-        phi_HPS = self.df["pi0_phi_HPS"]
-        phi_HPSPV = self.df["pi0_phi_HPSPV"]
+        phi_HPS = self.df["pi0_phi_HPSPV"]
         err = phi-phi_pred
         HPS_err = phi - phi_HPS
-        HPSPV_err = phi- phi_HPSPV
         w = 0.0025
         bins = np.arange(np.min(err), np.max(err)+w, w)
         plt.figure()
         plt.hist(HPS_err, bins = bins, histtype="step", color = "red", label= f"HPS $\mu$={np.mean(HPS_err):.4f} IQR={iqr(HPS_err):.4f}")
-        # plt.hist(np.array(HPSPV_err), bins = bins, histtype="step", color = "green", label= f"HPS PV $\mu$={np.mean(HPSPV_err):.4f} IQR={iqr(HPSPV_err):.4f}")
         plt.hist(err, bins = bins, histtype="step", color = "blue", label= f"CNN $\mu$={np.mean(err):.4f} IQR={iqr(err):.4f}")
         plt.legend()
         plt.xlabel(r"$\phi$-$\phi_{pred}$")
-        # plt.xlim(-0.05, 0.05)
+        plt.xlim(-0.03, 0.03)
         # plt.ylim(0, 105000)
         # plt.savefig(f"/vols/cms/lcr119/Plots/etaphi/phi.pdf", bbox_inches="tight")
 
-        plt.figure()
-        diff = np.arange(-0.001, 0.001, 0.0001)
-        plt.hist(phi_HPS-phi_HPSPV,bins=diff, histtype="step")
-        plt.title("HPS-HPS PV")
+    def compare_eta_profile(self, profile, bin_width=0.1, plot_range = None, min_p=0, save_indv = False):
+
+        print(f"Comparing eta error profile as a function of {profile}")
+        print("NB: Options are 'releta', 'relphi', 'eta', 'phi', 'p'")
+
+        if profile=="p":
+            tag = "relp"
+        elif profile=="eta":
+            tag = "pi0_eta"
+        elif profile=="phi":
+            tag = "pi0_phi"
+        else:
+            tag = profile
+
+        if plot_range:
+            tag_range = np.arange(plot_range[0],plot_range[1]+bin_width, bin_width)
+        else:
+            tag_range = np.arange(np.min(self.df[tag]), np.max(self.df[tag]), bin_width) 
+        tag_centre = tag_range[:-1] + np.diff(tag_range)/2
+        width = bin_width
+        
+        mean_err = []
+        mean_HPS_err = []
+        std = []
+        std_HPS = []
+        viqr = []
+        viqr_HPS = []
+        mean_pce = []
+        mean_HPS_pce = []
+        pce_iqr = []
+        HPS_pce_iqr = []
+        pce_std = []
+        HPS_pce_std = []
+
+        for i in range(len(tag_range)-1): # loop through profile range and calculate error/bin
+            if min_p ==0: # cut p if necessary
+                df_slice = self.df.loc[(self.df[tag] >= tag_range[i]) & (self.df[tag] < tag_range[i+1])]
+            else:
+                print("Minimum p value is: ", min_p)
+                dfcap = self.df.loc[self.df["relp"]>min_p]
+                df_slice = dfcap[(dfcap[tag] >= tag_range[i]) & (dfcap[tag] < tag_range[i+1])]
+            
+            err = df_slice["releta"] - df_slice["releta_pred"]
+            HPS_err = df_slice["releta"] - df_slice["rel_eta_HPS"]
+            lab = "$\eta$-$\eta_{pred}$"
+            pce = err/df_slice["releta"]
+            HPS_pce = HPS_err/df_slice["releta"]
+                
+            mean_err.append(np.mean(err))
+            mean_HPS_err.append(np.mean(HPS_err))
+            std.append(np.std(err))
+            std_HPS.append(np.std(HPS_err))
+            viqr.append(iqr(err)) 
+            viqr_HPS.append(iqr(HPS_err))
+            mean_pce.append(np.mean(pce))
+            mean_HPS_pce.append(np.mean(HPS_pce))
+            pce_iqr.append(iqr(pce))
+            HPS_pce_iqr.append(iqr(HPS_pce))
+            pce_std.append(np.std(pce))
+            HPS_pce_std.append(np.std(HPS_pce))
+
+        fig, ax1 = plt.subplots(1, 1, figsize=(6,6))
+        ax1.minorticks_on()
+        ax1.grid()
+        
+        ax1.errorbar(tag_centre, (mean_err), xerr=width/2, marker = "o", linestyle="", label = f"CNN")
+        ax1.errorbar(tag_centre, (mean_HPS_err), xerr=width/2, marker = "o", linestyle="", label = f"HPS")
+        ax1.legend()
+        ax1.set_ylabel(f"Mean {lab}")
+        ax1.set_xlabel(tag)
         plt.show()
+
+        fig, (ax1, ax2) = plt.subplots(2, 1, sharex="col", gridspec_kw={'height_ratios': [6, 1]}, figsize=(6,6))
+        fig.subplots_adjust(hspace=0.05) 
+        ax1.minorticks_on()
+        ax1.grid()
+        ax1.errorbar(tag_centre, viqr, xerr=width/2, marker = "o", linestyle="", label = f"CNN")
+        ax1.errorbar(tag_centre, viqr_HPS, xerr=width/2, marker = "o", linestyle="", label = f"HPS")
+        ax1.legend()
+        ax1.set_ylabel(f"IQR {lab}")
+        ax2.set_xlabel(tag)
+        ax2.grid()
+        ax2.errorbar(tag_centre, np.array(viqr)/np.array(viqr_HPS), xerr=width/2, marker="o", linestyle="", color="black")
+        ax2.set_ylabel("CNN/HPS")
+        plt.show()
+
+        # fig, (ax1, ax2) = plt.subplots(2, 1, sharex="col", gridspec_kw={'height_ratios': [6, 1]}, figsize=(6,6))
+        # fig.subplots_adjust(hspace=0.05) 
+        # ax1.minorticks_on()
+        # ax1.grid()
+        # ax1.errorbar(eta_centre, std, xerr=width/2, marker = "o", linestyle="", label = f"CNN")
+        # ax1.errorbar(eta_centre, std_HPS, xerr=width/2, marker = "o", linestyle="", label = f"HPS")
+        # ax1.legend()
+        # ax1.set_ylabel(f"Standard dev. {lab}")
+        # ax2.set_xlabel(r"$\pi^0$ Momentum")
+        # ax2.grid()
+        # ax2.errorbar(eta_centre, np.array(std)/np.array(std_HPS), xerr=width/2, marker="o", linestyle="", color="black")
+        # ax2.set_ylabel("CNN/HPS")
+        # plt.show()
+
+    def compare_phi_profile(self, profile, bin_width=0.1, plot_range = None, min_p=0, save_indv = False):
+
+        print(f"Comparing phi error profile as a function of {profile}")
+        print("NB: Options are 'releta', 'relphi', 'eta', 'phi', 'p'")
+
+        if profile=="p":
+            tag = "relp"
+        elif profile=="eta":
+            tag = "pi0_eta"
+        elif profile=="phi":
+            tag = "pi0_phi"
+        else:
+            tag = profile
+
+        if plot_range:
+            tag_range = np.arange(plot_range[0],plot_range[1]+bin_width, bin_width)
+        else:
+            tag_range = np.arange(np.min(self.df[tag]), np.max(self.df[tag]), bin_width) 
+        tag_centre = tag_range[:-1] + np.diff(tag_range)/2
+        width = bin_width
+        
+        mean_err = []
+        mean_HPS_err = []
+        std = []
+        std_HPS = []
+        viqr = []
+        viqr_HPS = []
+        mean_pce = []
+        mean_HPS_pce = []
+        pce_iqr = []
+        HPS_pce_iqr = []
+        pce_std = []
+        HPS_pce_std = []
+
+        for i in range(len(tag_range)-1): # loop through profile range and calculate error/bin
+            if min_p ==0: # cut p if necessary
+                df_slice = self.df.loc[(self.df[tag] >= tag_range[i]) & (self.df[tag] < tag_range[i+1])]
+            else:
+                print("Minimum p value is: ", min_p)
+                dfcap = self.df.loc[self.df["relp"]>min_p]
+                df_slice = dfcap[(dfcap[tag] >= tag_range[i]) & (dfcap[tag] < tag_range[i+1])]
+            
+            err = df_slice["relphi"] - df_slice["relphi_pred"]
+            HPS_err = df_slice["relphi"] - df_slice["rel_phi_HPS"]
+            lab = "$\phi$-$\phi_{pred}$"
+            pce = err/df_slice["relphi"]
+            HPS_pce = HPS_err/df_slice["relphi"]
+                
+            mean_err.append(np.mean(err))
+            mean_HPS_err.append(np.mean(HPS_err))
+            std.append(np.std(err))
+            std_HPS.append(np.std(HPS_err))
+            viqr.append(iqr(err)) 
+            viqr_HPS.append(iqr(HPS_err))
+            mean_pce.append(np.mean(pce))
+            mean_HPS_pce.append(np.mean(HPS_pce))
+            pce_iqr.append(iqr(pce))
+            HPS_pce_iqr.append(iqr(HPS_pce))
+            pce_std.append(np.std(pce))
+            HPS_pce_std.append(np.std(HPS_pce))
+
+        fig, ax1 = plt.subplots(1, 1, figsize=(6,6))
+        ax1.minorticks_on()
+        ax1.grid()
+        
+        ax1.errorbar(tag_centre, (mean_err), xerr=width/2, marker = "o", linestyle="", label = f"CNN")
+        ax1.errorbar(tag_centre, (mean_HPS_err), xerr=width/2, marker = "o", linestyle="", label = f"HPS")
+        ax1.legend()
+        ax1.set_ylabel(f"Mean {lab}")
+        ax1.set_xlabel(tag)
+        plt.show()
+
+        fig, (ax1, ax2) = plt.subplots(2, 1, sharex="col", gridspec_kw={'height_ratios': [6, 1]}, figsize=(6,6))
+        fig.subplots_adjust(hspace=0.05) 
+        ax1.minorticks_on()
+        ax1.grid()
+        ax1.errorbar(tag_centre, viqr, xerr=width/2, marker = "o", linestyle="", label = f"CNN")
+        ax1.errorbar(tag_centre, viqr_HPS, xerr=width/2, marker = "o", linestyle="", label = f"HPS")
+        ax1.legend()
+        ax1.set_ylabel(f"IQR {lab}")
+        ax2.set_xlabel(tag)
+        ax2.grid()
+        ax2.errorbar(tag_centre, np.array(viqr)/np.array(viqr_HPS), xerr=width/2, marker="o", linestyle="", color="black")
+        ax2.set_ylabel("CNN/HPS")
+        plt.show()
+
 
     def compare_profile(self, distrib, save_indv = False):
 
@@ -194,19 +352,19 @@ class error_plotter:
             df_slice = self.df.loc[(self.df['relp'] >= p_range[i]) & (self.df['relp'] < p_range[i+1])]
             if distrib=="p":
                 err = df_slice["relp"] - df_slice["relp_pred"]
-                HPS_err = df_slice["relp"] - df_slice["pi0_p_HPS"]
+                HPS_err = df_slice["relp"] - df_slice["pi0_p_HPSPV"]
                 lab = "$p$-$p_{pred}$"
                 pce = err/df_slice["relp"]
                 HPS_pce = HPS_err/df_slice["relp"]
             elif distrib=="eta":
                 err = df_slice["pi0_eta"] - df_slice["pi0_eta_pred"]
-                HPS_err = df_slice["pi0_eta"] - df_slice["pi0_eta_HPS"]
+                HPS_err = df_slice["pi0_eta"] - df_slice["pi0_eta_HPSPV"]
                 lab = "$\eta$-$\eta_{pred}$"
                 pce = err/df_slice["pi0_eta"]
                 HPS_pce = HPS_err/df_slice["pi0_eta"]
             elif distrib=="phi":
                 err = df_slice["pi0_phi"] - df_slice["pi0_phi_pred"]
-                HPS_err = df_slice["pi0_phi"] - df_slice["pi0_phi_HPS"]
+                HPS_err = df_slice["pi0_phi"] - df_slice["pi0_phi_HPSPV"]
                 lab = "$\phi$-$\phi_{pred}$"
                 pce = err/df_slice["pi0_phi"]
                 HPS_pce = HPS_err/df_slice["pi0_phi"]
@@ -396,7 +554,7 @@ class error_plotter:
                 HPS_pce = HPS_err/df_slice["releta"]
             elif distrib=="phi":
                 err = df_slice["pi0_phi"] - df_slice["pi0_phi_pred"]
-                HPS_err = df_slice["pi0_phi"] - df_slice["pi0_phi_HPS"]
+                HPS_err = df_slice["pi0_phi"] - df_slice["pi0_phi_HPSPV"]
                 lab = "$\phi$-$\phi_{pred}$"
                 pce = err/df_slice["pi0_phi"]
                 HPS_pce = HPS_err/df_slice["pi0_phi"]
@@ -502,13 +660,13 @@ class error_plotter:
                 df_slice = dfcap[(dfcap["pi0_eta"] >= eta_range[i]) & (dfcap["pi0_eta"] < eta_range[i+1])]
             if distrib=="eta":
                 err = df_slice["pi0_eta"] - df_slice["pi0_eta_pred"]
-                HPS_err = df_slice["pi0_eta"] - df_slice["pi0_eta_HPS"]
+                HPS_err = df_slice["pi0_eta"] - df_slice["pi0_eta_HPSPV"]
                 lab = "$\eta$-$\eta_{pred}$"
                 pce = err/df_slice["pi0_eta"]
                 HPS_pce = HPS_err/df_slice["pi0_eta"]
             elif distrib=="phi":
                 err = df_slice["pi0_phi"] - df_slice["pi0_phi_pred"]
-                HPS_err = df_slice["pi0_phi"] - df_slice["pi0_phi_HPS"]
+                HPS_err = df_slice["pi0_phi"] - df_slice["pi0_phi_HPSPV"]
                 lab = "$\phi$-$\phi_{pred}$"
                 pce = err/df_slice["pi0_phi"]
                 HPS_pce = HPS_err/df_slice["pi0_phi"]
@@ -582,3 +740,25 @@ class error_plotter:
             # ax1.set_ylim(0, 0.5)
         # plt.savefig(f"/vols/cms/lcr119/Plots/Momentum/STD.pdf", bbox_inches="tight")
         plt.show()
+
+    def plot_image(self, entry):
+        plt.figure()
+        plt.xlim(-0.2871, 0.2971)
+        plt.ylim(-0.2871, 0.2971)
+        print(f"Pi0 momentum for this entry is: ", self.df["relp"][entry])
+        plt.scatter(self.df["relphi"][entry], self.df["releta"][entry], label="True position")
+        plt.scatter(self.df["relphi_pred"][entry], self.df["releta_pred"][entry], label="CNN pred")
+        plt.scatter(self.df["rel_phi_HPS"][entry], self.df["rel_eta_HPS"][entry], label="HPS pred")
+        plt.legend()
+        plt.show()
+
+        plt.figure()
+        plt.xlim(self.df["relphi"][entry]-0.02, self.df["relphi"][entry]+0.02)
+        plt.ylim(self.df["releta"][entry]-0.02, self.df["releta"][entry]+0.02)
+        plt.title("ZOOM")
+        plt.scatter(self.df["relphi"][entry], self.df["releta"][entry], label="True position")
+        plt.scatter(self.df["relphi_pred"][entry], self.df["releta_pred"][entry], label="CNN pred")
+        plt.scatter(self.df["rel_phi_HPS"][entry], self.df["rel_eta_HPS"][entry], label="HPS pred")
+        plt.legend()
+        plt.show()
+        
