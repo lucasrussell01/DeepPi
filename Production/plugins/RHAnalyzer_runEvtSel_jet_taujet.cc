@@ -69,8 +69,22 @@ vector<float> vTaujet_jet_centre1_iphi_;
 vector<float> vTaujet_jet_centre2_ieta_;
 vector<float> vTaujet_jet_centre2_iphi_;
 
+// eta/phi weighted average of the Egamma components
 vector<double> vTaujet_jet_centre2_eta_;
 vector<double> vTaujet_jet_centre2_phi_;
+
+// HPS tau direction - assuming no bending in the B field 
+// If no HPS tau exists then use the neutral (E/gamma) jet direction
+vector<double> vTaujet_tau_centre_ieta_;
+vector<double> vTaujet_tau_centre_iphi_;
+vector<double> vTaujet_tau_centre_eta_;
+vector<double> vTaujet_tau_centre_phi_;
+// HPS neutral direction - assuming no bending in the B field 
+// If no HPS tau exists then use the jet direction
+vector<double> vTaujet_pi0_centre_ieta_;
+vector<double> vTaujet_pi0_centre_iphi_;
+vector<double> vTaujet_pi0_centre_eta_;
+vector<double> vTaujet_pi0_centre_phi_;
 
 // HPS variables 
 // common variables
@@ -189,6 +203,16 @@ void RecHitAnalyzer::branchesEvtSel_jet_taujet( TTree* tree, edm::Service<TFileS
   tree->Branch("jet_centre2_eta", &vTaujet_jet_centre2_eta_);
   tree->Branch("jet_centre2_phi", &vTaujet_jet_centre2_phi_);
 
+  tree->Branch("tau_centre_ieta", &vTaujet_tau_centre_ieta_);
+  tree->Branch("tau_centre_iphi", &vTaujet_tau_centre_iphi_);
+  tree->Branch("pi0_centre_ieta", &vTaujet_pi0_centre_ieta_);
+  tree->Branch("pi0_centre_iphi", &vTaujet_pi0_centre_iphi_);
+
+  tree->Branch("tau_centre_eta", &vTaujet_tau_centre_eta_);
+  tree->Branch("tau_centre_phi", &vTaujet_tau_centre_phi_);
+  tree->Branch("pi0_centre_eta", &vTaujet_pi0_centre_eta_);
+  tree->Branch("pi0_centre_phi", &vTaujet_pi0_centre_phi_);
+
   // HPS variables 
   tree->Branch("tau_dm", &vHPSTau_dm_);
   tree->Branch("tau_pt", &vHPSTau_pt_);
@@ -271,6 +295,14 @@ bool RecHitAnalyzer::runEvtSel_jet_taujet( const edm::Event& iEvent, const edm::
   vTaujet_jet_centre2_iphi_.clear();
   vTaujet_jet_centre2_eta_.clear();
   vTaujet_jet_centre2_phi_.clear();
+  vTaujet_tau_centre_ieta_.clear();
+  vTaujet_tau_centre_iphi_.clear();
+  vTaujet_tau_centre_eta_.clear();
+  vTaujet_tau_centre_phi_.clear();
+  vTaujet_pi0_centre_ieta_.clear();
+  vTaujet_pi0_centre_iphi_.clear();
+  vTaujet_pi0_centre_eta_.clear();
+  vTaujet_pi0_centre_phi_.clear();
   vTaujet_jet_charged_indv_relp_.clear();
   vTaujet_jet_neutral_indv_relp_.clear();
   vTaujet_jet_charged_indv_releta_.clear();
@@ -323,6 +355,7 @@ bool RecHitAnalyzer::runEvtSel_jet_taujet( const edm::Event& iEvent, const edm::
   vHPSTau_tau_deeptau_id_.clear();
   vHPSTau_tau_deeptau_id_vs_mu_.clear();
   vHPSTau_tau_deeptau_id_vs_e_.clear();
+
 
   int nJet = 0;
   // Loop over jets
@@ -572,6 +605,7 @@ void RecHitAnalyzer::fillEvtSel_jet_taujet( const edm::Event& iEvent, const edm:
   edm::ESHandle<CaloGeometry> caloGeomH_;
   iSetup.get<CaloGeometryRecord>().get( caloGeomH_ );
   const CaloGeometry* caloGeom = caloGeomH_.product();
+  double magneticField = (magfield.product() ? magfield.product()->inTesla(GlobalPoint(0., 0., 0.)).z() : 0.0);
 
   edm::Handle<pat::TauCollection> slimmedTausH_;
   iEvent.getByToken( slimmedTausCollectionT_, slimmedTausH_ );
@@ -610,7 +644,10 @@ void RecHitAnalyzer::fillEvtSel_jet_taujet( const edm::Event& iEvent, const edm:
     math::XYZTLorentzVector neutral_PF;
 
     math::XYZTLorentzVector p4_leading = math::XYZTLorentzVector(0,0,0,0); 
+    math::XYZTLorentzVector vtx_leading = math::XYZTLorentzVector(0,0,0,0);
+    double charge_leading=0.; 
     reco::PFCandidatePtr leading_pfC;
+    reco::PFCandidatePtr leading_pfEG;
 
 
     float neutral_ECAL = 0; // store ECAL energy deposits
@@ -631,7 +668,6 @@ void RecHitAnalyzer::fillEvtSel_jet_taujet( const edm::Event& iEvent, const edm:
       // Loop over all PF candidates and make energy weighted average position
       
       // propagate all particles 
-      double magneticField = (magfield.product() ? magfield.product()->inTesla(GlobalPoint(0., 0., 0.)).z() : 0.0);
       math::XYZTLorentzVector  prop_p4(pfC->p4().px(),pfC->p4().py(),pfC->p4().pz(),sqrt(pow(pfC->p(),2)+pfC->mass()*pfC->mass())); //setup 4-vector 
       BaseParticlePropagator propagator = BaseParticlePropagator(
           RawParticle(prop_p4, math::XYZTLorentzVector(pfC->vx(), pfC->vy(), pfC->vz(), 0.),
@@ -656,6 +692,13 @@ void RecHitAnalyzer::fillEvtSel_jet_taujet( const edm::Event& iEvent, const edm:
         total_energy2 += pfC->energy();
       }
 
+      if (pfC->particleId() == 4 || pfC->particleId()==2){
+        if (leading_pfEG.isNull() || (pfC->p4().pt() > leading_pfEG->p4().pt())){
+          // store leading egamma 
+          leading_pfEG = pfC;
+        }
+      }
+
       if (pfC->particleId()==4){
         
         auto n_p4_vec = pfC->p4();
@@ -668,6 +711,8 @@ void RecHitAnalyzer::fillEvtSel_jet_taujet( const edm::Event& iEvent, const edm:
           // store leading hadron propagated
           math::XYZTLorentzVector propagated_p4(pfC->p4().pt(), pfC_position.eta(), pfC_position.phi(), pfC->p4().mass());
           p4_leading = propagated_p4;
+          vtx_leading = math::XYZTLorentzVector(pfC->vx(), pfC->vy(), pfC->vz(), 0.);
+          charge_leading = pfC->charge(); 
           leading_pfC = pfC;
         }
       } else {
@@ -676,16 +721,30 @@ void RecHitAnalyzer::fillEvtSel_jet_taujet( const edm::Event& iEvent, const edm:
    } 
 
     
-    double magneticField = (magfield.product() ? magfield.product()->inTesla(GlobalPoint(0., 0., 0.)).z() : 0.0);
+    BaseParticlePropagator centre_propagator; 
 
     // find indices for leading prong
-    DetId id_leading( spr::findDetIdECAL( caloGeom, p4_leading.eta(), p4_leading.phi(), false ) );
+    
+    centre_propagator = BaseParticlePropagator(
+          RawParticle(p4_leading, vtx_leading,
+                      charge_leading),0.,0.,magneticField);
+    centre_propagator.propagateToEcalEntrance(false); // propogate to ECAL entrance
+    auto centre_propagator_vec = centre_propagator.particle().vertex().Vect();   
+ 
+
+    DetId id_leading( spr::findDetIdECAL( caloGeom, centre_propagator_vec.eta(), centre_propagator_vec.phi(), false ) );
     EBDetId ebId( id_leading );
     int leading_iphi_ = ebId.iphi() - 1;
     int leading_ieta_ = ebId.ieta() > 0 ? ebId.ieta()-1 : ebId.ieta();
     
     //find indices for neutral component of jet
-    DetId id_neutral( spr::findDetIdECAL( caloGeom, neutral_PF.eta(), neutral_PF.phi(), false ) );
+    centre_propagator = BaseParticlePropagator(
+      RawParticle(neutral_PF, math::XYZTLorentzVector(vtxs[0].position().x(), vtxs[0].position().y(), vtxs[0].position().z(), 0.),
+                  0.),0.,0.,magneticField);
+    centre_propagator.propagateToEcalEntrance(false); // propogate to ECAL entrance
+    centre_propagator_vec = centre_propagator.particle().vertex().Vect();   
+
+    DetId id_neutral( spr::findDetIdECAL( caloGeom, centre_propagator_vec.eta(), centre_propagator_vec.phi(), false ) );
     EBDetId ebId_neutral( id_neutral );
     int neutral_iphi_ = ebId_neutral.iphi() - 1;
     int neutral_ieta_ = ebId_neutral.ieta() > 0 ? ebId_neutral.ieta()-1 : ebId_neutral.ieta();
@@ -751,7 +810,6 @@ void RecHitAnalyzer::fillEvtSel_jet_taujet( const edm::Event& iEvent, const edm:
       vTaujet_jet_neutral_relmass_.push_back(match.second->neutral_p4().mass());
       vTaujet_jet_neutral_relp_.push_back(match.second->neutral_p4().P());
 
-      double magneticField = (magfield.product() ? magfield.product()->inTesla(GlobalPoint(0., 0., 0.)).z() : 0.0);
       math::XYZTLorentzVector  prop_p4(match.second->neutral_p4().px(),match.second->neutral_p4().py(),match.second->neutral_p4().pz(),match.second->neutral_p4().energy()); //setup 4-vector 
       BaseParticlePropagator propagator = BaseParticlePropagator(
           RawParticle(prop_p4, math::XYZTLorentzVector(match.second->vx(), match.second->vy(), match.second->vz(), 0.),
@@ -1014,6 +1072,45 @@ void RecHitAnalyzer::fillEvtSel_jet_taujet( const edm::Event& iEvent, const edm:
     float tau_deeptau_id_vs_mu=0;
     float tau_deeptau_id_vs_e=0;
 
+    // initialise centre based on jet properties only - this will then be overwritten if a matched HPS tau exists
+    // For tau centering use jet direction
+    math::XYZTLorentzVector  tau_p4(thisJet->px(),thisJet->py(),thisJet->pz(),thisJet->energy()); //setup 4-vector 
+    BaseParticlePropagator jet_propagator = BaseParticlePropagator(
+        RawParticle(tau_p4, math::XYZTLorentzVector(vtxs[0].position().x(), vtxs[0].position().y(), vtxs[0].position().z(), 0.),
+                    0.0),0.,0.,magneticField);
+    jet_propagator.propagateToEcalEntrance(false); // propogate to ECAL entrance
+    auto tau_prop = jet_propagator.particle().vertex().Vect();
+
+    float tau_centre_eta = tau_prop.eta();
+    float tau_centre_phi = tau_prop.phi();
+    DetId id_tau_centre( spr::findDetIdECAL( caloGeom, tau_centre_eta, tau_centre_phi, false ) );
+    EBDetId ebId_centre( id_tau_centre );
+    int tau_centre_iphi = ebId_centre.iphi() - 1;
+    int tau_centre_ieta = ebId_centre.ieta() > 0 ? ebId_centre.ieta()-1 : ebId_centre.ieta();
+
+    // For pi0 centering use leading PF e/gamma direction
+    // First we initialise to tau jet direction incase a PF e/gamma doesn't exist
+    float pi0_centre_eta = tau_centre_eta;
+    float pi0_centre_phi = tau_centre_phi;
+    float pi0_centre_ieta = tau_centre_ieta;
+    float pi0_centre_iphi = tau_centre_iphi;
+
+    if(!(leading_pfEG.isNull())) {
+      math::XYZTLorentzVector  pi0_p4(leading_pfEG->p4().px(),leading_pfEG->p4().py(),leading_pfEG->p4().pz(),leading_pfEG->energy()); //setup 4-vector 
+      BaseParticlePropagator pi0_propagator = BaseParticlePropagator(
+          RawParticle(pi0_p4, math::XYZTLorentzVector(vtxs[0].position().x(), vtxs[0].position().y(), vtxs[0].position().z(), 0.),
+                      0.0),0.,0.,magneticField);
+      pi0_propagator.propagateToEcalEntrance(false); // propogate to ECAL entrance
+      auto pi0_prop = pi0_propagator.particle().vertex().Vect();
+      pi0_centre_eta = pi0_prop.eta();
+      pi0_centre_phi = pi0_prop.phi();
+
+      DetId id_pi0_centre( spr::findDetIdECAL( caloGeom, pi0_centre_eta, pi0_centre_phi, false ) );
+      ebId_centre = EBDetId( id_pi0_centre );
+      pi0_centre_iphi = ebId_centre.iphi() - 1;
+      pi0_centre_ieta = ebId_centre.ieta() > 0 ? ebId_centre.ieta()-1 : ebId_centre.ieta();
+    } 
+
 
     if(slimmedTausH_) {
       float minDR=-1.;
@@ -1062,6 +1159,26 @@ void RecHitAnalyzer::fillEvtSel_jet_taujet( const edm::Event& iEvent, const edm:
         PtEtaPhiELV pi;
         std::pair<PtEtaPhiELV, PtEtaPhiELV> rho;
         std::vector<PtEtaPhiELV> a1_daughters = {};
+
+        math::XYZTLorentzVector  tau_p4(HPStau.px(),HPStau.py(),HPStau.pz(),HPStau.energy()); //setup 4-vector 
+        BaseParticlePropagator HPStau_propagator = BaseParticlePropagator(
+            RawParticle(tau_p4, math::XYZTLorentzVector(vtxs[0].position().x(), vtxs[0].position().y(), vtxs[0].position().z(), 0.),
+                        0.0),0.,0.,magneticField);
+        HPStau_propagator.propagateToEcalEntrance(false); // propogate to ECAL entrance
+        auto tau_prop = HPStau_propagator.particle().vertex().Vect();
+
+        tau_centre_eta = tau_prop.eta();
+        tau_centre_phi = tau_prop.phi();
+        DetId id_leading( spr::findDetIdECAL( caloGeom, tau_centre_eta, tau_centre_phi, false ) );
+        EBDetId ebId( id_leading );
+        tau_centre_iphi = ebId.iphi() - 1;
+        tau_centre_ieta = ebId.ieta() > 0 ? ebId.ieta()-1 : ebId.ieta();
+
+        // initialise pi0 centre to tau centre in case a pi0 candidate doesn't exist
+        pi0_centre_eta = tau_centre_eta;
+        pi0_centre_phi = tau_centre_phi;
+        pi0_centre_ieta = tau_centre_ieta;
+        pi0_centre_iphi = tau_centre_iphi;
       
         if (tau_dm >= 10) {
           std::pair<std::vector<PtEtaPhiELV>, PtEtaPhiELV> a1 = getA1(HPStau, 1.0);
@@ -1093,26 +1210,34 @@ void RecHitAnalyzer::fillEvtSel_jet_taujet( const edm::Event& iEvent, const edm:
             pi0_dPhi = std::fabs(ROOT::Math::VectorUtil::DeltaPhi(pi0, a1));
 
             if (tau_dm==11){
-              double magneticField = (magfield.product() ? magfield.product()->inTesla(GlobalPoint(0., 0., 0.)).z() : 0.0);
               math::XYZTLorentzVector  pi0_p4(pi0.Px(),pi0.Py(),pi0.Pz(),pi0.E()); //setup 4-vector 
               BaseParticlePropagator HPSpi0_propagator = BaseParticlePropagator(
                   RawParticle(pi0_p4, math::XYZTLorentzVector(vtxs[0].position().x(), vtxs[0].position().y(), vtxs[0].position().z(), 0.),
                               0.0),0.,0.,magneticField);
               HPSpi0_propagator.propagateToEcalEntrance(false); // propogate to ECAL entrance
               auto pi0_prop = HPSpi0_propagator.particle().vertex().Vect();
-              pi0_releta = pi0_prop.eta()-jet_sum_eta2_;;
-              pi0_relphi = pi0_prop.phi()-jet_sum_phi2_;;
-              if (truthDM==2){
-                std::cout<< "*****************************************************************" << std::endl;
-                std::cout<< "INFO: gen DM 2 reconstructed by HPS as DM 11" << std::endl;
-                std::cout << "Pi0 energy: " << pi0.E() << " eta: " << pi0_prop.eta() << " phi: " << pi0_prop.phi() << std::endl;
-              }
+
+              pi0_releta = pi0_prop.eta()-jet_sum_eta2_;
+              pi0_relphi = pi0_prop.phi()-jet_sum_phi2_;
+
+              pi0_centre_eta = pi0_prop.eta();
+              pi0_centre_phi = pi0_prop.phi();
+              DetId id_pi0_centre( spr::findDetIdECAL( caloGeom, pi0_centre_eta, pi0_centre_phi, false ) );
+              EBDetId ebId( id_pi0_centre );
+              pi0_centre_iphi = ebId.iphi() - 1;
+              pi0_centre_ieta = ebId.ieta() > 0 ? ebId.ieta()-1 : ebId.ieta();
+
+              //if (truthDM==2){
+              //  std::cout<< "*****************************************************************" << std::endl;
+              //  std::cout<< "INFO: gen DM 2 reconstructed by HPS as DM 11" << std::endl;
+              //  std::cout << "Pi0 energy: " << pi0.E() << " eta: " << pi0_prop.eta() << " phi: " << pi0_prop.phi() << std::endl;
+              //}
               }
           }
         } else {
-          if (truthDM==2){
-            std::cout<< "*****************************************************************" << std::endl;
-          }
+          //if (truthDM==2){
+          //  std::cout<< "*****************************************************************" << std::endl;
+          //}
           rho = getRho(HPStau, 1.0);
           pi = rho.first;
           pi0 = rho.second;
@@ -1125,20 +1250,26 @@ void RecHitAnalyzer::fillEvtSel_jet_taujet( const edm::Event& iEvent, const edm:
           pi0_dEta = std::fabs(pi.eta() - pi0.eta());
 
           if (tau_dm==1){
-            double magneticField = (magfield.product() ? magfield.product()->inTesla(GlobalPoint(0., 0., 0.)).z() : 0.0);
             math::XYZTLorentzVector  pi0_p4(pi0.Px(),pi0.Py(),pi0.Pz(),pi0.E()); //setup 4-vector 
             BaseParticlePropagator HPSpi0_propagator = BaseParticlePropagator(
                 RawParticle(pi0_p4, math::XYZTLorentzVector(vtxs[0].position().x(), vtxs[0].position().y(), vtxs[0].position().z(), 0.),
                             0.0),0.,0.,magneticField);
             HPSpi0_propagator.propagateToEcalEntrance(false); // propogate to ECAL entrance
             auto pi0_prop = HPSpi0_propagator.particle().vertex().Vect();
-            pi0_releta = pi0_prop.eta()-jet_sum_eta2_;;
-            pi0_relphi = pi0_prop.phi()-jet_sum_phi2_;;
-            if (truthDM==2){
-              // std::cout<< "*****************************************************************" << std::endl;
-              std::cout<< "INFO: gen DM 2 reconstructed by HPS as DM 1" << std::endl;
-              std::cout << "Pi0 energy: " << pi0.E() << " eta: " << pi0_prop.eta() << " phi: " << pi0_prop.phi() << " releta: " << pi0_releta << " relphi: " << pi0_relphi << std::endl;
-            }
+            pi0_releta = pi0_prop.eta()-jet_sum_eta2_;
+            pi0_relphi = pi0_prop.phi()-jet_sum_phi2_;
+
+            pi0_centre_eta = pi0_prop.eta();
+            pi0_centre_phi = pi0_prop.phi();
+            DetId id_pi0_centre( spr::findDetIdECAL( caloGeom, pi0_centre_eta, pi0_centre_phi, false ) );
+            EBDetId ebId( id_pi0_centre );
+            pi0_centre_iphi = ebId.iphi() - 1;
+            pi0_centre_ieta = ebId.ieta() > 0 ? ebId.ieta()-1 : ebId.ieta();
+            //if (truthDM==2){
+            //  // std::cout<< "*****************************************************************" << std::endl;
+            //  std::cout<< "INFO: gen DM 2 reconstructed by HPS as DM 1" << std::endl;
+            //  std::cout << "Pi0 energy: " << pi0.E() << " eta: " << pi0_prop.eta() << " phi: " << pi0_prop.phi() << " releta: " << pi0_releta << " relphi: " << pi0_relphi << std::endl;
+            //}
           }
         }
         pi0_px = pi0.Px();
@@ -1150,10 +1281,9 @@ void RecHitAnalyzer::fillEvtSel_jet_taujet( const edm::Event& iEvent, const edm:
         strip_pt = pi0.pt();
         for (const auto& g : gammas_){
           gammas_vector += g->p4();
-          double magneticField = (magfield.product() ? magfield.product()->inTesla(GlobalPoint(0., 0., 0.)).z() : 0.0);
           math::XYZTLorentzVector  gamma_p4(g->p4().px(),g->p4().py(),g->p4().pz(),g->p4().E()); //setup 4-vector 
           BaseParticlePropagator gamma_propagator = BaseParticlePropagator(
-              RawParticle(gamma_p4, math::XYZTLorentzVector(vtxs[0].position().x(), vtxs[0].position().y(), vtxs[0].position().z(), 0.),
+              RawParticle(gamma_p4, math::XYZTLorentzVector(g->vx(), g->vy(), g->vz(), 0.),
                           g->charge()),0.,0.,magneticField);
           gamma_propagator.propagateToEcalEntrance(false); // propogate to ECAL entrance
           auto gamma_prop = gamma_propagator.particle().vertex().Vect();
@@ -1163,10 +1293,10 @@ void RecHitAnalyzer::fillEvtSel_jet_taujet( const edm::Event& iEvent, const edm:
           // std::cout << "Gamma energy: " << g->p4().E() << " mass: " << g->p4().M() << std::endl;
         }    
         strip_mass = gammas_vector.M();
-        if (truthDM==2){
-          std::cout << "Strip energy: " << gammas_vector.E()  << std::endl;
-          std::cout << "---------------------------------------------" << std::endl;
-        } 
+        //if (truthDM==2){
+        //  std::cout << "Strip energy: " << gammas_vector.E()  << std::endl;
+        //  std::cout << "---------------------------------------------" << std::endl;
+        //} 
         
         
       }
@@ -1206,6 +1336,15 @@ void RecHitAnalyzer::fillEvtSel_jet_taujet( const edm::Event& iEvent, const edm:
     vHPSTau_tau_deeptau_id_.push_back(tau_deeptau_id);
     vHPSTau_tau_deeptau_id_vs_mu_.push_back(tau_deeptau_id_vs_mu);
     vHPSTau_tau_deeptau_id_vs_e_.push_back(tau_deeptau_id_vs_e);
+
+    vTaujet_tau_centre_ieta_.push_back(tau_centre_ieta);
+    vTaujet_tau_centre_iphi_.push_back(tau_centre_iphi);
+    vTaujet_tau_centre_eta_.push_back(tau_centre_eta);
+    vTaujet_tau_centre_phi_.push_back(tau_centre_phi);
+    vTaujet_pi0_centre_ieta_.push_back(pi0_centre_ieta);
+    vTaujet_pi0_centre_iphi_.push_back(pi0_centre_iphi);
+    vTaujet_pi0_centre_eta_.push_back(pi0_centre_eta);
+    vTaujet_pi0_centre_phi_.push_back(pi0_centre_phi);
   }//vJetIdxs
 
 
