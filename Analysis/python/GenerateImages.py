@@ -18,6 +18,9 @@ parser = argparse.ArgumentParser(description='Generate images from RHTree ROOT f
 parser.add_argument('--n_tau', required=True, type=int, help="Number of taus to select")
 parser.add_argument('--sample', required=True, type=str, help="Sample Name")
 parser.add_argument('--split', required=True, type=str, help="Sample section")
+parser.add_argument('--path_to_list', required=True, type=str, help="Path to file lists")
+parser.add_argument('--run_name', required=True, type=str, help="Run name specified when creating file list")
+parser.add_argument('--d_cache', required=True, type=str, help="path to crab output in dcache")
 parser.add_argument('--save_path', required=False, default="/vols/cms/lcr119/Images/", type=str, help="Save path")
 parser.add_argument('--max_events', required=False, default=10000000, type=int, help="Max events to process")
 args = parser.parse_args()
@@ -31,7 +34,7 @@ elif sample == "GluGluHToTauTau_M-125":
     alias = "ggHTT_madgraph_" + args.split
 else:
     alias = "unkwn"
-path_to_filelist = "/vols/cms/dw515/workareas/cp/CMSSW_10_6_19/src/DeepPi/Analysis/HPS_2209_MC_106X_" + sample + ".dat"
+path_to_filelist = args.path_to_list + "/" + args.run_name + "_MC_106X_" + sample + ".dat"
 
 
 # Max number of events to process #int(rhTree.GetEntries())
@@ -203,12 +206,11 @@ if args.n_tau != -1:
     pbar = tqdm(total = n_tau_target)
 complete = False # flag to say when all taus selected
 
-os.system('~/scripts/t-notify.sh Beginning image creation')
 
 file_pbar = tqdm(total = len(files))
 
 for f in files:
-    file = "root://gfe02.grid.hep.ph.ic.ac.uk:1097/store/user/lrussell/DetectorImages_MVA_MC_106X_2018/" + f
+    file = "root://gfe02.grid.hep.ph.ic.ac.uk:1097" + args.d_cache + f
     
     Rfile = R.TFile.Open(file, "READ")
     rhTree = Rfile.Get("recHitAnalyzer/RHTree")
@@ -229,8 +231,10 @@ for f in files:
         PF_ECAL_barrel = np.reshape(np.array(rhTree.PF_ECAL_EB), (170, 360))
         addTracks_barrel = np.reshape(np.array(rhTree.FailedTracksE_EB), (170, 360))
         # Load jet centre coordinates
-        ieta = np.array(rhTree.jet_centre2_ieta)
-        iphi = np.array(rhTree.jet_centre2_iphi)
+        # ieta = np.array(rhTree.jet_centre2_ieta) # old egamma convention
+        # iphi = np.array(rhTree.jet_centre2_iphi)
+        ieta = np.array(self.rhTree.pi0_centre_ieta)
+        iphi = np.array(self.rhTree.pi0_centre_iphi)
         # Load neutral kinematics
         releta = np.array(rhTree.jet_neutral_indv_releta, dtype=object)
         relphi = np.array(rhTree.jet_neutral_indv_relphi, dtype=object)
@@ -277,8 +281,8 @@ for f in files:
                 deeptauVSmu_list.append(np.array(rhTree.tau_deeptau_id_vs_mu)[i])
                 deeptauVSe_list.append(np.array(rhTree.tau_deeptau_id_vs_e)[i])
                 # add HPS variables:
-                list_pi0_releta.append(np.array(rhTree.HPSpi0_releta)[i])
-                list_pi0_relphi.append(np.array(rhTree.HPSpi0_relphi)[i])
+                list_pi0_releta.append(np.array(self.rhTree.HPSpi0_releta)[i] + np.array(self.rhTree.jet_centre2_eta)[i] - np.array(self.rhTree.pi0_centre_eta)[i]) # adjust relative to new centering
+                list_pi0_relphi.append(np.array(self.rhTree.HPSpi0_relphi)[i] + np.array(self.rhTree.jet_centre2_phi)[i] - np.array(self.rhTree.pi0_centre_phi)[i])
                 list_tau_dm.append(np.array(rhTree.tau_dm)[i])
                 list_tau_pt.append(np.array(rhTree.tau_pt)[i])
                 list_tau_E.append(np.array(rhTree.tau_E)[i])
@@ -366,7 +370,6 @@ for f in files:
                     df.to_pickle(savepath)
                     shard+=1 # new shard
                     savepath = save_folder + "/" + alias + "_" + str(shard) + ".pkl"
-                    # os.system('~/scripts/t-notify.sh shard saved')
                     print("After event: ", event)
                     # delete lists and df to reduce memory leakage
                     del df, list_pi0_releta, list_pi0_relphi, image
@@ -502,6 +505,5 @@ df["HPS_mass2"] = list_mass2
 print("Saving dataframe at ", savepath)
 df.to_pickle(savepath)
 
-os.system('~/scripts/t-notify.sh Finished')
 
 

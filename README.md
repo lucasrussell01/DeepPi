@@ -105,23 +105,24 @@ Switch to the `Analysis` area:
 After crab jobs have finished get the list of the files in the dcache area:
 
 ```
-./scripts/get_filelists.sh store/user/lrussell/DetectorImages_MVA_MC_106X_2018/ HPS_2209
+./scripts/get_filelists.sh store/user/lrussell/DetectorImages_MVA_MC_106X_2018/ HPS_run
 ```
 
-you must change the name of the directory to the dcache directory where you stored the output from the crab jobs.
+you must change the name of the directory to the dcache directory where you stored the output from the crab jobs. `HPS_run` is an example run name used for the file list naming convention, you can pick whatever you like but will need to specify it during the next image generation step.
 
 ### Produce input images using:
 
 ```
-python python/GenerateImages.py --n_tau=-1 --sample=GluGluHToTauTau_M125 --split=L --save_path=Images
+python python/GenerateImages.py --n_tau=-1 --sample=GluGluHToTauTau_M125 --split=L --save_path=/vols/cms/lcr119/Images/HPS_run --path_to_list=/vols/cms/lcr119/CMSSW_10_6_19/src/DeepPi/Analysis --run_name=HPS_run --d_cache=/store/user/lrussell/DetectorImages_MVA_MC_106X_2018/
 ```
 
-Changing split option to dataset split name (A,B,C,D....). Datasets are split into groups of 50 files and each assigned a letter, this is done as there is an issue with memory leakage if more files than this are processed simultaneously.
+Where the `save_path` argument determines where the resulting image files will be stored, `path_to_list` is the path to the directory where you ran the file list creation, and `run_name` the convention you chose. The `sample` argument will determine which ROOT files are sourced. Finally, you need to specify the path to the crab output in dcache with the `d_cache` argument.
+
+
+You can change split option to a different letter (A,B,C,D....). Datasets are split into groups of 50 files and each assigned a letter, this is done as there is an issue with memory leakage if more files than this are processed simultaneously.
 NB: each split should take around 8 hours to run.
 
 #TODO: make as script to run this stage as batch jobs 
-
-#TODO: Lucas inside GenerateImages.py the paths to the filelists and the output folder are hard coded. For the time being modify these by hand "path_to_filelist". Add option for this
 
 #TODO Lucas: remove t-notify.sh
 
