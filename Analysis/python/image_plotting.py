@@ -31,8 +31,11 @@ class image_plotter:
     def centre(self, entry):
         self.rhTree.GetEntry(entry)
         # centre on egamma
-        ieta = np.array(self.rhTree.jet_centre2_ieta)
-        iphi = np.array(self.rhTree.jet_centre2_iphi)
+        # ieta = np.array(self.rhTree.jet_centre2_ieta)
+        # iphi = np.array(self.rhTree.jet_centre2_iphi)
+        # on HPS tau if exists
+        ieta = np.array(self.rhTree.pi0_centre_ieta)
+        iphi = np.array(self.rhTree.pi0_centre_iphi)
         return iphi, ieta
 
     def plot_full(self, Tracks, ECAL, PFECAL, PFHCAL, event):
@@ -304,8 +307,11 @@ class image_plotter:
                     ax[2][0].plot(rel_neutral_iphi, rel_neutral_ieta, linestyle="", marker = "*", label = "Gen $\pi^0$", markersize=12)
                     
                     if np.array(self.rhTree.tau_dm)[i] == 1 or np.array(self.rhTree.tau_dm)[i] == 11:
-                        HPS_eta = np.array(self.rhTree.HPSpi0_releta)[i]/0.0174 + 16.5
-                        HPS_phi = np.array(self.rhTree.HPSpi0_relphi)[i]/0.0174 + 16.5
+                        # HPS_eta = np.array(self.rhTree.HPSpi0_releta)[i]/0.0174 + 16.5
+                        # HPS_phi = np.array(self.rhTree.HPSpi0_relphi)[i]/0.0174 + 16.5
+                         # adjust since new center convention
+                        HPS_eta = (np.array(self.rhTree.HPSpi0_releta)[i] + np.array(self.rhTree.jet_centre2_eta)[i] - np.array(self.rhTree.pi0_centre_eta)[i])/0.0174 + 16.5
+                        HPS_phi = (np.array(self.rhTree.HPSpi0_relphi)[i] + np.array(self.rhTree.jet_centre2_phi)[i] - np.array(self.rhTree.pi0_centre_phi)[i])/0.0174 + 16.5
                         # print("releta: ", np.array(self.rhTree.HPSpi0_releta)[i]/0.0174)
                         # print("relphi: ", np.array(self.rhTree.HPSpi0_relphi)[i]/0.0174)
                         ax[0][0].plot(HPS_phi, HPS_eta, linestyle="", marker = "o", label = "HPS pi0", color='grey')
