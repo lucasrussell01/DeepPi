@@ -49,38 +49,20 @@ vector<float> vTaujet_jet_neutral_releta_;
 vector<float> vTaujet_jet_neutral_relp_;
 vector<float> vTaujet_jet_neutral_relmass_;
 
-// for centering:
-vector<float> vTaujet_jet_leading_eta_;
-vector<float> vTaujet_jet_leading_phi_;
-vector<float> vTaujet_jet_leading_ieta_;
-vector<float> vTaujet_jet_leading_iphi_;
-vector<float> vTaujet_jet_leading_energy_;
-vector<float> vTaujet_jet_neutralsum_eta_;
-vector<float> vTaujet_jet_neutralsum_phi_;
-vector<float> vTaujet_jet_neutralsum_ieta_;
-vector<float> vTaujet_jet_neutralsum_iphi_;
-vector<float> vTaujet_jet_neutralsum_pt_;
-vector<float> vTaujet_jet_neutralsum_ECAL_;
-// sum all pf
-vector<float> vTaujet_jet_centre_ieta_;
-vector<float> vTaujet_jet_centre_iphi_;
-vector<float> vTaujet_jet_centre1_ieta_;
-vector<float> vTaujet_jet_centre1_iphi_;
+// eta/phi weighted average of the Egamma components
 vector<float> vTaujet_jet_centre2_ieta_;
 vector<float> vTaujet_jet_centre2_iphi_;
-
-// eta/phi weighted average of the Egamma components
 vector<double> vTaujet_jet_centre2_eta_;
 vector<double> vTaujet_jet_centre2_phi_;
 
 // HPS tau direction - assuming no bending in the B field 
-// If no HPS tau exists then use the neutral (E/gamma) jet direction
+// If no HPS tau exists then use the jet direction
 vector<double> vTaujet_tau_centre_ieta_;
 vector<double> vTaujet_tau_centre_iphi_;
 vector<double> vTaujet_tau_centre_eta_;
 vector<double> vTaujet_tau_centre_phi_;
 // HPS neutral direction - assuming no bending in the B field 
-// If no HPS tau exists then use the jet direction
+// If no HPS tau exists then use the neutral (E/gamma) jet direction
 vector<double> vTaujet_pi0_centre_ieta_;
 vector<double> vTaujet_pi0_centre_iphi_;
 vector<double> vTaujet_pi0_centre_eta_;
@@ -180,26 +162,8 @@ void RecHitAnalyzer::branchesEvtSel_jet_taujet( TTree* tree, edm::Service<TFileS
   tree->Branch("jet_neutral_relp", &vTaujet_jet_neutral_relp_); // this
   tree->Branch("jet_neutral_relmass", &vTaujet_jet_neutral_relmass_);
 
-
-  tree->Branch("leading_eta", &vTaujet_jet_leading_eta_);
-  tree->Branch("leading_phi", &vTaujet_jet_leading_phi_);
-  tree->Branch("leading_ieta", &vTaujet_jet_leading_ieta_);
-  tree->Branch("leading_iphi", &vTaujet_jet_leading_iphi_);
-  tree->Branch("leading_energy", &vTaujet_jet_leading_energy_);
-  tree->Branch("neutralsum_eta", &vTaujet_jet_neutralsum_eta_);
-  tree->Branch("neutralsum_phi", &vTaujet_jet_neutralsum_phi_);
-  tree->Branch("neutralsum_ieta", &vTaujet_jet_neutralsum_ieta_);
-  tree->Branch("neutralsum_iphi", &vTaujet_jet_neutralsum_iphi_);
-  tree->Branch("neutralsum_pt", &vTaujet_jet_neutralsum_pt_);
-  tree->Branch("neutralsum_ECAL", &vTaujet_jet_neutralsum_ECAL_);
-
-  tree->Branch("jet_centre_ieta", &vTaujet_jet_centre_ieta_);
-  tree->Branch("jet_centre_iphi", &vTaujet_jet_centre_iphi_);
-  tree->Branch("jet_centre1_ieta", &vTaujet_jet_centre1_ieta_);
-  tree->Branch("jet_centre1_iphi", &vTaujet_jet_centre1_iphi_);
   tree->Branch("jet_centre2_ieta", &vTaujet_jet_centre2_ieta_);
   tree->Branch("jet_centre2_iphi", &vTaujet_jet_centre2_iphi_);
-
   tree->Branch("jet_centre2_eta", &vTaujet_jet_centre2_eta_);
   tree->Branch("jet_centre2_phi", &vTaujet_jet_centre2_phi_);
 
@@ -276,21 +240,6 @@ bool RecHitAnalyzer::runEvtSel_jet_taujet( const edm::Event& iEvent, const edm::
   vTaujet_jet_neutral_indv_eta_.clear();
   vTaujet_jet_charged_indv_phi_.clear();
   vTaujet_jet_neutral_indv_phi_.clear();
-  vTaujet_jet_leading_phi_.clear();
-  vTaujet_jet_leading_eta_.clear();
-  vTaujet_jet_leading_iphi_.clear();
-  vTaujet_jet_leading_ieta_.clear();
-  vTaujet_jet_leading_energy_.clear();
-  vTaujet_jet_neutralsum_phi_.clear();
-  vTaujet_jet_neutralsum_eta_.clear();
-  vTaujet_jet_neutralsum_iphi_.clear();
-  vTaujet_jet_neutralsum_ieta_.clear();
-  vTaujet_jet_neutralsum_pt_.clear();
-  vTaujet_jet_neutralsum_ECAL_.clear();
-  vTaujet_jet_centre_ieta_.clear();
-  vTaujet_jet_centre_iphi_.clear();
-  vTaujet_jet_centre1_ieta_.clear();
-  vTaujet_jet_centre1_iphi_.clear();
   vTaujet_jet_centre2_ieta_.clear();
   vTaujet_jet_centre2_iphi_.clear();
   vTaujet_jet_centre2_eta_.clear();
@@ -496,7 +445,7 @@ std::pair<PtEtaPhiELV, PtEtaPhiELV> RecHitAnalyzer::getRho(const pat::Tau tau, d
     }
   }
   if ((tau.decayMode() == 1 || tau.decayMode() == 2) && !strip_pairs.empty()){
-    std::cout<< "Strip pairs size: " << strip_pairs.size() << std::endl;
+    //std::cout<< "Strip pairs size: " << strip_pairs.size() << std::endl;
     pi0 = getPi0(strip_pairs[0].second, true);
   }
   else {
@@ -641,23 +590,8 @@ void RecHitAnalyzer::fillEvtSel_jet_taujet( const edm::Event& iEvent, const edm:
 
     std::vector<reco::PFCandidatePtr> pfCands = thisJet->getPFConstituents();
 
-    math::XYZTLorentzVector neutral_PF;
-
-    math::XYZTLorentzVector p4_leading = math::XYZTLorentzVector(0,0,0,0); 
-    math::XYZTLorentzVector vtx_leading = math::XYZTLorentzVector(0,0,0,0);
-    double charge_leading=0.; 
-    reco::PFCandidatePtr leading_pfC;
     reco::PFCandidatePtr leading_pfEG;
 
-
-    float neutral_ECAL = 0; // store ECAL energy deposits
-
-    double total_energy = 0; // total energy of event
-    double eta_sum = 0; //sum of E_i*eta_i for all i
-    double phi_sum = 0;
-    double total_energy1 = 0; // total energy of event
-    double eta_sum1 = 0; //sum of E_i*eta_i for all i
-    double phi_sum1 = 0;
     double total_energy2 = 0; // total energy of event
     double eta_sum2 = 0; //sum of E_i*eta_i for all i
     double phi_sum2 = 0;
@@ -675,16 +609,6 @@ void RecHitAnalyzer::fillEvtSel_jet_taujet( const edm::Event& iEvent, const edm:
       propagator.propagateToEcalEntrance(false); // propogate to ECAL entrance
       auto pfC_position = propagator.particle().vertex().Vect();
       
-      eta_sum += pfC_position.eta()*pfC->energy();
-      phi_sum += pfC_position.phi()*pfC->energy();
-      total_energy += pfC->energy();
-
-      if (pfC->particleId() == 1 || pfC->particleId() ==4){
-        // Store gamma and hPM for position
-        eta_sum1 += pfC_position.eta()*pfC->energy();
-        phi_sum1 += pfC_position.phi()*pfC->energy();
-        total_energy1 += pfC->energy();
-      }
       if (pfC->particleId() == 4 || pfC->particleId()==2){
         // Store gamma and e for position
         eta_sum2 += pfC_position.eta()*pfC->energy();
@@ -698,72 +622,7 @@ void RecHitAnalyzer::fillEvtSel_jet_taujet( const edm::Event& iEvent, const edm:
           leading_pfEG = pfC;
         }
       }
-
-      if (pfC->particleId()==4){
-        
-        auto n_p4_vec = pfC->p4();
-        neutral_PF += n_p4_vec;
-        neutral_ECAL += pfC->ecalEnergy(); // going with corrected energy for now
-
-      } else if (pfC->particleId()==1){
-        
-        if (pfC->p4().pt() > p4_leading.pt()){
-          // store leading hadron propagated
-          math::XYZTLorentzVector propagated_p4(pfC->p4().pt(), pfC_position.eta(), pfC_position.phi(), pfC->p4().mass());
-          p4_leading = propagated_p4;
-          vtx_leading = math::XYZTLorentzVector(pfC->vx(), pfC->vy(), pfC->vz(), 0.);
-          charge_leading = pfC->charge(); 
-          leading_pfC = pfC;
-        }
-      } else {
-
-        }
    } 
-
-    
-    BaseParticlePropagator centre_propagator; 
-
-    // find indices for leading prong
-    
-    centre_propagator = BaseParticlePropagator(
-          RawParticle(p4_leading, vtx_leading,
-                      charge_leading),0.,0.,magneticField);
-    centre_propagator.propagateToEcalEntrance(false); // propogate to ECAL entrance
-    auto centre_propagator_vec = centre_propagator.particle().vertex().Vect();   
- 
-
-    DetId id_leading( spr::findDetIdECAL( caloGeom, centre_propagator_vec.eta(), centre_propagator_vec.phi(), false ) );
-    EBDetId ebId( id_leading );
-    int leading_iphi_ = ebId.iphi() - 1;
-    int leading_ieta_ = ebId.ieta() > 0 ? ebId.ieta()-1 : ebId.ieta();
-    
-    //find indices for neutral component of jet
-    centre_propagator = BaseParticlePropagator(
-      RawParticle(neutral_PF, math::XYZTLorentzVector(vtxs[0].position().x(), vtxs[0].position().y(), vtxs[0].position().z(), 0.),
-                  0.),0.,0.,magneticField);
-    centre_propagator.propagateToEcalEntrance(false); // propogate to ECAL entrance
-    centre_propagator_vec = centre_propagator.particle().vertex().Vect();   
-
-    DetId id_neutral( spr::findDetIdECAL( caloGeom, centre_propagator_vec.eta(), centre_propagator_vec.phi(), false ) );
-    EBDetId ebId_neutral( id_neutral );
-    int neutral_iphi_ = ebId_neutral.iphi() - 1;
-    int neutral_ieta_ = ebId_neutral.ieta() > 0 ? ebId_neutral.ieta()-1 : ebId_neutral.ieta();
-
-    // find indices for centering on all PFc
-    double eta_avg = eta_sum/total_energy;
-    double phi_avg = phi_sum/total_energy;
-    DetId id_jet( spr::findDetIdECAL( caloGeom, eta_avg, phi_avg, false ) );
-    EBDetId ebId_jet( id_jet );
-    int jet_sum_iphi_ = ebId_jet.iphi() - 1;
-    int jet_sum_ieta_ = ebId_jet.ieta() > 0 ? ebId_jet.ieta()-1 : ebId_jet.ieta();
-
-    // find indices for centering on gamma and charged hadrons
-    double eta_avg1 = eta_sum1/total_energy1;
-    double phi_avg1 = phi_sum1/total_energy1;
-    DetId id_jet1( spr::findDetIdECAL( caloGeom, eta_avg1, phi_avg1, false ) );
-    EBDetId ebId_jet1( id_jet1 );
-    int jet_sum_iphi1_ = ebId_jet1.iphi() - 1;
-    int jet_sum_ieta1_ = ebId_jet1.ieta() > 0 ? ebId_jet1.ieta()-1 : ebId_jet1.ieta();
 
     // find indices for centering on egamma
     double eta_avg2 = eta_sum2/total_energy2;
@@ -1000,23 +859,6 @@ void RecHitAnalyzer::fillEvtSel_jet_taujet( const edm::Event& iEvent, const edm:
     vTaujet_jet_charged_indv_phi_.push_back(charge_phi_indv);
     vTaujet_jet_neutral_indv_phi_.push_back(neutral_phi_indv);
 
-    vTaujet_jet_leading_eta_.push_back(p4_leading.eta());
-    vTaujet_jet_leading_phi_.push_back(p4_leading.phi());
-    vTaujet_jet_leading_ieta_.push_back(leading_ieta_);
-    vTaujet_jet_leading_iphi_.push_back(leading_iphi_);
-    vTaujet_jet_leading_energy_.push_back(p4_leading.energy());
-
-    vTaujet_jet_neutralsum_eta_.push_back(neutral_PF.eta());
-    vTaujet_jet_neutralsum_phi_.push_back(neutral_PF.phi());
-    vTaujet_jet_neutralsum_ieta_.push_back(neutral_ieta_);
-    vTaujet_jet_neutralsum_iphi_.push_back(neutral_iphi_);
-    vTaujet_jet_neutralsum_pt_.push_back(neutral_PF.pt());
-    vTaujet_jet_neutralsum_ECAL_.push_back(neutral_ECAL);
-
-    vTaujet_jet_centre_ieta_.push_back(jet_sum_ieta_);
-    vTaujet_jet_centre_iphi_.push_back(jet_sum_iphi_);
-    vTaujet_jet_centre1_ieta_.push_back(jet_sum_ieta1_);
-    vTaujet_jet_centre1_iphi_.push_back(jet_sum_iphi1_);
     vTaujet_jet_centre2_ieta_.push_back(jet_sum_ieta2_);
     vTaujet_jet_centre2_iphi_.push_back(jet_sum_iphi2_);
     vTaujet_jet_centre2_eta_.push_back(jet_sum_eta2_);
@@ -1281,15 +1123,15 @@ void RecHitAnalyzer::fillEvtSel_jet_taujet( const edm::Event& iEvent, const edm:
         strip_pt = pi0.pt();
         for (const auto& g : gammas_){
           gammas_vector += g->p4();
-          math::XYZTLorentzVector  gamma_p4(g->p4().px(),g->p4().py(),g->p4().pz(),g->p4().E()); //setup 4-vector 
-          BaseParticlePropagator gamma_propagator = BaseParticlePropagator(
-              RawParticle(gamma_p4, math::XYZTLorentzVector(g->vx(), g->vy(), g->vz(), 0.),
-                          g->charge()),0.,0.,magneticField);
-          gamma_propagator.propagateToEcalEntrance(false); // propogate to ECAL entrance
-          auto gamma_prop = gamma_propagator.particle().vertex().Vect();
-          if (truthDM==2){
-            std::cout << "Gamma energy: " << g->p4().E() << " eta: " << gamma_prop.eta() << " phi: " << gamma_prop.phi()  << " releta: " << gamma_prop.eta()-jet_sum_eta2_ << " relphi: " << gamma_prop.phi()-jet_sum_phi2_ << std::endl;
-          }
+          //math::XYZTLorentzVector  gamma_p4(g->p4().px(),g->p4().py(),g->p4().pz(),g->p4().E()); //setup 4-vector 
+          //BaseParticlePropagator gamma_propagator = BaseParticlePropagator(
+          //    RawParticle(gamma_p4, math::XYZTLorentzVector(g->vx(), g->vy(), g->vz(), 0.),
+          //                g->charge()),0.,0.,magneticField);
+          //gamma_propagator.propagateToEcalEntrance(false); // propogate to ECAL entrance
+          //auto gamma_prop = gamma_propagator.particle().vertex().Vect();
+          //if (truthDM==2){
+          //  std::cout << "Gamma energy: " << g->p4().E() << " eta: " << gamma_prop.eta() << " phi: " << gamma_prop.phi()  << " releta: " << gamma_prop.eta()-jet_sum_eta2_ << " relphi: " << gamma_prop.phi()-jet_sum_phi2_ << std::endl;
+          //}
           // std::cout << "Gamma energy: " << g->p4().E() << " mass: " << g->p4().M() << std::endl;
         }    
         strip_mass = gammas_vector.M();

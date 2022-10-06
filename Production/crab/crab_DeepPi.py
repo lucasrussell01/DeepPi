@@ -122,7 +122,7 @@ for dm in dml:
     
             config.Data.userInputFiles = None
             config.Data.splitting = 'EventAwareLumiBased'
-            config.Data.unitsPerJob = 20000
+            config.Data.unitsPerJob = 10000
 
             if args.recovery: config.Data.unitsPerJob = 10000
 
