@@ -98,34 +98,32 @@ where the `output_folder` argument specifies where in your personal dcache space
 
 Once ROOT tuples are produced, they must be processed to extract true taus, and form the `pickle` dataframes that are used as inputs for training. For maximal efficiency, this step should also be performed with the `cmsenv` environemnt active.
 
-Switch to the `Analysis` area:
-`cd ../../Analysis`
+Switch to the `Analysis/python` area:
+`cd ../../Analysis/python`
 
 ### Get list of files:
 After crab jobs have finished get the list of the files in the dcache area:
 
 ```
-./scripts/get_filelists.sh store/user/lrussell/DetectorImages_MVA_MC_106X_2018/ HPS_run
+../scripts/get_filelists.sh store/user/dwinterb/DetectorImages_MVA_Oct06_MC_106X_2018/ HPS_centre
 ```
 
-you must change the name of the directory to the dcache directory where you stored the output from the crab jobs. `HPS_run` is an example run name used for the file list naming convention, you can pick whatever you like but will need to specify it during the next image generation step.
+you must change the name of the directory to the dcache directory where you stored the output from the crab jobs. `HPS_centre` is an example run name used for the file list naming convention, you can pick whatever you like but will need to specify it during the next image generation step.
 
-### Produce input images using:
+### Produce input images:
+
+Image of taus are generated from ROOT files using `GenerateImagesFile.py` for each ROOT file. To complete this step quickly, jobs should be submitted for each sample type (eg ggH, VBF...) using `BatchSubmission.py`:
 
 ```
-python python/GenerateImages.py --n_tau=-1 --sample=GluGluHToTauTau_M125 --split=L --save_path=/vols/cms/lcr119/Images/HPS_run --path_to_list=/vols/cms/lcr119/CMSSW_10_6_19/src/DeepPi/Analysis --run_name=HPS_run --d_cache=/store/user/lrussell/DetectorImages_MVA_MC_106X_2018/
+python BatchSubmission.py --sample=GluGluHToTauTau_M-125 --path_to_list=/vols/cms/lcr119/CMSSW_10_6_19/src/DeepPi/Analysis/python --d_cache=/store/user/dwinterb/DetectorImages_MVA_Oct06_MC_106X_2018/ --run_name=HPS_centre --save_path=/vols/cms/lcr119/Images/HPSCentering/
 ```
+Here `sample` is the sample type to process, `path_to_list` is where the filelists you just generated are stored, `d_cache` is the path to the crab output in the d cache storage system, `run_name` is what you specified when generating the file list, and `save-path` is where you would like the images to be saved.
 
-Where the `save_path` argument determines where the resulting image files will be stored, `path_to_list` is the path to the directory where you ran the file list creation, and `run_name` the convention you chose. The `sample` argument will determine which ROOT files are sourced. Finally, you need to specify the path to the crab output in dcache with the `d_cache` argument.
+NB: Each sample will created and submit 100-1000 jobs, which take 3-7 minutes each.
 
+### Split into Trainin/Validation and Evaluation
 
-You can change split option to a different letter (A,B,C,D....). Datasets are split into groups of 50 files and each assigned a letter, this is done as there is an issue with memory leakage if more files than this are processed simultaneously.
-NB: each split should take around 8 hours to run.
-
-#TODO: make as script to run this stage as batch jobs 
-
-#TODO Lucas: remove t-notify.sh
-
+You must move the images you created into to separate folders, one for training/validation and one for evaluation. The paths to these folders will need to be specified in the training configuration file later. A Training/Validation and Evaluation split of around 85/15 is what was used previously here. 
 
 # Training:
 
