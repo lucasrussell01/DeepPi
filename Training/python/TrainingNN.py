@@ -522,10 +522,10 @@ def run_training(model, data_loader):
     # datasets from generators
     data_train = tf.data.Dataset.from_generator(
         gen_train, output_types = input_types, output_shapes = input_shape
-        ).prefetch(tf.data.AUTOTUNE).batch(data_loader.n_tau)#.take(data_loader.n_batches)
+        ).prefetch(tf.data.AUTOTUNE).batch(data_loader.n_tau, drop_remainder=True)#.take(data_loader.n_batches)
     data_val = tf.data.Dataset.from_generator(
         gen_val, output_types = input_types, output_shapes = input_shape
-        ).prefetch(tf.data.AUTOTUNE).batch(data_loader.n_tau)#.take(data_loader.n_batches_val)
+        ).prefetch(tf.data.AUTOTUNE).batch(data_loader.n_tau, drop_remainder=True)#.take(data_loader.n_batches_val)
     
     # logs/callbacks
     model_name = data_loader.model_name
