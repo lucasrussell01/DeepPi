@@ -9,11 +9,11 @@ defaults:
 path_to_mlflow: mlruns
 experiment_name: ???
 
-pretrained: null
-# pretrained:
-#   run_id : 7127c31917124a41be197dca8f961eca 
-#   experiment_id: 9
-#   starting_model: DeepPi_v2_step_final.tf
+# pretrained: null
+pretrained:
+  run_id : 3024f126b7b64fdebd98d903616141a2 #0044e2b9c698422e9a9518543b14824c
+  experiment_id: 2
+  starting_model: DeepPi_v2_step_final.tf
 
 # setup
 gpu_cfg:

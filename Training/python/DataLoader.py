@@ -152,6 +152,8 @@ class DataLoader:
                     if np.sum(addTracks)>70:
                         addTracks = 70*addTracks/np.sum(addTracks)
                     x = (np.stack([Tracks, ECAL, PF_HCAL, PF_ECAL, addTracks], axis=-1))
+                    if np.isnan(np.sum(x)):
+                        raise Exception("Nan in input image")
                     if self.use_HPS:
                         # x_mass = (np.stack([df["tau_dm"][i], df["tau_pt"][i], df["tau_E"][i], df["tau_eta"][i], df["tau_mass"][i],
                         # df["pi0_dEta"][i], df["pi0_dPhi"][i], df["strip_mass"][i], df["strip_pt"][i], 
@@ -167,6 +169,21 @@ class DataLoader:
                     yeta = df["releta"][i][0]
                     yphi = df["relphi"][i][0]
                     yKin = (yp, yeta, yphi)
+                    if np.isnan(yp):
+                        # raise Exception(f"Nan in momentum truth for file {_files[j]}")
+                        print(f"Nan in momentum truth for file {_files[j]}")
+                        continue
+                    if np.isnan(yeta):
+                        # raise Exception(f"Nan in eta truth for file {_files[j]}, momentum is: {yp}, phi is {yphi}")
+                        if np.isnan(yphi):
+                            print(f"Nan in eta and phi truth for file {_files[j]}")
+                        else:
+                            print(f"Nan in eta truth for file {_files[j]}")
+                        continue
+                    if np.isnan(yphi):
+                        # raise Exception(f"Nan in phi truth for file {_files[j]}")
+                        print(f"Nan in phi truth for file {_files[j]}")
+                        continue
                     if evaluation:
                         PV = df["PV"][i]
                         HPSDM = df["HPS_tau_dm"][i]

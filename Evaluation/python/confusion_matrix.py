@@ -1,5 +1,7 @@
-import matplotlib as mpl
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
+# from matplotlib.backends.backend_pdf import PdfPages
 import pandas as pd
 import sklearn.metrics as metrics
 from sklearn.metrics import confusion_matrix
@@ -7,7 +9,7 @@ import seaborn as sn
 import os
 import numpy as np
 os.environ["CUDA_VISIBLE_DEVICES"]="-1" # don't need to use GPU
-mpl.rcParams.update({'font.size': 12})
+matplotlib.rcParams.update({'font.size': 12})
 sn.set(font_scale=1.4)
 # path_to_mlflow = "../../Training/python/mlruns/"
 
@@ -25,6 +27,7 @@ class cm_plotter:
             self.path_to_pred = path_to_mlflow + self.expID + "/" + self.runID + "/artifacts/predictions/pred_DM.pkl"
         else:
             self.path_to_pred = path_to_mlflow + self.expID + "/" + self.runID + "/artifacts/predictions/pred_DM_HPS_only.pkl"
+        self.savepath = path_to_mlflow + self.expID + "/" + self.runID + "/artifacts/predictions"
         self.df = pd.read_pickle(self.path_to_pred)
         self.df['MVA_pred'][np.where(self.df["MVA_pred"]==-1)[0]] = 100
         self.where_threeprong = np.concatenate((np.where(self.df['truthDM']==10)[0], np.where(self.df['truthDM']==11)[0]))
@@ -89,8 +92,8 @@ class cm_plotter:
         # plt.text(0.03, -0.05, "CMS ", fontsize=18, fontweight="bold")
         # plt.text(0.4, -0.05, "Work in progess ", fontsize=18, fontstyle="italic")
         
-        # plt.savefig(f"/vols/cms/lcr119/Plots/CMs/{pred}_one_prong_{type}.pdf", bbox_inches="tight")
-        plt.show()
+        plt.savefig(f"{self.savepath}/{pred}_one_prong_{type}.pdf", bbox_inches="tight")
+        # plt.show()
     
     def plot_cm_threeP(self, pred="CNN_pred", type="efficiency"):
 
@@ -120,10 +123,10 @@ class cm_plotter:
         plt.xlabel("Predicted Label")
         plt.title("Three Prong DMs", loc='right')
         plt.text(0.03, -0.05, pred, fontsize=18, fontweight="bold")
-        # plt.savefig(f"/vols/cms/lcr119/Plots/CMs/{pred}_three_prong_{type}.pdf", bbox_inches="tight")
+        plt.savefig(f"{self.savepath}/{pred}_three_prong_{type}.pdf", bbox_inches="tight")
         # plt.text(0.03, -0.05, "CMS ", fontsize=18, fontweight="bold")
         # plt.text(0.4, -0.05, "Work in progess ", fontsize=18, fontstyle="italic")
-        plt.show()
+        # plt.show()
 
 
     def plot_raw_cm(self):

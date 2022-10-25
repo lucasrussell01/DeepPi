@@ -12,7 +12,12 @@ class TauLosses:
     @staticmethod
     @tf.function
     def Kinematic_loss(target, output):
-        loss = TauLosses.MAE_eta(target, output) + TauLosses.MAE_phi(target, output) #+ TauLosses.MAE_momentum(target, output) 
+        # loss = TauLosses.MAE_momentum(target, output) 
+        # pos_pred = tf.sqrt(tf.square(output[:, 1]) + tf.square(output[:, 2]))
+        # pos_true = tf.sqrt(tf.square(target[:, 1]) + tf.square(target[:, 2]))
+        # loss = tf.keras.losses.mean_absolute_error(pos_true, pos_pred)
+        # loss = tf.sqrt(tf.square(output[:, 1]-target[:, 1]) + tf.square(output[:, 2]-target[:, 2]))/tf.constant([50.0])
+        loss = TauLosses.MAE_eta(target, output) + TauLosses.MAE_phi(target, output)# + TauLosses.MAE_momentum(target, output) 
         return loss
 
     @staticmethod
