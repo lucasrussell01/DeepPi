@@ -636,247 +636,6 @@ void RecHitAnalyzer::fillEvtSel_jet_taujet( const edm::Event& iEvent, const edm:
     double jet_sum_phi2_ = centre_pos.phi();
     double jet_sum_eta2_ = centre_pos.eta();
 
-    std::pair<int, reco::GenTau*> match = getTruthLabelForTauJets(thisJet, genParticles, genJets, magneticField, 0.4, false);
-
-    int truthLabel = match.first;
-    vTaujet_jet_truthLabel_      .push_back(truthLabel);
-
-    int truthDM=-1;
-    float neutral_pT=0.;
-    float neutral_M=0.;
-    float neutral_eta=0.;
-    float neutral_phi=0.;
-    vector<float> charge_p_indv;
-    vector<float> neutral_p_indv;
-    vector<float> charge_eta_indv;
-    vector<float> neutral_eta_indv;
-    vector<float> charge_phi_indv;
-    vector<float> neutral_phi_indv;
-
-    vector<double> charge_relp_indv;
-    vector<double> neutral_relp_indv;
-    vector<double> charge_releta_indv;
-    vector<double> neutral_releta_indv;
-    vector<double> charge_relphi_indv;
-    vector<double> neutral_relphi_indv;
-
-    vector<float> charge_releta_crystal_indv;
-    vector<float> neutral_releta_crystal_indv;
-    vector<float> charge_relphi_crystal_indv;
-    vector<float> neutral_relphi_crystal_indv;
-
-    if(match.second->neutral_p4().mass()>0) {
-      vTaujet_jet_neutral_relmass_.push_back(match.second->neutral_p4().mass());
-      vTaujet_jet_neutral_relp_.push_back(match.second->neutral_p4().P());
-
-      math::XYZTLorentzVector  prop_p4(match.second->neutral_p4().px(),match.second->neutral_p4().py(),match.second->neutral_p4().pz(),match.second->neutral_p4().energy()); //setup 4-vector 
-      BaseParticlePropagator propagator = BaseParticlePropagator(
-          RawParticle(prop_p4, math::XYZTLorentzVector(match.second->vx(), match.second->vy(), match.second->vz(), 0.),
-                      0.),0.,0.,magneticField);
-      propagator.propagateToEcalEntrance(false); // propogate to ECAL entrance
-      auto neutral_position = propagator.particle().vertex().Vect();
-
-      double eta = neutral_position.eta();
-      double phi = neutral_position.phi();
-      double releta = eta-jet_sum_eta2_;
-      double relphi = phi-jet_sum_phi2_;
-      relphi = TVector2::Phi_mpi_pi(relphi);
-      vTaujet_jet_neutral_relphi_.push_back(relphi);
-      vTaujet_jet_neutral_releta_.push_back(releta);
-
-      // also store in crystal units:
-      DetId id( spr::findDetIdECAL( caloGeom, eta, phi, false ) );
-      EBDetId ebId( id );
-
-      // get index of the crystal
-      float iphi = ebId.iphi() -1;
-      float ieta = ebId.ieta() > 0 ? ebId.ieta()-1 : ebId.ieta();
-
-      float ieta_cont = -10000;
-      float iphi_cont = -10000;
-
-      if (nullptr != caloGeom->getGeometry(ebId)) {
-        // now work out how far along the crystal the particle overlapped to get a continuous number
-        const auto repCorners = caloGeom->getGeometry(ebId)->getCornersREP();
-        float minEta_ = repCorners[2].eta();
-        float maxEta_ = repCorners[0].eta();
-        float minPhi_ = repCorners[2].phi();
-        float maxPhi_ = repCorners[0].phi();
-
-        ieta_cont = ieta+(eta-minEta_)/(maxEta_-minEta_);
-        iphi_cont = iphi+(phi-minPhi_)/(maxPhi_-minPhi_);
-      }
-      vTaujet_jet_neutral_releta_crystal_.push_back(ieta_cont);
-      vTaujet_jet_neutral_relphi_crystal_.push_back(iphi_cont);
-
-    } else {
-      // when there is no pi0's set the 4-vector size to 0 and direction to centre of image
-      vTaujet_jet_neutral_relmass_.push_back(0.);
-      vTaujet_jet_neutral_relp_.push_back(0.);
-      vTaujet_jet_neutral_relphi_.push_back(0.);
-      vTaujet_jet_neutral_releta_.push_back(0.);
-      vTaujet_jet_neutral_relphi_crystal_.push_back(jet_sum_iphi2_);
-      vTaujet_jet_neutral_releta_crystal_.push_back(jet_sum_ieta2_);
-    }
-    if (abs(truthLabel)==15) {
-      truthDM = match.second->decay_mode();
-      neutral_pT = match.second->neutral_p4().pt();
-      neutral_M = match.second->neutral_p4().mass();
-      neutral_eta = match.second->neutral_p4().eta();
-      neutral_phi = match.second->neutral_p4().phi();
-
-      // Save charged prongs and index:
-      for (const auto &charged : match.second->charge_p4_indv()){
-          // Find ieta iphi index
-          DetId id_leading( spr::findDetIdECAL( caloGeom, charged.eta(), charged.phi(), false ) );
-          EBDetId ebId( id_leading );
-          int charged_iphi_ = ebId.iphi() - 1;
-          int charged_ieta_ = ebId.ieta() > 0 ? ebId.ieta()-1 : ebId.ieta();
-          
-          charge_p_indv.push_back(charged.energy());
-          charge_eta_indv.push_back(charged_ieta_);
-          charge_phi_indv.push_back(charged_iphi_);
-      }
-      for (auto x : match.second->pis_at_ecal()){
-          double p = x.second;
-          double eta = x.first.eta();
-          double phi = x.first.phi();
-          double releta = eta-jet_sum_eta2_;
-          double relphi = phi-jet_sum_phi2_;
-          relphi = TVector2::Phi_mpi_pi(relphi);
-          charge_relp_indv.push_back(p);
-          charge_releta_indv.push_back(releta);
-          charge_relphi_indv.push_back(relphi);
-
-          // also store in crystal units:
-          DetId id( spr::findDetIdECAL( caloGeom, eta, phi, false ) );
-          EBDetId ebId( id );
-
-          // get index of the crystal
-          float iphi = ebId.iphi() -1;
-          float ieta = ebId.ieta() > 0 ? ebId.ieta()-1 : ebId.ieta(); 
-
-          float ieta_cont = -10000;
-          float iphi_cont = -10000;
-
-          if (nullptr != caloGeom->getGeometry(ebId)) {     
-            // now work out how far along the crystal the particle overlapped to get a continuous number
-            const auto repCorners = caloGeom->getGeometry(ebId)->getCornersREP();
-            float minEta_ = repCorners[2].eta();
-            float maxEta_ = repCorners[0].eta();
-            float minPhi_ = repCorners[2].phi();
-            float maxPhi_ = repCorners[0].phi();
-            ieta_cont = ieta+(eta-minEta_)/(maxEta_-minEta_);
-            iphi_cont = iphi+(phi-minPhi_)/(maxPhi_-minPhi_);  
-          }
-          charge_releta_crystal_indv.push_back(ieta_cont);
-          charge_relphi_crystal_indv.push_back(iphi_cont);
-        }
-      if (match.second->neutral_p4_indv().size()>0){
-        for (const auto &neutral : match.second->neutral_p4_indv()){
-            DetId id_neutral( spr::findDetIdECAL( caloGeom, neutral.eta(), neutral.phi(), false ) );
-            EBDetId ebId_neutral( id_neutral );
-            int neutral_iphi_ = ebId_neutral.iphi() - 1;
-            int neutral_ieta_ = ebId_neutral.ieta() > 0 ? ebId_neutral.ieta()-1 : ebId_neutral.ieta();
-
-
-            neutral_p_indv.push_back(neutral.energy());
-            neutral_eta_indv.push_back(neutral_ieta_);
-            neutral_phi_indv.push_back(neutral_iphi_);
-          }
-      } else{
-        neutral_p_indv.push_back(-1);
-        neutral_eta_indv.push_back(-100); 
-        neutral_phi_indv.push_back(-100);
-        
-      }
-      if (match.second->pi0s_at_ecal().size()>0){
-        for (auto x : match.second->pi0s_at_ecal()){
-            double p = x.second;
-            double eta = x.first.eta(); 
-            double phi = x.first.phi(); 
-            double releta = eta-jet_sum_eta2_;
-            double relphi = phi-jet_sum_phi2_; 
-            relphi = TVector2::Phi_mpi_pi(relphi);
-            neutral_relp_indv.push_back(p);
-            neutral_releta_indv.push_back(releta);
-            neutral_relphi_indv.push_back(relphi);
-
-            // also store in crystal units:
-            DetId id( spr::findDetIdECAL( caloGeom, eta, phi, false ) );
-            EBDetId ebId( id );
-
-            // get index of the crystal
-            float iphi = ebId.iphi() -1;
-            float ieta = ebId.ieta() > 0 ? ebId.ieta()-1 : ebId.ieta(); 
-      
-            float ieta_cont = -10000;
-            float iphi_cont = -10000;
-
-            if (nullptr != caloGeom->getGeometry(ebId)) {
-              // now work out how far along the crystal the particle overlapped to get a continuous number
-              const auto repCorners = caloGeom->getGeometry(ebId)->getCornersREP();
-              float minEta_ = repCorners[2].eta();
-              float maxEta_ = repCorners[0].eta();
-              float minPhi_ = repCorners[2].phi();
-              float maxPhi_ = repCorners[0].phi();
-
-              ieta_cont = ieta+(eta-minEta_)/(maxEta_-minEta_);
-              iphi_cont = iphi+(phi-minPhi_)/(maxPhi_-minPhi_); 
-            }
-            neutral_releta_crystal_indv.push_back(ieta_cont);
-            neutral_relphi_crystal_indv.push_back(iphi_cont);
-
-            // uncomment below to determine actual direction
-            // math::XYZVector direction = GetPi0Direction(match.second->vertex(), releta, relphi, jet_sum_eta2_, jet_sum_phi2_);
-            // std::cout << "DIRECTION OUTPUT: " << direction << std::endl;
-
-          }
-      } else{
-        neutral_relp_indv.push_back(0.);
-        neutral_releta_indv.push_back(0.);
-        neutral_relphi_indv.push_back(0.);
-      }
-    } else{
-      charge_p_indv.push_back(-1);
-      neutral_p_indv.push_back(-1);
-      charge_eta_indv.push_back(-100);
-      neutral_eta_indv.push_back(-100);
-      charge_phi_indv.push_back(-100);
-      neutral_phi_indv.push_back(-100);
-    }
-
-    vTaujet_jet_truthDM_.push_back(truthDM);
-    vTaujet_jet_neutral_pT_.push_back(neutral_pT);
-    vTaujet_jet_neutral_m0_.push_back(neutral_M);
-    vTaujet_jet_neutral_eta_.push_back(neutral_eta);
-    vTaujet_jet_neutral_phi_.push_back(neutral_phi);
-
-    vTaujet_jet_charged_indv_p_.push_back(charge_p_indv);
-    vTaujet_jet_neutral_indv_p_.push_back(neutral_p_indv);
-    vTaujet_jet_charged_indv_eta_.push_back(charge_eta_indv);
-    vTaujet_jet_neutral_indv_eta_.push_back(neutral_eta_indv);
-    vTaujet_jet_charged_indv_phi_.push_back(charge_phi_indv);
-    vTaujet_jet_neutral_indv_phi_.push_back(neutral_phi_indv);
-
-    vTaujet_jet_centre2_ieta_.push_back(jet_sum_ieta2_);
-    vTaujet_jet_centre2_iphi_.push_back(jet_sum_iphi2_);
-    vTaujet_jet_centre2_eta_.push_back(jet_sum_eta2_);
-    vTaujet_jet_centre2_phi_.push_back(jet_sum_phi2_); 
-
-    vTaujet_jet_charged_indv_relp_.push_back(charge_relp_indv);
-    vTaujet_jet_neutral_indv_relp_.push_back(neutral_relp_indv);
-    vTaujet_jet_charged_indv_releta_.push_back(charge_releta_indv);
-    vTaujet_jet_neutral_indv_releta_.push_back(neutral_releta_indv);
-    vTaujet_jet_charged_indv_relphi_.push_back(charge_relphi_indv);
-    vTaujet_jet_neutral_indv_relphi_.push_back(neutral_relphi_indv);
-   
-    vTaujet_jet_charged_indv_releta_crystal_.push_back(charge_releta_crystal_indv);
-    vTaujet_jet_neutral_indv_releta_crystal_.push_back(neutral_releta_crystal_indv);
-    vTaujet_jet_charged_indv_relphi_crystal_.push_back(charge_relphi_crystal_indv);
-    vTaujet_jet_neutral_indv_relphi_crystal_.push_back(neutral_relphi_crystal_indv);
- 
-
     // add HPS Info
     float tau_dm =-1; 
     float tau_pt =0; 
@@ -1059,8 +818,8 @@ void RecHitAnalyzer::fillEvtSel_jet_taujet( const edm::Event& iEvent, const edm:
               HPSpi0_propagator.propagateToEcalEntrance(false); // propogate to ECAL entrance
               auto pi0_prop = HPSpi0_propagator.particle().vertex().Vect();
 
-              pi0_releta = pi0_prop.eta()-jet_sum_eta2_;
-              pi0_relphi = pi0_prop.phi()-jet_sum_phi2_;
+              pi0_releta = pi0_prop.eta()-pi0_centre_eta;
+              pi0_relphi = pi0_prop.phi()-pi0_centre_phi;
 
               pi0_centre_eta = pi0_prop.eta();
               pi0_centre_phi = pi0_prop.phi();
@@ -1098,8 +857,8 @@ void RecHitAnalyzer::fillEvtSel_jet_taujet( const edm::Event& iEvent, const edm:
                             0.0),0.,0.,magneticField);
             HPSpi0_propagator.propagateToEcalEntrance(false); // propogate to ECAL entrance
             auto pi0_prop = HPSpi0_propagator.particle().vertex().Vect();
-            pi0_releta = pi0_prop.eta()-jet_sum_eta2_;
-            pi0_relphi = pi0_prop.phi()-jet_sum_phi2_;
+            pi0_releta = pi0_prop.eta()-pi0_centre_eta;
+            pi0_relphi = pi0_prop.phi()-pi0_centre_phi;
 
             pi0_centre_eta = pi0_prop.eta();
             pi0_centre_phi = pi0_prop.phi();
@@ -1187,6 +946,248 @@ void RecHitAnalyzer::fillEvtSel_jet_taujet( const edm::Event& iEvent, const edm:
     vTaujet_pi0_centre_iphi_.push_back(pi0_centre_iphi);
     vTaujet_pi0_centre_eta_.push_back(pi0_centre_eta);
     vTaujet_pi0_centre_phi_.push_back(pi0_centre_phi);
+
+
+    // add truth information last since we need to have other reco information in order to center gen particles propogated to ECAL surface
+    std::pair<int, reco::GenTau*> match = getTruthLabelForTauJets(thisJet, genParticles, genJets, magneticField, 0.4, false);
+
+    int truthLabel = match.first;
+    vTaujet_jet_truthLabel_      .push_back(truthLabel);
+
+    int truthDM=-1;
+    float neutral_pT=0.;
+    float neutral_M=0.;
+    float neutral_eta=0.;
+    float neutral_phi=0.;
+    vector<float> charge_p_indv;
+    vector<float> neutral_p_indv;
+    vector<float> charge_eta_indv;
+    vector<float> neutral_eta_indv;
+    vector<float> charge_phi_indv;
+    vector<float> neutral_phi_indv;
+
+    vector<double> charge_relp_indv;
+    vector<double> neutral_relp_indv;
+    vector<double> charge_releta_indv;
+    vector<double> neutral_releta_indv;
+    vector<double> charge_relphi_indv;
+    vector<double> neutral_relphi_indv;
+
+    vector<float> charge_releta_crystal_indv;
+    vector<float> neutral_releta_crystal_indv;
+    vector<float> charge_relphi_crystal_indv;
+    vector<float> neutral_relphi_crystal_indv;
+
+    if(match.second->neutral_p4().mass()>0) {
+      vTaujet_jet_neutral_relmass_.push_back(match.second->neutral_p4().mass());
+      vTaujet_jet_neutral_relp_.push_back(match.second->neutral_p4().P());
+
+      math::XYZTLorentzVector  prop_p4(match.second->neutral_p4().px(),match.second->neutral_p4().py(),match.second->neutral_p4().pz(),match.second->neutral_p4().energy()); //setup 4-vector 
+      BaseParticlePropagator propagator = BaseParticlePropagator(
+          RawParticle(prop_p4, math::XYZTLorentzVector(match.second->vx(), match.second->vy(), match.second->vz(), 0.),
+                      0.),0.,0.,magneticField);
+      propagator.propagateToEcalEntrance(false); // propogate to ECAL entrance
+      auto neutral_position = propagator.particle().vertex().Vect();
+
+      double eta = neutral_position.eta();
+      double phi = neutral_position.phi();
+      double releta = eta-pi0_centre_eta;
+      double relphi = phi-pi0_centre_phi;
+      relphi = TVector2::Phi_mpi_pi(relphi);
+      vTaujet_jet_neutral_relphi_.push_back(relphi);
+      vTaujet_jet_neutral_releta_.push_back(releta);
+
+      // also store in crystal units:
+      DetId id( spr::findDetIdECAL( caloGeom, eta, phi, false ) );
+      EBDetId ebId( id );
+
+      // get index of the crystal
+      float iphi = ebId.iphi() -1;
+      float ieta = ebId.ieta() > 0 ? ebId.ieta()-1 : ebId.ieta();
+
+      float ieta_cont = -10000;
+      float iphi_cont = -10000;
+
+      if (nullptr != caloGeom->getGeometry(ebId)) {
+        // now work out how far along the crystal the particle overlapped to get a continuous number
+        const auto repCorners = caloGeom->getGeometry(ebId)->getCornersREP();
+        float minEta_ = repCorners[2].eta();
+        float maxEta_ = repCorners[0].eta();
+        float minPhi_ = repCorners[2].phi();
+        float maxPhi_ = repCorners[0].phi();
+
+        ieta_cont = ieta+(eta-minEta_)/(maxEta_-minEta_);
+        iphi_cont = iphi+(phi-minPhi_)/(maxPhi_-minPhi_);
+      }
+      vTaujet_jet_neutral_releta_crystal_.push_back(ieta_cont);
+      vTaujet_jet_neutral_relphi_crystal_.push_back(iphi_cont);
+
+    } else {
+      // when there is no pi0's set the 4-vector size to 0 and direction to centre of image
+      vTaujet_jet_neutral_relmass_.push_back(0.);
+      vTaujet_jet_neutral_relp_.push_back(0.);
+      vTaujet_jet_neutral_relphi_.push_back(0.);
+      vTaujet_jet_neutral_releta_.push_back(0.);
+      vTaujet_jet_neutral_relphi_crystal_.push_back(jet_sum_iphi2_);
+      vTaujet_jet_neutral_releta_crystal_.push_back(jet_sum_ieta2_);
+    }
+    if (abs(truthLabel)==15) {
+      truthDM = match.second->decay_mode();
+      neutral_pT = match.second->neutral_p4().pt();
+      neutral_M = match.second->neutral_p4().mass();
+      neutral_eta = match.second->neutral_p4().eta();
+      neutral_phi = match.second->neutral_p4().phi();
+
+      // Save charged prongs and index:
+      for (const auto &charged : match.second->charge_p4_indv()){
+          // Find ieta iphi index
+          DetId id_leading( spr::findDetIdECAL( caloGeom, charged.eta(), charged.phi(), false ) );
+          EBDetId ebId( id_leading );
+          int charged_iphi_ = ebId.iphi() - 1;
+          int charged_ieta_ = ebId.ieta() > 0 ? ebId.ieta()-1 : ebId.ieta();
+          
+          charge_p_indv.push_back(charged.energy());
+          charge_eta_indv.push_back(charged_ieta_);
+          charge_phi_indv.push_back(charged_iphi_);
+      }
+      for (auto x : match.second->pis_at_ecal()){
+          double p = x.second;
+          double eta = x.first.eta();
+          double phi = x.first.phi();
+          double releta = eta-pi0_centre_eta;
+          double relphi = phi-pi0_centre_phi;
+          relphi = TVector2::Phi_mpi_pi(relphi);
+          charge_relp_indv.push_back(p);
+          charge_releta_indv.push_back(releta);
+          charge_relphi_indv.push_back(relphi);
+
+          // also store in crystal units:
+          DetId id( spr::findDetIdECAL( caloGeom, eta, phi, false ) );
+          EBDetId ebId( id );
+
+          // get index of the crystal
+          float iphi = ebId.iphi() -1;
+          float ieta = ebId.ieta() > 0 ? ebId.ieta()-1 : ebId.ieta(); 
+
+          float ieta_cont = -10000;
+          float iphi_cont = -10000;
+
+          if (nullptr != caloGeom->getGeometry(ebId)) {     
+            // now work out how far along the crystal the particle overlapped to get a continuous number
+            const auto repCorners = caloGeom->getGeometry(ebId)->getCornersREP();
+            float minEta_ = repCorners[2].eta();
+            float maxEta_ = repCorners[0].eta();
+            float minPhi_ = repCorners[2].phi();
+            float maxPhi_ = repCorners[0].phi();
+            ieta_cont = ieta+(eta-minEta_)/(maxEta_-minEta_);
+            iphi_cont = iphi+(phi-minPhi_)/(maxPhi_-minPhi_);  
+          }
+          charge_releta_crystal_indv.push_back(ieta_cont);
+          charge_relphi_crystal_indv.push_back(iphi_cont);
+        }
+      if (match.second->neutral_p4_indv().size()>0){
+        for (const auto &neutral : match.second->neutral_p4_indv()){
+            DetId id_neutral( spr::findDetIdECAL( caloGeom, neutral.eta(), neutral.phi(), false ) );
+            EBDetId ebId_neutral( id_neutral );
+            int neutral_iphi_ = ebId_neutral.iphi() - 1;
+            int neutral_ieta_ = ebId_neutral.ieta() > 0 ? ebId_neutral.ieta()-1 : ebId_neutral.ieta();
+
+
+            neutral_p_indv.push_back(neutral.energy());
+            neutral_eta_indv.push_back(neutral_ieta_);
+            neutral_phi_indv.push_back(neutral_iphi_);
+          }
+      } else{
+        neutral_p_indv.push_back(-1);
+        neutral_eta_indv.push_back(-100); 
+        neutral_phi_indv.push_back(-100);
+        
+      }
+      if (match.second->pi0s_at_ecal().size()>0){
+        for (auto x : match.second->pi0s_at_ecal()){
+            double p = x.second;
+            double eta = x.first.eta(); 
+            double phi = x.first.phi(); 
+            double releta = eta-pi0_centre_eta;
+            double relphi = phi-pi0_centre_phi; 
+            relphi = TVector2::Phi_mpi_pi(relphi);
+            neutral_relp_indv.push_back(p);
+            neutral_releta_indv.push_back(releta);
+            neutral_relphi_indv.push_back(relphi);
+
+            // also store in crystal units:
+            DetId id( spr::findDetIdECAL( caloGeom, eta, phi, false ) );
+            EBDetId ebId( id );
+
+            // get index of the crystal
+            float iphi = ebId.iphi() -1;
+            float ieta = ebId.ieta() > 0 ? ebId.ieta()-1 : ebId.ieta(); 
+      
+            float ieta_cont = -10000;
+            float iphi_cont = -10000;
+
+            if (nullptr != caloGeom->getGeometry(ebId)) {
+              // now work out how far along the crystal the particle overlapped to get a continuous number
+              const auto repCorners = caloGeom->getGeometry(ebId)->getCornersREP();
+              float minEta_ = repCorners[2].eta();
+              float maxEta_ = repCorners[0].eta();
+              float minPhi_ = repCorners[2].phi();
+              float maxPhi_ = repCorners[0].phi();
+
+              ieta_cont = ieta+(eta-minEta_)/(maxEta_-minEta_);
+              iphi_cont = iphi+(phi-minPhi_)/(maxPhi_-minPhi_); 
+            }
+            neutral_releta_crystal_indv.push_back(ieta_cont);
+            neutral_relphi_crystal_indv.push_back(iphi_cont);
+
+            // uncomment below to determine actual direction
+            // math::XYZVector direction = GetPi0Direction(match.second->vertex(), releta, relphi, jet_sum_eta2_, jet_sum_phi2_);
+            // std::cout << "DIRECTION OUTPUT: " << direction << std::endl;
+
+          }
+      } else{
+        neutral_relp_indv.push_back(0.);
+        neutral_releta_indv.push_back(0.);
+        neutral_relphi_indv.push_back(0.);
+      }
+    } else{
+      charge_p_indv.push_back(-1);
+      neutral_p_indv.push_back(-1);
+      charge_eta_indv.push_back(-100);
+      neutral_eta_indv.push_back(-100);
+      charge_phi_indv.push_back(-100);
+      neutral_phi_indv.push_back(-100);
+    }
+
+    vTaujet_jet_truthDM_.push_back(truthDM);
+    vTaujet_jet_neutral_pT_.push_back(neutral_pT);
+    vTaujet_jet_neutral_m0_.push_back(neutral_M);
+    vTaujet_jet_neutral_eta_.push_back(neutral_eta);
+    vTaujet_jet_neutral_phi_.push_back(neutral_phi);
+
+    vTaujet_jet_charged_indv_p_.push_back(charge_p_indv);
+    vTaujet_jet_neutral_indv_p_.push_back(neutral_p_indv);
+    vTaujet_jet_charged_indv_eta_.push_back(charge_eta_indv);
+    vTaujet_jet_neutral_indv_eta_.push_back(neutral_eta_indv);
+    vTaujet_jet_charged_indv_phi_.push_back(charge_phi_indv);
+    vTaujet_jet_neutral_indv_phi_.push_back(neutral_phi_indv);
+
+    vTaujet_jet_centre2_ieta_.push_back(jet_sum_ieta2_);
+    vTaujet_jet_centre2_iphi_.push_back(jet_sum_iphi2_);
+    vTaujet_jet_centre2_eta_.push_back(jet_sum_eta2_);
+    vTaujet_jet_centre2_phi_.push_back(jet_sum_phi2_); 
+
+    vTaujet_jet_charged_indv_relp_.push_back(charge_relp_indv);
+    vTaujet_jet_neutral_indv_relp_.push_back(neutral_relp_indv);
+    vTaujet_jet_charged_indv_releta_.push_back(charge_releta_indv);
+    vTaujet_jet_neutral_indv_releta_.push_back(neutral_releta_indv);
+    vTaujet_jet_charged_indv_relphi_.push_back(charge_relphi_indv);
+    vTaujet_jet_neutral_indv_relphi_.push_back(neutral_relphi_indv);
+   
+    vTaujet_jet_charged_indv_releta_crystal_.push_back(charge_releta_crystal_indv);
+    vTaujet_jet_neutral_indv_releta_crystal_.push_back(neutral_releta_crystal_indv);
+    vTaujet_jet_charged_indv_relphi_crystal_.push_back(charge_relphi_crystal_indv);
+    vTaujet_jet_neutral_indv_relphi_crystal_.push_back(neutral_relphi_crystal_indv);
   }//vJetIdxs
 
 
