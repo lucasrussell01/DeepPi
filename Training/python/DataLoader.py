@@ -152,6 +152,10 @@ class DataLoader:
                     if np.sum(addTracks)>70:
                         addTracks = 70*addTracks/np.sum(addTracks)
                     x = (np.stack([Tracks, ECAL, PF_HCAL, PF_ECAL, addTracks], axis=-1))
+
+                    if np.isnan(np.sum(x)):
+                        continue
+
                     if self.use_HPS:
                         # x_mass = (np.stack([df["tau_dm"][i], df["tau_pt"][i], df["tau_E"][i], df["tau_eta"][i], df["tau_mass"][i],
                         # df["pi0_dEta"][i], df["pi0_dPhi"][i], df["strip_mass"][i], df["strip_pt"][i], 
@@ -161,12 +165,23 @@ class DataLoader:
                                  df["HPS_pi0_dEta"][i], df["HPS_pi0_dPhi"][i], df["HPS_strip_mass"][i], df["HPS_strip_pt"][i], df["HPS_rho_mass"][i], df["HPS_pi2_px"][i], 
                                  df["HPS_pi2_py"][i], df["HPS_pi2_pz"][i], df["HPS_pi2_E"][i], df["HPS_pi3_px"][i], df["HPS_pi3_py"][i], df["HPS_pi3_pz"][i], df["HPS_pi3_E"][i], 
                                  df["HPS_mass0"][i], df["HPS_mass1"][i], df["HPS_mass2"][i], df["HPS_pi0_releta"][i], df["HPS_pi0_relphi"][i]], axis=-1))
-
+                        if np.isnan(np.sum(x_mass)):
+                            continue
                         x = tuple([x, x_mass])
+
                     yp = df["relp"][i][0] # pi0 momentum
                     yeta = df["releta"][i][0]
                     yphi = df["relphi"][i][0]
                     yKin = (yp, yeta, yphi)
+
+                    
+                    if np.isnan(yp):
+                        continue
+                    elif np.isnan(yeta):
+                        continue
+                    elif np.isnan(yphi):
+                        continue
+                    
                     if evaluation:
                         PV = df["PV"][i]
                         HPSDM = df["HPS_tau_dm"][i]
