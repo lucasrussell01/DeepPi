@@ -74,9 +74,18 @@ MVA_DM_list = []
 deeptauVSjet_list = []
 deeptauVSmu_list = []
 deeptauVSe_list = []
-# centre of image
+
+# General info variables:
 jet_eta_list = []
 jet_phi_list = []
+jet_pt_list = []
+jet_mass_list = []
+pi0_centre_eta_list = []
+pi0_centre_phi_list = []
+tau_centre_eta_list = []
+tau_centre_phi_list = []
+centre2_eta_list = []
+centre2_phi_list = []
 # PV information:
 PV_list = []
 # High level variables:
@@ -125,6 +134,8 @@ nEvts = int(rhTree.GetEntries())
 
 
 print("Beginning image creation")
+
+# ADD: jet eta, phi, pT, mass, tau centre, pi0_centre
 
 for event in range(nEvts):
     rhTree.GetEntry(event)
@@ -185,15 +196,24 @@ for event in range(nEvts):
             prong_relphi_list.append(np.array(prong_relphi[i]))
             prong_relp_list.append(np.array(prong_relp[i]))
             PV_list.append(PV)
-            jet_eta_list.append(np.array(rhTree.jet_centre2_eta)[i])
-            jet_phi_list.append(np.array(rhTree.jet_centre2_phi)[i])
+            # General info variables:
+            jet_eta_list.append(np.array(rhTree.jetEta)[i])
+            jet_phi_list.append(np.array(rhTree.jetPhi)[i])
+            jet_pt_list.append(np.array(rhTree.jetPt)[i])
+            jet_mass_list.append(np.array(rhTree.jetM)[i])
+            pi0_centre_eta_list.append(np.array(rhTree.pi0_centre_eta)[i])
+            pi0_centre_phi_list.append(np.array(rhTree.pi0_centre_phi)[i])
+            tau_centre_eta_list.append(np.array(rhTree.tau_centre_eta)[i])
+            tau_centre_phi_list.append(np.array(rhTree.tau_centre_phi)[i])
+            centre2_eta_list.append(np.array(rhTree.jet_centre2_eta)[i])
+            centre2_phi_list.append(np.array(rhTree.jet_centre2_phi)[i])
             MVA_DM_list.append(np.array(rhTree.tau_mva_dm)[i])
             deeptauVSjet_list.append(np.array(rhTree.tau_deeptau_id)[i])
             deeptauVSmu_list.append(np.array(rhTree.tau_deeptau_id_vs_mu)[i])
             deeptauVSe_list.append(np.array(rhTree.tau_deeptau_id_vs_e)[i])
             # add HPS variables:
-            list_pi0_releta.append(np.array(rhTree.HPSpi0_releta)[i] + np.array(rhTree.jet_centre2_eta)[i] - np.array(rhTree.pi0_centre_eta)[i]) # adjust relative to new centering
-            list_pi0_relphi.append(np.array(rhTree.HPSpi0_relphi)[i] + np.array(rhTree.jet_centre2_phi)[i] - np.array(rhTree.pi0_centre_phi)[i])
+            list_pi0_releta.append(np.array(rhTree.HPSpi0_releta)[i]) # + np.array(rhTree.jet_centre2_eta)[i] - np.array(rhTree.pi0_centre_eta)[i]) # adjust relative to new centering
+            list_pi0_relphi.append(np.array(rhTree.HPSpi0_relphi)[i]) # + np.array(rhTree.jet_centre2_phi)[i] - np.array(rhTree.pi0_centre_phi)[i])
             list_tau_dm.append(np.array(rhTree.tau_dm)[i])
             list_tau_pt.append(np.array(rhTree.tau_pt)[i])
             list_tau_E.append(np.array(rhTree.tau_E)[i])
@@ -238,8 +258,18 @@ df["prong_releta"] = prong_releta_list
 df["prong_relphi"] = prong_relphi_list
 df["prong_relp"] = prong_relp_list
 df["PV"] = PV_list
+# General information
 df["jet_eta"] = jet_eta_list
 df["jet_phi"] = jet_phi_list
+df["jet_pt"] = jet_pt_list
+df["jet_mass"] = jet_mass_list
+df["pi0_centre_eta"] = pi0_centre_eta_list
+df["pi0_centre_phi"] = pi0_centre_phi_list
+df["tau_centre_eta"] = tau_centre_eta_list
+df["tau_centre_phi"] = tau_centre_phi_list
+df["centre2_eta"] = centre2_eta_list
+df["centre2_phi"] = centre2_phi_list
+# Tau ID info
 df["MVA_DM"] = MVA_DM_list
 df["deeptauVSjet"] = deeptauVSjet_list
 df["deeptauVSmu"] = deeptauVSmu_list
