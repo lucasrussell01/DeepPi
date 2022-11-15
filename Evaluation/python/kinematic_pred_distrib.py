@@ -38,7 +38,7 @@ class error_plotter:
     def compare_momentum(self):
         p = self.df["relp"]
         p_pred = self.df["relp_pred"]
-        p_HPS = self.df["pi0_p_HPSPV"]
+        p_HPS = self.df["pi0_p_HPS"]
         err = p-p_pred
         HPS_err = p - p_HPS
         w = 1
