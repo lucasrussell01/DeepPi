@@ -108,75 +108,83 @@ print("Model loaded")
 pbar = tqdm(total = dataloader.n_batches)
 
 genDM = []
-rel_p = []
-rel_p_pred = []
+# Gen information:
+rel_p = [] 
 rel_eta = []
-rel_eta_pred = []
 rel_phi = []
+# Predictions
+rel_p_pred = []
+rel_eta_pred = []
 rel_phi_pred = []
+# Store HPS DM for comparisons
+HPSDM_list = [] 
+# True Pi0 Position
 pi0_eta = []
 pi0_phi = []
+# CNN predicted pi0 position
 pi0_eta_pred = []
 pi0_phi_pred = []
-pi0_eta_HPS = []
-pi0_phi_HPS = []
+# HPS predicted pi0 
 pi0_p_HPS = []
+pi0_eta_HPS = []
+pi0_phi_HPS= []
 rel_eta_HPS = []
 rel_phi_HPS = []
-pi0_eta_HPSPV = []
-pi0_phi_HPSPV = []
+
+
 
 # Generate predictions
 i = 0
 for elem in data_eval:
-    x, y, PV, DM, HPSDM, HPS_pi0, jetpos = elem
+    x, y, PV, DM, HPSDM, HPS_pi0, jetpos = elem # import relevant info from DataLoader
     HPS_pi0 = np.array(HPS_pi0)[0]
     jetpos = np.array(jetpos[0])
-    if DM != 1 and DM != 11: # only kinematic regress DM 1 for now
-        i+=1
-        if i%10 ==0:
-            pbar.update(10)
-        continue
-    elif HPSDM == 1 or HPSDM == 11: # make sure HPS has reco tau as same DM? 
+    if DM ==1 or DM == 11: # Store the regressed pi0
+        # Get truth and predictions
         y_pred = test(x, model)
         y = np.array(y)[0]
+        # Store DMs
         genDM.append(np.array(DM)[0])
+        HPSDM_list.append(np.array(HPSDM)[0])
+        # Store RAW predictions
         rel_p.append(y[0])
         rel_eta.append(y[1])
         rel_phi.append(y[2])
         rel_p_pred.append(y_pred[0])
         rel_eta_pred.append(y_pred[1])
         rel_phi_pred.append(y_pred[2])
+        # Find original eta and phi
         eta_orig = jetpos[0] + y[1]
         eta_orig_pred = jetpos[0] + y_pred[1] #CNN
         eta_orig_HPS = jetpos[0] + HPS_pi0[3]
         phi_orig = jetpos[1] + y[2]
         phi_orig_pred = jetpos[1] + y_pred[2]
         phi_orig_HPS = jetpos[1] + HPS_pi0[4]
+        # Find original postions in xyz
         pos = pos_xyz(eta_orig, phi_orig)
         pos_pred = pos_xyz(eta_orig_pred, phi_orig_pred) # CNN 
         pos_HPS = pos_xyz(eta_orig_HPS, phi_orig_HPS)
+        # Convert to pi0 (p, eta, phi)
         pi0 = pi0_xyz(pos, np.array(PV))[0]
         pi0_pred = pi0_xyz(pos_pred, np.array(PV))[0]
-        pi0_HPS_ = pi0_xyz(pos_HPS, np.array(PV))[0] # HPS
+        pi0_HPS_ = pi0_xyz(pos_HPS, np.array(PV))[0]
+        # Extract preditions
         pi0_eta.append(get_pi0_eta(pi0))
         pi0_phi.append(get_pi0_phi(pi0))
-        pi0_eta_HPSPV.append(get_pi0_eta(pi0_HPS_))
-        pi0_phi_HPSPV.append(get_pi0_phi(pi0_HPS_))
+        pi0_eta_HPS.append(get_pi0_eta(pi0_HPS_))
+        pi0_phi_HPS.append(get_pi0_phi(pi0_HPS_))
         pi0_eta_pred.append(get_pi0_eta(pi0_pred))
         pi0_phi_pred.append(get_pi0_phi(pi0_pred))
-        pi0_eta_HPS.append(get_HPS_eta(HPS_pi0))
-        pi0_phi_HPS.append(get_HPS_phi(HPS_pi0))
         pi0_p_HPS.append(get_HPS_p(HPS_pi0))
         rel_eta_HPS.append(HPS_pi0[3])
         rel_phi_HPS.append(HPS_pi0[4])
         i+=1
-        if i%10 ==0:
-            pbar.update(10)
-    else:
+        if i%100 == 0:
+            pbar.update(100)
+    else: # only DMs with 1 pi0 treated
         i+=1
-        if i%10 ==0:
-            pbar.update(10)
+        if i%100 ==0:
+            pbar.update(100)
         continue
 
 print(f"Total of {len(rel_p)} DM 1 or 11 taus evaluated")
@@ -184,23 +192,22 @@ print(f"Total of {len(rel_p)} DM 1 or 11 taus evaluated")
 
 df = pd.DataFrame()
 df["DM"] = genDM
+df["HPSDM"] = HPSDM_list
 df["relp"] = rel_p 
-df["relp_pred"] = rel_p_pred
 df["releta"] = rel_eta
-df["releta_pred"] = rel_eta_pred
 df["relphi"] = rel_phi
+df["relp_pred"] = rel_p_pred
+df["releta_pred"] = rel_eta_pred
 df["relphi_pred"] = rel_phi_pred
 df["pi0_phi"] = pi0_phi
 df["pi0_eta"] = pi0_eta
 df["pi0_phi_pred"] = pi0_phi_pred
 df["pi0_eta_pred"] = pi0_eta_pred
-df["pi0_eta_HPS"] = pi0_eta_HPS
-df["pi0_phi_HPS"] = pi0_phi_HPS
 df["pi0_p_HPS"] = pi0_p_HPS
 df["rel_eta_HPS"] = rel_eta_HPS
 df["rel_phi_HPS"] = rel_phi_HPS
-df["pi0_eta_HPSPV"] = pi0_eta_HPSPV
-df["pi0_phi_HPSPV"] = pi0_phi_HPSPV
+df["pi0_eta_HPS"] = pi0_eta_HPS
+df["pi0_phi_HPS"] = pi0_phi_HPS
 
 
 print(df)
@@ -210,7 +217,8 @@ print("Predictions computed")
 save_folder = path_to_artifacts + "/predictions"
 if not os.path.exists(save_folder):
     os.makedirs(save_folder)
-savepath = save_folder + "/kinematic_pred_ggH.pkl"
+
+savepath = save_folder + "/kinematic_pred.pkl"
 
 df.to_pickle(savepath)
 
