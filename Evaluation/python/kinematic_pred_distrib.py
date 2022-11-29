@@ -5,7 +5,7 @@ from scipy.stats import iqr
 
 class error_plotter:
 
-    def __init__(self, expID, runID, DM=[1, 11]):
+    def __init__(self, expID, runID, DM=[1, 11], p_range = None):
         self.expID = expID
         self.runID = runID
         path_to_mlflow = "../../Training/python/mlruns/"
@@ -21,6 +21,11 @@ class error_plotter:
             self.df = pd.read_pickle(self.path_to_pred).loc[pd.read_pickle(self.path_to_pred)["DM"]==11]
             print(len(self.df["DM"]))
         print(f"Included decay modes: {DM}")
+
+        if p_range:
+            self.df = self.df.loc[self.df["relp"]>p_range[0]]
+            self.df = self.df.loc[self.df["relp"]<p_range[1]]
+            print(f"Momentum cut applied, p>{p_range[0]}, p<{p_range[1]}, {len(self.df['DM'])} taus remaining")
 
     def gen_momentum(self, density=False):
         p = self.df["relp"]
@@ -67,7 +72,10 @@ class error_plotter:
         err = eta-eta_pred
         HPS_err = eta - eta_HPS
         w = 0.001
-        bins = np.arange(np.min(err), np.max(err)+w, w)
+        # bins = np.arange(np.min(err), np.max(err)+w, w)
+        bins = np.arange(-0.02, 0.021, 0.001)
+        b, counts = np.histogram(err, bins=bins)
+        print(f"Counts are {counts}")
         plt.figure()
         plt.hist(HPS_err, bins = bins, histtype="step", color = "red", label= f"HPS $\mu$={np.mean(HPS_err):.4f} IQR={iqr(HPS_err):.4f}")
         plt.hist(err, bins = bins, histtype="step", color = "blue", label= f"CNN $\mu$={np.mean(err):.4f} IQR={iqr(err):.4f}")
@@ -86,7 +94,7 @@ class error_plotter:
         err = eta-eta_pred
         HPS_err = eta - eta_HPS
         w = 0.001
-        bins = np.arange(np.min(err), np.max(err)+w, w)
+        bins = np.arange(-0.02, 0.021, 0.001)
         plt.figure()
         plt.hist(HPS_err, bins = bins, histtype="step", color = "red", label= f"HPS $\mu$={np.mean(HPS_err):.4f} IQR={iqr(HPS_err):.4f}")
         plt.hist(err, bins = bins, histtype="step", color = "blue", label= f"CNN $\mu$={np.mean(err):.4f} IQR={iqr(err):.4f}")
@@ -125,7 +133,8 @@ class error_plotter:
         err = phi-phi_pred
         HPS_err = phi - phi_HPS
         w = 0.0025
-        bins = np.arange(np.min(err), np.max(err)+w, w)
+        bins = np.arange(-0.03, 0.0325, 0.0025)
+        # bins = np.arange(np.min(err), np.max(err)+w, w)
         plt.figure()
         plt.hist(HPS_err, bins = bins, histtype="step", color = "red", label= f"HPS $\mu$={np.mean(HPS_err):.4f} IQR={iqr(HPS_err):.4f}")
         plt.hist(err, bins = bins, histtype="step", color = "blue", label= f"CNN $\mu$={np.mean(err):.4f} IQR={iqr(err):.4f}")
@@ -217,7 +226,7 @@ class error_plotter:
         ax1.set_ylabel(f"IQR {lab}")
         ax2.set_xlabel(tag)
         ax2.grid()
-        ax2.errorbar(tag_centre, np.array(viqr)/np.array(viqr_HPS), xerr=width/2, marker="o", linestyle="", color="black")
+        # ax2.errorbar(tag_centre, np.array(viqr)/np.array(viqr_HPS), xerr=width/2, marker="o", linestyle="", color="black")
         ax2.set_ylabel("CNN/HPS")
         plt.show()
 
@@ -317,7 +326,7 @@ class error_plotter:
         ax1.set_ylabel(f"IQR {lab}")
         ax2.set_xlabel(tag)
         ax2.grid()
-        ax2.errorbar(tag_centre, np.array(viqr)/np.array(viqr_HPS), xerr=width/2, marker="o", linestyle="", color="black")
+        # ax2.errorbar(tag_centre, np.array(viqr)/np.array(viqr_HPS), xerr=width/2, marker="o", linestyle="", color="black")
         ax2.set_ylabel("CNN/HPS")
         plt.show()
 
