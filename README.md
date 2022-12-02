@@ -121,7 +121,7 @@ Here `sample` is the sample type to process, `path_to_list` is where the filelis
 
 NB: Each sample will created and submit 100-1000 jobs, which take 3-7 minutes each.
 
-### Split into Trainin/Validation and Evaluation
+### Split into Training/Validation and Evaluation
 
 You must move the images you created into to separate folders, one for training/validation and one for evaluation. The paths to these folders will need to be specified in the training configuration file later. A Training/Validation and Evaluation split of around 85/15 is what was used previously here. 
 
@@ -252,7 +252,7 @@ The following scripts are provided:
 
 - `apply_DM_training.py`: applies the DM classification model to a evaluation sample 
 - `apply_Kin_training.py`: applies the kinematic models to a evaluation sample
-- `kinematic_pred_distrib.py`: plots the evaluated kinematic models e.g plots of eta, phi, and momentum distributions  
+- `kinematic_predictions.py`: plots the evaluated kinematic models e.g plots of eta, phi, and momentum distributions  
 - `monitor_metrics.py`: plots the metrics e.g loss, accuracy etc..
 - `confusion_matrix.py`:  plots efficiency and purity matrices for SM classification
 
