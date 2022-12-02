@@ -2,7 +2,7 @@ Setup:
     n_tau           :   250 # N taus/batch
     n_batches       :   -1 #178600 # N batches train
     n_batches_val   :   -1 #31600 # N batches val
-    input_dir       :   "/vols/cms/lcr119/Images/NewCentering_0711Training" 
+    input_dir       :   "/vols/cms/lcr119/Images/DeepPi_v1/EGammaCentering/Training" 
     val_split       :   0.15 # proportion of files to be used for validation
     n_epochs        :   5
     epoch           :   0 # starting epoch

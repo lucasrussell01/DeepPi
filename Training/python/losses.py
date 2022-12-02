@@ -12,7 +12,7 @@ class TauLosses:
     @staticmethod
     @tf.function
     def Kinematic_loss(target, output):
-        loss = TauLosses.MAE_eta(target, output) + TauLosses.MAE_phi(target, output) #+ TauLosses.MAE_momentum(target, output) 
+        loss =  TauLosses.MAE_eta(target, output) #TauLosses.MAE_phi(target, output) # +  + TauLosses.MAE_momentum(target, output) 
         return loss
 
     @staticmethod

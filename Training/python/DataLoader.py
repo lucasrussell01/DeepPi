@@ -186,13 +186,14 @@ class DataLoader:
                         PV = df["PV"][i]
                         HPSDM = df["HPS_tau_dm"][i]
                         HPS_pi0 = [df["HPS_pi0_px"][i], df["HPS_pi0_py"][i], df["HPS_pi0_pz"][i], df["HPS_pi0_releta"][i], df["HPS_pi0_relphi"][i]]
-                        jet = [df["pi0_centre_eta"][i], df["pi0_centre_phi"][i]]
+                        # jet = [df["pi0_centre_eta"][i], df["pi0_centre_phi"][i]]
+                        jet = [df["jet_eta"][i], df["jet_phi"][i]]
                         yield(x, yKin, PV, DM, HPSDM, HPS_pi0, jet)   
                     elif mom_evaluation:
                         PV = df["PV"][i]
                         HPSDM = df["HPS_tau_dm"][i]
                         HPS_pi0 = [df["pi0_px"][i], df["pi0_py"][i], df["pi0_pz"][i], df["HPS_pi0_releta"][i], df["HPS_pi0_relphi"][i]]
-                        jet = [df["pi0_centre_eta"][i], df["pi0_centre_phi"][i]]
+                        # jet = [df["pi0_centre_eta"][i], df["pi0_centre_phi"][i]]
                         yield(x, yp, PV, DM, HPSDM, HPS_pi0, jet)
                     elif yp>200:
                         continue

@@ -70,7 +70,7 @@ def get_HPS_p(p_vect):
 with open(f'{path_to_artifacts}/input_cfg/training_cfg.yaml') as file:
     training_cfg = yaml.full_load(file)
     print("Training Config Loaded")
-training_cfg["Setup"]["input_dir"] = '/vols/cms/lcr119/Images/NewCentering_0711/Evaluation'
+training_cfg["Setup"]["input_dir"] = '/vols/cms/lcr119/Images/DeepPi_v1/EGammaCentering/Evaluation'
 training_cfg["Setup"]["n_batches"] = args.n_tau
 training_cfg["Setup"]["n_batches_val"] = 0
 training_cfg["Setup"]["val_split"] = 0

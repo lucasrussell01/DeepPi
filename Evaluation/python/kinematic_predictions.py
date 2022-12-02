@@ -28,6 +28,10 @@ class kin_pred:
             self.df = self.df.loc[(self.df['HPSDM']==1) | (self.df['HPSDM']==11)]
         elif HPSDM == [-1]:
             self.df = self.df.loc[self.df['HPSDM']==-1]
+        elif HPSDM == [1]:
+            self.df = self.df.loc[self.df['HPSDM']==1]
+        elif HPSDM == [0]:
+            self.df = self.df.loc[self.df['HPSDM']==0]
         elif HPSDM == [0, 10]:
             self.df = self.df.loc[(self.df['HPSDM']==0) | (self.df['HPSDM']==10)]
         else:
@@ -48,7 +52,7 @@ class kin_pred:
         w = 1
         bins = np.arange(-40, 40+w, w)
         plt.figure()
-        if self.HPSDM == [1, 11]:
+        if self.HPSDM == [1, 11] or self.HPSDM==[1] or self.HPSDM==[11]:
             p_HPS = self.df["pi0_p_HPS"]
             HPS_err = p - p_HPS
             plt.hist(HPS_err, bins = bins, histtype="step", color = "red", label= f"HPS $\mu$={np.mean(HPS_err):.4f} IQR={iqr(HPS_err):.4f}")
@@ -67,7 +71,7 @@ class kin_pred:
         bins = np.arange(-0.02, 0.021, 0.001)
 
         plt.figure()
-        if self.HPSDM == [1, 11]:
+        if self.HPSDM == [1, 11] or self.HPSDM==[1] or self.HPSDM==[11]:
             eta_HPS = self.df["pi0_eta_HPS"]
             HPS_err = eta - eta_HPS
             plt.hist(HPS_err, bins = bins, histtype="step", color = "red", label= f"HPS $\mu$={np.mean(HPS_err):.4f} IQR={iqr(HPS_err):.4f}")
@@ -85,7 +89,7 @@ class kin_pred:
         bins = np.arange(-0.03, 0.0325, 0.0025)
         
         plt.figure()
-        if self.HPSDM == [1, 11]:
+        if self.HPSDM == [1, 11] or self.HPSDM==[1] or self.HPSDM==[11]:
             phi_HPS = self.df["pi0_phi_HPS"]
             HPS_err = phi - phi_HPS
             plt.hist(HPS_err, bins = bins, histtype="step", color = "red", label= f"HPS $\mu$={np.mean(HPS_err):.4f} IQR={iqr(HPS_err):.4f}")
@@ -104,7 +108,7 @@ class kin_pred:
         bins = np.arange(-0.02, 0.021, 0.001)
 
         plt.figure()
-        if self.HPSDM == [1, 11]:
+        if self.HPSDM == [1, 11] or self.HPSDM==[1] or self.HPSDM==[11]:
             eta_HPS = self.df["rel_eta_HPS"]
             HPS_err = eta - eta_HPS
             plt.hist(HPS_err, bins = bins, histtype="step", color = "red", label= f"HPS $\mu$={np.mean(HPS_err):.4f} IQR={iqr(HPS_err):.4f}")
@@ -124,7 +128,7 @@ class kin_pred:
         bins = np.arange(-0.03, 0.0325, 0.0025)
 
         plt.figure()
-        if self.HPSDM == [1, 11]:
+        if self.HPSDM == [1, 11] or self.HPSDM==[1] or self.HPSDM==[11]:
             phi_HPS = self.df["rel_phi_HPS"]
             HPS_err = phi - phi_HPS
             plt.hist(HPS_err, bins = bins, histtype="step", color = "red", label= f"HPS $\mu$={np.mean(HPS_err):.4f} IQR={iqr(HPS_err):.4f}")
@@ -194,7 +198,7 @@ class kin_pred:
         ax1.grid()
         
         ax1.errorbar(p_centre, (mean_err), xerr=width/2, marker = "o", linestyle="", label = f"CNN")
-        if self.HPSDM == [1, 11]:
+        if self.HPSDM == [1, 11] or self.HPSDM==[1] or self.HPSDM==[11]:
             ax1.errorbar(p_centre, (mean_HPS_err), xerr=width/2, marker = "o", linestyle="", label = f"HPS")
         ax1.legend()
         ax1.set_ylabel(f"Mean {lab}")
@@ -207,18 +211,22 @@ class kin_pred:
         ax1.minorticks_on()
         ax1.grid()
         ax1.errorbar(p_centre, viqr, xerr=width/2, marker = "o", linestyle="", label = f"CNN")
-        if self.HPSDM == [1, 11]:
+        if self.HPSDM == [1, 11] or self.HPSDM==[1] or self.HPSDM==[11]:
             ax1.errorbar(p_centre, viqr_HPS, xerr=width/2, marker = "o", linestyle="", label = f"HPS")
-            ax1.errorbar([200], [1], xerr=[1], label = "CNN/HPS Ratio", marker="o", linestyle="", color="black")
+            return mean_err, viqr, mean_HPS_err, viqr_HPS
+        else:
+            return  mean_err, viqr
+        
+            # ax1.errorbar([200], [1], xerr=[1], label = "CNN/HPS Ratio", marker="o", linestyle="", color="black")
         ax1.legend()
         ax1.set_ylabel(f"IQR {lab}")
         ax2.set_xlabel(r"$\pi^0$ Momentum")
         ax2.grid()
 
         if distrib=="phi" or distrib=="eta":
-            ax1.set_ylim(0, 0.03)
+            # ax1.set_ylim(0, 0.03)
             ax2.set_ylim(0.5, 2.5)
-        if self.HPSDM == [1, 11]:
+        if self.HPSDM == [1, 11] or self.HPSDM==[1] or self.HPSDM==[11]:
             ax2.errorbar(p_centre, np.array(viqr)/np.array(viqr_HPS), xerr=width/2, marker="o", linestyle="", color="black")
             ax2.set_ylabel("CNN/HPS")
 
@@ -230,7 +238,7 @@ class kin_pred:
         ax1.minorticks_on()
         ax1.grid()
         ax1.errorbar(p_centre, std, xerr=width/2, marker = "o", linestyle="", label = f"CNN")
-        if self.HPSDM == [1, 11]:
+        if self.HPSDM == [1, 11] or self.HPSDM==[1] or self.HPSDM==[11]:
             ax1.errorbar(p_centre, std_HPS, xerr=width/2, marker = "o", linestyle="", label = f"HPS")
             ax1.errorbar([200], [1], xerr=[1], label = "CNN/HPS Ratio", marker="o", linestyle="", color="black")
             ax1.scatter([200], [1], label = "CNN/HPS Ratio", color="black")
@@ -238,7 +246,7 @@ class kin_pred:
         ax1.set_ylabel(f"Standard dev. {lab}")
         ax2.set_xlabel(r"$\pi^0$ Momentum")
         ax2.grid()
-        if self.HPSDM == [1, 11]:
+        if self.HPSDM == [1, 11] or self.HPSDM==[1] or self.HPSDM==[11]:
             ax2.errorbar(p_centre, np.array(std)/np.array(std_HPS), xerr=width/2, marker="o", linestyle="", color="black")
             ax1.set_xlim(0, 150)
             ax2.set_ylabel("CNN/HPS")
